@@ -1,0 +1,103 @@
+Source: audacious-plugins
+Section: sound
+Priority: optional
+Maintainer: Debian Audacious Packagers <pkg-audacious-maintainers@lists.alioth.debian.org>
+Uploaders: Chris Taylor <ctaylor@debian.org>
+Build-Depends: debhelper (>= 7), autotools-dev, audacious-dev (>= 2.1), libgtk2.0-dev (>= 2.6), libglade2-dev (>= 2.3.1), libtagc0-dev (>= 1.4),
+               libsdl1.2-dev (>= 1.2.9) | libsdl-dev (>= 1.2.9), libvorbis-dev (>= 1.2), libogg-dev (>= 1.0), libflac-dev (>= 1.1.2),
+               libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+               libesd0-dev (>= 0.2), libsidplay2-dev | libsidplay1-dev, libresid-builder-dev, liblircclient-dev, libjack0.100.0-dev | libjack0.80.0-dev | libjack-dev,
+               libsamplerate0-dev (>=0.0.15) | libsamplerate-dev (>=0.0.15), libsndfile1-dev (>= 0.19) | libsndfile-dev (>= 0.19),
+               libpulse-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], quilt, libwavpack-dev, libmms-dev, libfluidsynth-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libgtkglext1,
+               libmad0-dev, libmcs-dev,libxcomposite-dev, libbinio-dev, libcurl4-gnutls-dev,  libneon27-gnutls-dev (>= 0.26),
+               libcdio-cdda-dev (>= 0.70), libcddb2-dev (>= 1.2.1) | libcddb-dev (>= 1.2.1), libmtp-dev, libprojectm-dev, libimlib2-dev (>= 1.1.0),
+               libshout3-dev, autoconf, automake
+Homepage: http://www.audacious-media-player.org/
+Standards-Version: 3.8.4
+
+Package: audacious-plugins
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, audacious (>= 2.1)
+Conflicts: audacious (<< 1.2), audacious-plugins-extra (<< 1.3.5-4)
+Replaces: audacious-plugins-extra
+Description: Base plugins for audacious
+ Audacious is a fork of beep-media-player which supports winamp skins
+ and many codecs.
+ .
+ In the default install, the following codecs are supported:
+ .
+  * MP3
+  * Ogg Vorbis
+  * AAC and AAC+
+  * FLAC
+  * Windows Media (WMA)
+  * TTA
+  * Many module formats and much more!
+ .
+ Additionally, Audacious is extendable through plugins, and contains
+ other useful features like LIRC support and support for last.fm.
+ .
+ This package contains the plugins for Audacious.
+  * Audio CD reading
+  * MPEG support (mp3)
+  * Ogg Vorbis support
+  * Windows Media support (WMA)
+  * AAC support
+  * FLAC support
+  * ALAC support
+  * WAVE support
+  * ALSA output
+  * OSS output
+  * Disk writer output
+  * And many more!
+
+Package: audacious-plugins-dev
+Section: devel
+Architecture: any
+Depends: ${misc:Depends}, audacious-plugins (= ${binary:Version}), audacious-dev (>= 2.1), debhelper (>= 5), autotools-dev, libgtk2.0-dev (>= 2.6), libglade2-dev (>= 2.3.1), libtagc0-dev (>= 1.4), libsdl1.2-dev (>= 1.2.9) | libsdl-dev (>= 1.2.9), libvorbis-dev (>= 1.2), libogg-dev (>= 1.0) , libflac-dev (>= 1.1.2), libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libesd0-dev (>= 0.2), libsidplay2-dev | libsidplay1-dev, libresid-builder-dev, liblircclient-dev, libjack0.100.0-dev | libjack0.80.0-dev | libjack-dev, libsamplerate0-dev (>=0.0.15) | libsamplerate-dev (>=0.0.15), libsndfile1-dev (>= 0.19) | libsndfile-dev (>= 0.19), libpulse-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], quilt, libwavpack-dev, libmms-dev, libfluidsynth-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libmad0-dev, libmcs-dev, libxcomposite-dev, libbinio-dev, libcurl4-gnutls-dev, libneon27-gnutls-dev (>= 0.26), libcdio-cdda-dev (>= 0.70), libcddb2-dev (>= 1.2.1) | libcddb-dev (>= 1.2.1), libmtp-dev, libprojectm-dev, libimlib2-dev (>= 1.1.0)
+Description: Useful virtual package for doing audacious plugin development
+ Audacious is a fork of beep-media-player which supports winamp skins
+ and many codecs.
+ .
+ In the default install, the following codecs are supported:
+ .
+  * MP3
+  * Ogg Vorbis
+  * AAC and AAC+
+  * FLAC
+  * Windows Media (WMA)
+  * TTA
+  * Many module formats and much more!
+ .
+ Additionally, Audacious is extendable through plugins, and contains
+ other useful features like LIRC support and support for last.fm.
+ .
+ This package is a virtual package which will install audacious-dev and all
+ build-depends required by the plugins.
+
+Package: audacious-plugins-dbg
+Section: debug
+Priority: extra
+Architecture: any
+Depends: audacious-plugins (= ${binary:Version}), ${misc:Depends}
+Recommends: audacious-dbg
+Description: Audacious-Plugins debug symbols
+ Audacious is a fork of beep-media-player which supports winamp skins
+ and many codecs.
+ .
+ In the default install, the following codecs are supported:
+ .
+  * MP3
+  * Ogg Vorbis
+  * AAC and AAC+
+  * FLAC
+  * Windows Media (WMA)
+  * TTA
+  * Many module formats and much more!
+ .
+ Additionally, Audacious is extendable through plugins, and contains
+ other useful features like LIRC support and support for last.fm.
+ .
+ This package contains the debugging symbols for the plugins collection of
+ Audacious. Please install it before reporting any crashes, as it makes bug
+ triage an easier process.

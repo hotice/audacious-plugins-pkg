@@ -1,0 +1,285 @@
+audacious-plugins (2.3-1) experimental; urgency=low
+
+  * New uploader.
+    - Remove old uploaders.
+  * New upstream release.
+  * Bump standards version. 
+  * Use source format 3.0 (quilt).
+  * Remove audacious-plugins-extra.
+    - Add replaces in debian/control.
+  * Updates to debian/copyright.
+  * Use dh7 in debian/rules.
+
+ -- Chris Taylor <ctaylor@debian.org>  Sat, 03 Apr 2010 01:16:52 +0000
+
+audacious-plugins (2.1-1.1) unstable; urgency=low
+
+  * NMU from Moenchengladbach BSP
+  * Fixes FTBFS due to conflicting types for jack_free (Closes: #560510)
+    [debian/patches/10_jack_fix_conflicting_types.diff]
+  * Fixes FTBFS on kFreeBSD (Closes: #543329)
+  
+ -- Axel Beckert <abe@deuxchevaux.org>  Sun, 24 Jan 2010 01:09:51 +0100
+
+audacious-plugins (2.1-1) unstable; urgency=low
+
+  * New upstream release.
+    - Fix a file descriptor leak in madplug.  (Closes: #524470)
+
+ -- William Pitcock <nenolod@dereferenced.org>  Tue, 07 Jul 2009 20:57:23 -0500
+
+audacious-plugins (2.0.1-3) unstable; urgency=low
+
+  * Fix deadlock in vorbis plugin which was dependent on a codepath that only
+    holds true with certain ALSA output methods (but not all of them).
+    (Closes: #531835)
+
+ -- William Pitcock <nenolod@dereferenced.org>  Thu, 04 Jun 2009 19:40:12 -0500
+
+audacious-plugins (2.0.1-2) unstable; urgency=low
+
+  * Fix improper dependency on audacious-plugins-dev. (Closes: #531776)
+
+ -- William Pitcock <nenolod@dereferenced.org>  Thu, 04 Jun 2009 02:42:20 -0500
+
+audacious-plugins (2.0.1-1) unstable; urgency=low
+
+  * New upstream release.
+    - New skins plugin with many less design flaws than the old XMMS code.
+      (Closes: #456558, #460802, #500081)
+    - Do not crash when invalid monkey's audio chunks are encountered.
+      (Closes: #514674)
+    
+  * Acknowledge NMU, thanks Rafael for your work.
+    - debian/patches/004-compile-with-libmtp8.patch: dropped,
+      different patch integrated upstream to solve the same issue.
+    
+  * debian/audacious-plugins.install: add crossfade.so, skins.so.
+  * debian/audacious-plugins-extra.install: add icecast.so, psf2.so, xsf.so
+  * debian/control: enable projectm again.
+  * debian/patches/*: dropped, integrated upstream.
+  * debian/control: remove dependency on libmpcdec-dev and disable musepack
+    support, as musepack sv7 and sv8 will be regained by audacious-ffaudio
+    shortly, e.g. before squeeze ships.
+    (Closes: #518679, #476383)
+
+ -- William Pitcock <nenolod@dereferenced.org>  Fri, 29 May 2009 21:36:59 -0500
+
+audacious-plugins (1.5.1-2.1) unstable; urgency=low
+
+  * NMU for helping with the libmtp7 -> libmtp8 transition, with the
+    authorization of the Release Team
+    (http://lists.debian.org/debian-release/2009/03/msg00085.html)
+  * debian/patches/004-compile-with-libmtp8.patch: New patch for fixing 
+    the new number of arguments in function LIBMTP_Send_Track_From_File
+    (closes: #516559)
+  * debian/audacious-plugins-extra.install: Do not install musepack.so, as
+    this plugin is not built anymore when the current version of
+    libmpcdec-dev now in unstable (1:0.1~r435-1) is used.  This is related
+    to Bug#518679. In this bug report, a patch was proposed for
+    src/musepack/libmpc.h, but it does actually not work.  This version of
+    audacious-plugins-extra will not ship the musepack plugin as in the
+    previous version.
+
+ -- Rafael Laboissiere <rafael@debian.org>  Sun, 08 Mar 2009 16:24:32 +0100
+
+audacious-plugins (1.5.1-2) unstable; urgency=low
+
+  * debian/patches/003-fix-ftbfs-ia64.patch: Fix FTBFS on ia64.
+
+ -- William Pitcock <nenolod@dereferenced.org>  Thu, 17 Jul 2008 20:25:56 -0500
+
+audacious-plugins (1.5.1-1) unstable; urgency=low
+
+  * New upstream release. Highlights include:
+    - HTTP GET support is improved. (Closes: #466320)
+    - Improved HTTP proxy support. (Closes: #483029)
+    - Many bugs in the neon plugin have been fixed. (Closes: #468926)
+  * Packaging improvements:
+    - debian/control, debian/rules: Add audacious-plugins-dbg, which
+      contains debugging symbols for the plugins. Please install this
+      package before reporting segfaults, it makes bug fixing easier.
+    - debian/control, debian/rules, debian/patches/*: switch to Quilt.
+    - debian/control: update my e-mail address.
+    - debian/audacious-plugins-{extra,dev}.links: remove pointless symlink,
+      the copyright file isn't that large.
+
+ -- William Pitcock <nenolod@dereferenced.org>  Fri, 06 Jun 2008 19:29:59 -0500
+
+audacious-plugins (1.5.0-2) unstable; urgency=low
+
+  * Remove unnecessary Pre-Depends. (Closes: #471041)
+
+ -- William Pitcock <nenolod@sacredspiral.co.uk>  Thu, 15 May 2008 06:21:07 -0500
+
+audacious-plugins (1.5.0-1) unstable; urgency=low
+
+  * New upstream release. Highlights include:
+    - Usage of libsndfile for WAV playback. (Closes: #452563)
+    - Fixed FTBFS with gcc 4.3. (Closes: #455291)
+    - More tolerant FLAC plugin. (Closes: #437362)
+    - Improved support for pulse audio. (Closes: #459211)
+    - Corrected discid calculation with cdaudio-ng. (Closes: #464612)
+    - New from-scratch Monkey's Audio codec. (Closes: #463247)
+    - Rewritten scrobbler plugin. (Closes: #444095)
+  * debian/audacious-plugins.install: Add demac.so to the target list.
+
+ -- William Pitcock <nenolod@sacredspiral.co.uk>  Thu, 13 Mar 2008 21:42:39 -0500
+
+audacious-plugins (1.4.5-1) unstable; urgency=low
+
+  * New upstream release, no packaging changes needed. Highlights include:
+    - Major fixing of the last.fm submission plugin. (Closes: #431956)
+    - Fix handling of HTTP redirects. (Closes: #451519)
+
+ -- William Pitcock <nenolod@sacredspiral.co.uk>  Thu, 31 Jan 2008 14:51:34 -0600
+
+audacious-plugins (1.4.4-1) unstable; urgency=low
+
+  * New upstream release. No packaging changes needed. Highlights include:
+    - WMA plugin supports URIs properly. (Closes: #458479)
+    - M3U playlists support relative paths without crashing.
+
+ -- William Pitcock <nenolod@sacredspiral.co.uk>  Tue, 01 Jan 2008 15:20:07 -0600
+
+audacious-plugins (1.4.2-1) unstable; urgency=low
+
+  * New upstream release.
+  * Added William Pitcock (upstream) as co-maintainer.
+  * Add libimlib2-dev (>= 1.1.0) b-depend to build rootvis plugin.
+  * Bump Standards-Version to 3.7.3.
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Tue, 11 Dec 2007 19:28:20 +0100
+
+audacious-plugins (1.4.1-2) unstable; urgency=low
+
+  * Configure with --chardet (Closes: #452413).
+  * Add b-deps on libprojectm-dev and add the plugin to extra package (Closes: #451487).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Fri, 23 Nov 2007 22:51:00 +0100
+
+audacious-plugins (1.4.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Bump audacious b-deps/depends (API fix).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Wed, 21 Nov 2007 21:40:57 +0100
+
+audacious-plugins (1.4.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Bump libvorbis-dev b-dep to (>= 1.2).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Tue, 13 Nov 2007 11:39:33 +0100
+
+audacious-plugins (1.4.0~beta4-1) unstable; urgency=low
+
+  * New upstream release:
+    - Drop libaudacious stuff from debian/rules (not used anymore),
+    - Add 002-Disable_Makefile_silent_output patch (new build system),
+    - Add libneon build depend,
+    - Add libcdio-cdda-dev and libcddb-dev build depend,
+    - Many changes to audacious-plugins(-extra).install,
+    - Add libmtp-dev build depend.
+  * Use new dpkg 'homepage' field.
+  * Update debian/watch.
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Sun, 28 Oct 2007 22:04:21 +0100
+
+audacious-plugins (1.3.5-4) unstable; urgency=low
+
+  * Move libcurl.so to audacious-plugins package (needed to play online streams) (Closes: #444777).
+  * audacious-plugins conflicts with audacious-plugins-extra << 1.3.5-4 to allow update.
+  * Add libbinio-dev b-d to build adplug input backend and install it to audacious-plugins-extra package.
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Sat, 13 Oct 2007 21:32:25 +0200
+
+audacious-plugins (1.3.5-3) unstable; urgency=low
+
+  * Add audacious (>> 1.3), audacious (<< 1.4~) dependency to audacious-plugins(-extra) to support Etch partial upgrade.
+  * Update build-depends and audacious-plugins-dev dependencies with the same way.
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Sun, 08 Jul 2007 19:33:50 +0200
+
+audacious-plugins (1.3.5-2) unstable; urgency=low
+
+  * audacious-plugins and audacious-plugins-extra now depend on libaudaciousX (Closes: #431499, #431482).
+  * Use -[ ! -f Makefile ] || $(MAKE) distclean instead of -$(MAKE) distclean (fix lintian warning).
+  * Add || exit 1 in debian/rules loops.
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Sun, 08 Jul 2007 16:14:35 +0200
+
+audacious-plugins (1.3.5-1) unstable; urgency=low
+
+  * New upstream release.
+  * Drop 002-Disable_SSE2 patch, fixed upstream.
+  * Build without sse2 and altivec.
+  * Make libfluidsynth-dev build-depend Linux only, as it indirectly depends on ALSA.
+  * Only try to install evdev plugin on Linux systems.
+  * audacious-plugins-dev now depends on libcurl4-gnutls-dev (Closes: #428806).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Wed, 13 Jun 2007 16:02:58 +0200
+
+audacious-plugins (1.3.4-2) unstable; urgency=low
+
+  * Make build being more verbose, (make V=1).
+  * Always disable SSE2 (Closes: #423833).
+  * Add missing libxcomposite-dev build-depends (Closes: #425210).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Tue, 22 May 2007 09:51:27 +0200
+
+audacious-plugins (1.3.4-1) unstable; urgency=low
+
+  * New upstream release.
+    - Drop 001-Move_amidi_backend_in_usr_lib_audacious patch, fixed upstream.
+    - Update 001-Fix_FTBFS_with_gcc4.3 patch.
+  * Update CURL build-depends to libcurl4-gnutls-dev to fix FTBFS (Closes: #423450).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Sat, 12 May 2007 22:17:05 +0200
+
+audacious-plugins (1.3.3-2) unstable; urgency=low
+
+  * Extra plugins now pre-depends on plugins to avoid overwrites.
+  * Add missing includes to fix FTBFS with GCC 4.3 (Closes: #417115).
+  * Add libmcs-dev to audacious-dev depends (Closes: #420592).
+  * Install aosd plugin to audacious-plugins-extra.
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Mon, 23 Apr 2007 08:59:19 +0200
+
+audacious-plugins (1.3.3-1) unstable; urgency=low
+
+  * New upstream release.
+  * Update debian/watch.
+  * Remove 001-Fix-FTBFS-on-arm patch, fixed upstream.
+  * Add 001-Move_amidi_backend_in_usr_lib_audacious patch.
+  * Enable new plugins (Closes: #408691).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Tue, 20 Mar 2007 10:23:18 +0100
+
+audacious-plugins (1.2.5-1) unstable; urgency=low
+
+  * New upstream release.
+  * Fix FTBFS on arm (Closes: 400482).
+  * Touch mk/rules.mk to avoid configure to be run when building in a clean sources tree.
+  * Don't build PulseAudio backend on hurd/kfreebsd (FTBFS).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Sun, 26 Nov 2006 23:30:15 +0100
+
+audacious-plugins (1.2.2-3) unstable; urgency=low
+
+  * Conflicts with audacious (<< 1.2) (Closes: #399448).
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Mon, 20 Nov 2006 08:15:57 +0100
+
+audacious-plugins (1.2.2-2) unstable; urgency=low
+
+  * Build-depend on audacious-dev (>= 1.2.1-2) to avoid using a buggy
+    audacious-dev package.
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Sun, 19 Nov 2006 18:06:40 +0100
+
+audacious-plugins (1.2.2-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Adam Cécile (Le_Vert) <gandalf@le-vert.net>  Fri,  3 Nov 2006 18:24:53 +0100

@@ -1,0 +1,615 @@
+This package was debianized by Adam Cécile (Le_Vert) <gandalf@le-vert.net> on
+Fri,  3 Nov 2006 18:24:53 +0100.
+
+It was downloaded from http://www.audacious-media-player.org/
+
+Upstream Author: George Averill <nhjm449@gmail.com>
+		 Giacomo Lozito <james@develia.org>
+		 William Pitcock <nenolod@nenolod.net>
+		 Mohammed Sameer <msameer@foolab.org>
+		 Tony Vroon <chainsaw@gentoo.org>
+		 Yoshiki Yazawa <yaz@cc.or.rim.jp>
+
+Copyright: © 2005-2006 Audacious Development Team (see above)
+           © 2003-2004 BMP Development Team
+	   © 1998-2003 XMMS Development Team
+
+License:
+
+   This package is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+
+   This package is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this package; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+
+On Debian systems, the complete text of the GNU General
+Public License can be found in `/usr/share/common-licenses/GPL'.
+
+All files except those listed below are distributed under the GPL with the
+copyright above.
+
+"src/audiocompress/*" are distributed under terms of GNU Lesser
+General Public License.
+
+"src/ladspa/ladspa.c" is © 2002,2003  Nick Lamb and distributed
+under terms of GNU General Public License.
+
+"src/ladspa/ladspa.h" is © 2000-2002 Richard W.E. Furse,
+Paul Barton-Davis, Stefan Westerfeld and distributed under terms of GNU
+Lesser General Public License.
+
+"src/voice_removal/voice_removal.c" is © 2000-2001
+Konstantin Laevsky and distributed under terms of GNU General Public License.
+
+"src/scrobbler/md5.c" and "src/scrobbler/md5.h" are
+© 1999, 2000, 2002 Aladdin Enterprises and distributed under terms of the
+license below :
+
+   This software is provided 'as-is', without any express or implied
+   warranty.  In no event will the authors be held liable for any damages
+   arising from the use of this software.
+
+   Permission is granted to anyone to use this software for any purpose,
+   including commercial applications, and to alter it and redistribute it
+   freely, subject to the following restrictions:
+
+   1. The origin of this software must not be misrepresented; you must not
+      claim that you wrote the original software. If you use this software
+      in a product, an acknowledgment in the product documentation would be
+      appreciated but is not required.
+   2. Altered source versions must be plainly marked as such, and must not be
+      misrepresented as being the original software.
+   3. This notice may not be removed or altered from any source distribution.
+
+"src/aac/*" are © 2003-2004 M. Bakker, Ahead Software AG and
+distributed under terms of GNU General Public License.
+
+  Except the files below :
+
+  "src/aac/libfaad2/hcr.c is 2004 G.C. Pascutto, Ahead Software AG and
+  distributed under terms of GNU General Public License.
+
+  "src/aac/mp4ff/*" are © 2003-2005 M. Bakker, Nero AG and distributed 
+  under terms of GNU General Public License.
+
+  "src/aac/src/tagging_mp4.c" and "src/aac/src/tagging.h" are
+  © 2005-2006 William Pitcock and distributed under terms of GNU General
+  Public License.
+
+  "src/aac/src/xmms-id3.h" is © 1998, 1999, 2002, Espen Skoglund
+  and distributed under terms of GNU General Public License.
+
+"src/adplug/*" are © 1999-2006 Simon Peter and distributed under
+terms of GNU Lesser General Public License.
+
+  Except the files below :
+
+  "src/adplug/core/fmopl.c" is © 1999,2000 Tatsuyuki Satoh and
+  distributed under terms of GNU Lesser General Public License.
+
+  "src/adplug/core/debug.c", "src/adplug/core/debug.h",
+  "src/adplug/core/database.cpp" and
+  "src/adplug/core/database.h" are © 2002 Riven the Mage and
+  © 2002-2006 Simon Peter and distributed under terms of GNU Lesser General
+  Public License.
+
+  "src/adplug/core/binio_virtual.h" is © 2006 William Pitcock and is in the
+  Public Domain.
+
+  "src/adplug/core/adlibemu.c" and "src/adplug/core/adlibemu.c" are
+  © 1998-2001 Ken Silverman and distributed under terms of GNU Lesser
+  General Public License.
+
+  "src/adplug/core/adl.cpp" is © 1999-2006 Simon Peter and
+  © 2006 The ScummVM project and distributed under terms of GNU Lesser
+  General Public License.
+
+"src/amidi-plug/*" are © 2005-2006 Giacomo Lozito and distributed
+under terms of GNU General Public License.
+
+  Except the file below :
+
+  "src/amidi-plug/i_midi.c" is © 2004 Clemens Ladisch and
+  © 2005-2006 Giacomo Lozito and distributed under terms of GNU General
+  Public License.
+
+"src/bluetooth/*" are © 2007-2008 Paula Stanciu and are distributed under the
+ terms of the GPL.
+
+  Except these files: 
+  "src/bluetooth/agent.*" are © 2006-2007 Bastien Nocera, 2005-2008 Marcel 
+   Holtmann, and are distributed under the terms of the GPL.
+
+"src/bs2b/plugin.c" is © 2009 Sebastian Pipping, 2009 Tony Vroon, 2010 
+ John Lindgren and is distributed under the terms of the GPL.
+
+"src/cdaudio-ng/*" are © 2007 Calin Crisan and are distributed under the terms
+ of the GPL.
+    
+  Except this file:
+  "src/cdaudio-ng/cdaudio-ng.c" is © 2007 Calin Crisan, 2009 John Lindgren, 
+   2009 Tomasz Mon and is distributed under the terms of the GPL.
+
+"src/cd-menu-items/*", "src/compressor/*' are © 2009-2010 John Lindgren and 
+ are distributed under the terms of the GPL.
+
+
+"src/console/*" is © 2003-2006 Shay Green and distributed under
+terms of GNU Lesser General Public License.
+
+  Except the file below :
+
+  "src/console/Spc_Dsp.cpp" is © 2002 Brad Martin and
+  © 2004-2006 Shay Green and distributed under terms of GNU Lesser
+  General Public License.
+
+  "src/console/Ym2612_Emu.cpp" is © 2002 Stéphane Dallongeville
+  and © 2004-2006 Shay Green and distributed under terms of GNU Lesser
+  General Public License.
+
+  "src/console/AUdacious_Driver.cxx" is © 2005-2009 Audacious Team, and is
+  distributed under the terms of the GPL.
+ 
+
+"src/CoreAudio/*" are © 1998-2001  Peter Alm, Mikael Alm, Olle Hallnas, Thomas
+ Nilsson and 4Front Technologies and is distributed under the terms of the GPL.
+
+  Except these files:
+  "src/CoreAudio/audio.c", "src/CoreAudio/configure.ac" is also © 1998-2001 
+  Haavard Kvaalen.
+
+  "src/CoreAudio/convert.c" is © 2001 Haavar Kvaalen and is distributed under
+   the terms of the GPL.
+
+  "src/CoreAudio/dbconvert.c" is © 1999-2004 Bob Dean and is distributed under
+   the GPL.
+
+"src/crossfade/*" are © 2000-2007 Peter Eisenlohr and are distributed under the
+ terms of the GPL.
+  "src/crossfade/TODO is © 2009 William Pitcock.
+
+"src/crystalizer/*" are © 2008 William Pitcock, and 2010 John Lindgren and are
+ distributed under the terms of the GPL.
+
+"src/cue/*" are © 2009 William Pitcock and are distributed under the terms
+ of the GPL.
+
+"src/daap/*" are © 2007 Cristi Magherusan and are distributed under the
+ terms of the GPL.
+
+"src/daap/xmms2-daap" are © 2006-2007 and are distributed under the terms of
+ the GPL.
+
+"src/dockalbumart/*" are © 2007 William Pitcock, and are distributed under the
+ terms of the GPL.
+
+"src/esd/*" are © 2003-2004  BMP development team and are release under the 
+ terms of the GPL.
+
+  Except these files:
+
+  "src/esd/about.c", "src/esd/esd.c", "src/esd/init.c" are © 1999 Galex Yen.
+
+"src/evdev-plug/*" are © 2005-2007 Giacomo Lozito and are distributed under
+ the terms of the GPL.
+
+"src/ffaudio/*" are © 2009 William Pitcock and are distributed under the terms 
+ of the GPL.
+
+  Except these files:
+  "src/ffaudio/ffaudio-debug.h" is © 2005 Ralf Ertzinger.
+ 
+  "src/ffaudio/ffaudio-core.c" is also © 2009 Matti Hämäläinen.
+
+"src/filewriter/*" are © 2007 Michael Farber, 2002 Lars Siebold, and 2006-2007 
+ Yoshiki Yazawa and are distributed under the terms of the GPL.
+
+  Except these files:
+  "src/filewriter/flac.c" is © 2007 William Pitcock, and 2002 Lars Siebold.
+
+  "src/filewriter/vorbis.c" is © 2007 William Pitcock, and 2002 Lars Siebold.
+
+"src/flacng/*" are © 2005 Ralf Ertzinger and are distributed under the terms
+ of the GPL.
+
+"src/gio/gio.c" is © 2009 William Pitcock and is distributed under the terms
+ of the GPL.
+
+"src/gnomeshortcuts/*" are © 2007-2008 Sascha Hlusiak and are distributed
+ under the terms of the GPL.
+
+"src/gntui/*" are © 2009 Tomasz Mon and are distributed under the terms 
+ of the GPL.
+
+"src/gtkui/ui_playlist_model.*" are © 2009 Tomasz Mon and are distributed
+ under the terms of the GPL.
+
+"src/gtkui/ui_playlist_widget.*" are © 2008 Tomasz Mon and are released under
+ the terms of the GPL.
+ "src/gtkui/ui_playlist_widget.c" is also © 2009 William Pitcock.
+
+"src/hotkey/*" are © 2007-2008 Sascha Hlusiak and are distributed under the
+ terms of the GPL.
+
+"src/icecast/icecast.c" is © 2008 ANdrew O. Shadoura, 2007 Michael Farber, 2002
+ Lars Siebold, and 2006-2007 Yoshiki Yazawa and is distributed under the terms
+ of the GPL.
+
+"src/kanashi/*" are © 2009 William Pitcock, portions are © 2001 Jamie Gennis
+ and are distributed under the terms of the GPL.
+
+"src/m3u/m3u.c" is © 2006 William Pitcock, Tony Vroon, George Averill, 
+ Giacomo Lozito, Derek Pomery and Yoshiki Yazawa and is distributed under
+ the terms of the GPL.
+
+"src/madplug/*" are © 2005-2009 William Pitcock, Yoshiki Yazawa, John Lindgren,
+ 2001-2002 Sam Clegg and are distributed under the terms of the GPL.
+
+  Except these files:
+  "src/madplug/xing.c" is © 2005-2007 William Pitcock, Yoshiki Yazawa, and 
+   2000-2001 Robert Leslie and is distributed under the terms of the GPL.
+
+   "src/madplug/xing.h" is © 2000-2001 Robert Leslie and is distributed under
+    the terms of the GPL.
+
+   "src/madplug/replaygain.c*" are also © 2001-2007 Samuel Krempp.
+
+"src/mms/*" are © 2007 William Pitcock and are distributed under the terms of
+ the GPL.
+
+"src/modplug/*" are public domain.
+
+  Except these files:
+  "src/modplug/fastmix.cxx", "src/modplug/snd_eq.cxx" are © Olivier Lapicque 
+   and are under the terms of the GPL.
+
+  "src/modplug/midi.h" is © 2003-2005 chisel, 2005-2006 Mrs. Brisby and is
+   distributed under the terms of the GPL.
+  
+
+"src/mtp/mtp.c" is © 2007 Christian Macherusan and is distributed under the
+ terms of the GPL.
+
+"src/neon/cert_verification.*" are © 2005 Jussi Jusdin and are distributed
+ under the terms of the GPL.
+
+"src/neon/debug.c" and "src/neon/neon.*", are © 2005 Ralf Ertzinger and are
+ distributed under the terms of the GPL.
+
+"src/null/null.c" is © 2006 CHrstian Birchinger and 2000 Havard Kvalen and is
+ distributed under the terms of the GPL.
+
+"src/OSS*/*" are © 2003-2004 BMP Development Team, 1998-2003 XMMS development
+ team and are distributed under the terms of the GPL.
+
+"src/OSS4/convert.c" is © 2001 Haavard Kvaalen and is distributed under the
+ terms of the GPL.
+
+"src/paranormal*/*" are © 2001 Jamie Gennis, and 2006-2007 William Pitcock
+ and are distributed under the terms of the GPL.
+
+"src/paranormal*/libcacl/*" are © 2001 Janusz Gregorczyk and are distributed
+ under the terms of the GPL.
+
+"src/pls/pls.c" is © 2006 William Pitcock, Tony Vroon, George Averill,
+ Giacomo Lozito, Derek Pomery and Yoshiki Yazawa and is distributed under
+ the terms of the GPL.
+
+"src/projectm-1.0/*" are © 2008 William Pitcock, and portions are © 2004-2006
+ Peter Sperl and are distributed under the terms of the GPL.
+
+"src/psf/*" are © 2007 R. Belmont and Richard Bannister and are distributed
+ under the terms of the GPL.
+
+"src/psf/peops*/*" are © 2992 Pete Bernert and are distributed under the terms
+ of the GPL.
+
+"src/resample/*" are © 2010 John Lindgren and are distributed under the 3 part
+ BSD License.
+
+"src/rocklight/b43led.c" is © 2006 Tony Vroon, 2007 Michael Hanselmann, 2009
+ William Pitcock and is distributed under the GPL.
+
+"src/rocklight/rocklight.c" is © 2004 Benedikt Heinz, 2006 Tony Vroon and is 
+ distributed under the GPL.
+
+"src/rocklight/rocklight.h" is © 2004 Benedikt Heinz and is distributed under
+ the GPL.
+
+"src/rocklight/sysled.c" is © 2006 Tony Vroon, 2007 Michael Hanselmann and is
+ distributed under the GPL.
+
+"src/rocklight/thinklight.c" is © 2004 Benedikt Heinz and is distributed under
+ the GPL.
+
+"src/sid/*" are © 1999-2009 Tecnic Software productions (TNSP) and are distributed
+ under the GPL.
+
+"src/sexypsf/*" are © 1999-2002 Pcsx Team and distributed under
+terms of GNU General Public License.
+
+  Except the files below :
+
+  "src/sexypsf/spu.c" is © 2002 Pete Bernert and distributed
+  under terms of GNU General Public License.
+
+  "src/sexypsf/xmms.c" is © 2002-2004 xodnizel and distributed
+  under terms of GNU Lesser General Public License.
+
+  "src/sexypsf/spu/*" are © 2002 Pete Bernert and distributed
+  under terms of GNU General Public License.
+
+    Except the files below :
+
+    "src/sexypsf/spu/gauss_i.h" is © 2003 Chris Moeller and
+    distributed under terms of GNU General Public License.
+
+"src/sid/*" is © 1999-2005 Tecnic Software productions (TNSP)
+and distributed under terms of GNU General Public License.
+
+  Except the file below :
+
+  "src/sid/xs_md5.c" is © 1999 Aladdin Enterprises and
+  distributed under the license below :
+
+    This software is provided 'as-is', without any express or implied
+    warranty.  In no event will the authors be held liable for any damages
+    arising from the use of this software.
+
+    Permission is granted to anyone to use this software for any purpose,
+    including commercial applications, and to alter it and redistribute it
+    freely, subject to the following restrictions:
+
+    1. The origin of this software must not be misrepresented; you must not
+       claim that you wrote the original software. If you use this software
+       in a product, an acknowledgment in the product documentation would be
+       appreciated but is not required.
+    2. Altered source versions must be plainly marked as such, and must not be
+       misrepresented as being the original software.
+    3. This notice may not be removed or altered from any source distribution.
+
+"src/timidity/*" are © 1995 Tuukka Toivonen and distributed
+under terms of GNU General Public License.
+
+  Except the files below :
+
+  "src/timidity/libtimidity/timidity.h", "src/timidity/src/xmms-timidity.c"
+  and "src/timidity/src/xmms-timidity.h" are
+  © 2004 Konstantin Korikov and distributed under terms of GNU General
+  Public License.
+
+"src/tonegen/tonegen.c" is © 2000,2001 Haavard Kvaalen and
+distributed under terms of GNU General Public License.
+
+"src/vorbis/vorbis.c" is © Tony Arcieri,
+© 2001-2002 Haavard Kvaalen and ReplayGain processing
+© 2002 Gian-Carlo Pascutto and distributed under terms of GNU General
+ Public License.
+
+"src/wav/wav-sndfile.c" and "src/wav/wav-sndfile.h" are
+© 2000, 2002 Erik de Castro Lopo and © 2005 Audacious development team
+and distributed under terms of GNU General Public License.
+
+"src/wma/libffwma/avio.c" is © 2001 Fabrice Bellard and
+distributed under terms of GNU Lesser General Public License.
+
+"src/wma/libffwma/utils.c" is © 2001 Fabrice Bellard,
+© 2003 Michel Bardiaux, © 2002-2004 Michael Niedermayer and
+© 2004 Roman Bogorodskiy and distributed under terms of GNU Lesser
+General Public License.
+
+"src/wma/libffwma/mms.h", "src/wma/libffwma/mms.c",
+"src/wma/libffwma/mmsh.h" and "src/wma/libffwma/mmsh.c"
+are © 2002-2004 the xine project and distributed under terms of GNU General
+Public License.
+
+"src/wma/libffwma/os_support.c", "src/wma/libffwma/cutils.c",
+"src/wma/libffwma/fft.c","src/wma/libffwma/allformats.c",
+"src/wma/libffwma/futils.c", "src/wma/libffwma/asf.c",
+"src/wma/libffwma/mem.c", "src/wma/libffwma/file.c",
+and "src/wma/libffwma/mdct.c" are © 2000-2002 Fabrice Bellard
+and distributed under terms of GNU Lesser General Public License.
+
+"src/wma/libffwma/simple_idct.c" and
+"src/wma/libffwma/simple_idct.h" are © 2001 Michael Niedermayer
+and distributed under terms of GNU Lesser General Public License.
+
+"src/wma/libffwma/asfheader.h" is © 2000-2001 Gerard Lantau and
+© 2000-2003 the xine project and distributed under terms of GNU General
+Public License.
+
+"src/wma/libffwma/uri.c" and "src/wma/libffwma/uri.h" are
+© 2000-2003 David Helder, David Bolcsfoldi, Eric Williams and distributed
+under terms of GNU Lesser General Public License.
+
+"src/wma/libffwma/wmadec.c" is © 2002 The FFmpeg Project and
+distributed under terms of GNU Lesser General Public License.
+
+"src/wma/libffwma/bswap.h" is © 2004 Maciej Katafiasz and
+distributed under terms of GNU General Public License.
+
+"src/wma/libffwma/dsputil.c", "src/wma/libffwma/dsputil.h" and
+"src/wma/libffwma/parser.c" are distributed under terms of GNU
+Lesser General Public License.
+
+"src/wma/libffwma/common.c" is © 2000-2001 Fabrice Bellard,
+© 2002-2004 Michael Niedermayer and © 2004 Roman Bogorodskiy and
+distributed under terms of GNU Lesser General Public License.
+
+"src/wma/libffwma/allcodecs.c" is © 2002 Fabrice Bellard and
+© 2004 Roman Bogorodskiy and distributed under terms of GNU Lesser General
+Public License.
+
+"src/wma/libffwma/parser.c" is © 2003 Fabrice Bellard and
+© 2003 Michael Niedermayer and distributed under terms of GNU Lesser
+General Public License.
+
+"src/wma/wma.c" is © 2005 Audacious development team,
+© 2004,2005 McMCC and © 2004 Roman Bogorodskiy and distributed under
+terms of GNU General Public License.
+
+"src/jack/bio2jack.c", "src/jack/bio2jack.h" and "src/jack/jack.c"
+are © 2002-2004 Chris Morgan and distributed under terms of GNU Lesser
+General Public License.
+
+"src/OSS/soundcard.h" is © 1993-2000 Hannu Savolainen and
+distributed under the license below :
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are
+  met: 1. Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer. 2.
+  Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+  THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY
+  EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+  DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+  ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+  LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+  SUCH DAMAGE.
+
+"src/sun/*" are © 2001  CubeSoft Communications, Inc. and
+distributed under terms of GNU General Public License.
+
+  Except the files below :
+
+  "src/sun/audioio.h" is © 1991-1993 Regents of the University of
+  California and distributed under terms of the license below :
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+    3. All advertising materials mentioning features or use of this software
+       must display the following acknowledgement:
+       This product includes software developed by the Computer Systems
+       Engineering Group at Lawrence Berkeley Laboratory.
+    4. Neither the name of the University nor of the Laboratory may be used
+       to endorse or promote products derived from this software without
+       specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+    OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+    OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+    "src/sun/convert.c" is © 2001 Haavard Kvaalen and
+    distributed under terms of GNU General Public License.
+
+    "src/sun/resample.h" is © 1998-2001 Peter Alm, Mikael Alm,
+    Olle Hallnas, Thomas Nilsson and 4Front Technologies and
+    © 1999-2001 Haavard Kvaalen and distributed under terms of GNU
+    General Public License.
+
+"src/alac/*" are © 2005-2006 David Hammerton and distributed under terms of
+the license below :
+
+  Permission is hereby granted, free of charge, to any person
+  obtaining a copy of this software and associated documentation
+  files (the "Software"), to deal in the Software without
+  restriction, including without limitation the rights to use,
+  copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be
+  included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+  OTHER DEALINGS IN THE SOFTWARE.
+
+"src/alarm/*" are © Adam Feakin <adamf@snika.uklinux.net and distributed
+unter terms of the GNU General Public License.
+
+"src/alsa/*" are © 2009-2010 John Lindgren and are distributed under a 3
+ part BSD license.
+
+"src/aosd/aosd*" are © 2005-2007, Giacomo Lozito and distributed unter
+terms of the GNU General Public License.
+
+"src/aosd/ghosd*" are © 2006, Evan Martin and distributed under terms of
+the license below :
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to
+  permit persons to whom the Software is furnished to do so, subject to
+  the following conditions:
+
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+  CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+  TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+"src/curl/*" are ©, 2007 Daniel Barkalow and distributed under terms of the
+GNU General Public License.
+
+"src/evdev-plug/*" are © 2005-2007, Giacomo Lozito and distributed under
+terms of the GNU General Public License.
+
+"src/lame/*" are © 2002, Lars Siebold and © 2006-2007 Yoshiki Yazawa and
+distributed under terms of the GNU General Public License.
+
+"src/metronom/*" are © 2000, Martin Strau and distributed under terms of
+the GNU General Public License.
+
+"src/rovascope/libcalc/*" are © 2001 Janusz Gregorczyk and distributed
+under terms of the GNU General Public License.
+
+"src/projectm/*" are © Carmelo Piccione  and © Peter Sperl and
+distributed under terms of the GNU General Public License.
+
+"src/rocklight/*" are © 2004 Benedikt 'Hunz' Heinz and © 2006 Tony Vroon
+and distributed under terms of the GNU Lesser General Public License.
+
+"src/tta/*" are © 2004 Alexander Djourik and dsitributed under terms of the
+GNU Lesser General Public License.
+
+"src/vtx/ayemu.h" and "src/vtx/vtx.c" are © 2003-2004 Sashnov Alexander and
+dsitributed under terms of the GNU Lesser General Public License.
+
+"src/sndstretch/*" are © 2000, Florian Berger and dsitributed under terms
+of the GNU General Public License.
+
+The Debian packaging is © 2006, Adam Cécile (Le_Vert) <gandalf@le-vert.net>
+and is licensed under the GPL, see above.
