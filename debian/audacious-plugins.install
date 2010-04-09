@@ -1,9 +1,1 @@
-usr/lib/audacious/Container
-usr/lib/audacious/General/*.so
-usr/lib/audacious/Input/amidi-plug
-usr/lib/audacious/Input/*.so
-usr/lib/audacious/Output/*.so
-usr/lib/audacious/Transport/*.so
-usr/lib/audacious/Visualization
-usr/share/audacious
-usr/lib/audacious/Effect
+usr
