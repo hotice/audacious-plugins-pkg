@@ -36,11 +36,7 @@ Build-Depends: audacious-dev (>= 2.1),
                libtagc0-dev (>= 1.4),
                libvorbis-dev (>= 1.2),
                libwavpack-dev,
-               libxcomposite-dev,
-               quilt,
-               autotools-dev,
-               autoconf,
-               automake
+               libxcomposite-dev
 Homepage: http://www.audacious-media-player.org/
 Standards-Version: 3.8.4
 VCS-Browser: http://git.debian.org/?p=pkg-audacious/audacious-plugins.git;a=summary
@@ -120,9 +116,6 @@ Depends: audacious-dev (>= 2.1),
          libvorbis-dev (>= 1.2),
          libwavpack-dev,
          libxcomposite-dev,
-         debhelper (>= 5),
-         autotools-dev,
-         quilt,
          ${misc:Depends}
 Description: Useful virtual package for doing audacious plugin development
  Audacious is a fork of beep-media-player which supports winamp skins
