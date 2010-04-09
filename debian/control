@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian Audacious Packagers <pkg-audacious-maintainers@lists.alioth.debian.org>
 Uploaders: Chris Taylor <ctaylor@debian.org>
 Build-Depends: audacious-dev (>= 2.1),
-               debhelper (>= 7),
+               debhelper (>= 7.0.50~),
                libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
                libbinio-dev,
                libcddb2-dev (>= 1.2.1) | libcddb-dev (>= 1.2.1),
