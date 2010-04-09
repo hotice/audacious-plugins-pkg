@@ -8,7 +8,8 @@ override_dh_auto_configure:
 
 override_dh_auto_clean:
 	dh_auto_clean
-	rm -f po/stamp-po po/*.gmo config.h  config.log  config.status  buildsys.mk  extra.mk
+	rm -f config.h config.log config.status *.mk
+	find -name '.deps' -delete
 
 override_dh_strip:
 	dh_strip --dbg-package=audacious-pluginsdbg
