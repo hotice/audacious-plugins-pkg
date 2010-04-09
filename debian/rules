@@ -4,13 +4,9 @@
 	dh $@
 
 override_dh_auto_configure:
-	ln -sf /usr/share/misc/config.sub .
-	ln -sf /usr/share/misc/config.guess .
 	dh_auto_configure --disable-rpath --enable-amidiplug --disable-altivec --enable-chardet
 
 override_dh_auto_clean:
-	rm -f config.sub
-	rm -f config.guess
 	dh_auto_clean
 	rm -f po/stamp-po po/*.gmo config.h  config.log  config.status  buildsys.mk  extra.mk
 
