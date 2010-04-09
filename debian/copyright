@@ -354,6 +354,20 @@ terms of GNU Lesser General Public License.
   are © 2003-2004 BMP development team, 1998-2003 XMMS
  development team and are distributed under the GPL.
 
+"src/smb/*' are © 2007 Daniel Bradshaw and are distributed under the GPL. 
+
+"src/sndstretch/*" are © 2000-2001 Florian Berger and are distributed under
+ the GPL.
+
+"src/spectrum/*' are © 2006 William Pitcock, 1998-2001 Vagvalgyi Attila, Peter
+ Alm, Mikael Alm, Olle Hallna, Thomas Nilsson, and 4Front Technologies, and are
+ distributed under the GPL.
+
+"src/statusicon/*" are © 2005-2007 Giacomo Lozito and are distributed under
+ the GPL.
+
+"src/streambrowser/*" are © 2008 Calin Crisan and are distributed under the GPL.
+
 "src/timidity/*" are © 1995 Tuukka Toivonen and distributed
 under terms of GNU General Public License.
 
@@ -367,10 +381,36 @@ under terms of GNU General Public License.
 "src/tonegen/tonegen.c" is © 2000,2001 Haavard Kvaalen and
 distributed under terms of GNU General Public License.
 
-"src/vorbis/vorbis.c" is © Tony Arcieri,
-© 2001-2002 Haavard Kvaalen and ReplayGain processing
-© 2002 Gian-Carlo Pascutto and distributed under terms of GNU General
- Public License.
+"src/unix-io/*" are © 2009 John Lindgren and is distributed under the
+ following license:
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions are met:
+ 
+  1. Redistributions of source code must retain the above copyright notice,
+     this list of conditions, and the following disclaimer.
+ 
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions, and the following disclaimer in the documentation
+     provided with the distribution.
+ 
+  This software is provided "as is" and without any warranty, express or
+  implied. In no event shall the authors be liable for any damages arising from
+  the use of this software.
+
+"src/vfstrace/*" are © 2009 WIlliam Pitcock and are distributed under the GPL.
+
+"src/voic_removal/*" are © 2000-2001 Konstantin Laevsky and are distributed
+ under the GPL.
+
+
+"src/vorbis/vorbis.c" is © Tony Arcieri, 2001-2002 Havard Kvaalen, 2007
+ William Pitcock, 2008 Cristi Magherusan, 2009 Eugene Zagidullin, 2009
+ Audacious developers, Replaygain © 2002 Gian-Carlo Pascutto
+
+"src/vorbis/vcedit.*" are © 2000-2001 Michael Smith and are distributed under
+ the GPL.
+
 
 "src/wav/wav-sndfile.c" and "src/wav/wav-sndfile.h" are
 © 2000, 2002 Erik de Castro Lopo and © 2005 Audacious development team
@@ -589,5 +629,40 @@ dsitributed under terms of the GNU Lesser General Public License.
 "src/sndstretch/*" are © 2000, Florian Berger and dsitributed under terms
 of the GNU General Public License.
 
-The Debian packaging is © 2006, Adam Cécile (Le_Vert) <gandalf@le-vert.net>
-and is licensed under the GPL, see above.
+"src/xsf/corlett.c", "src/xsr/plugin.c" are © 2007-2008 R. Belmont and Richard 
+ Bannister and are distributed under the following license.
+
+       All rights reserved.
+
+        Redistribution and use in source and binary forms, with or without 
+        modification, are permitted provided that the following conditions 
+        are met:
+
+        * Redistributions of source code must retain the above copyright notice,
+          this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright 
+          notice, this list of conditions and the following disclaimer in the 
+          documentation and/or other materials provided with the distribution.
+        * Neither the names of R. Belmont and Richard Bannister nor the names
+          of its contributors may be used to endorse or promote products derived
+          from this software without specific prior written permission.
+
+        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+        "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+        LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+        A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+        CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+        EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+        PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+        PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+        LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+        NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+        SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+"src/xspf/*" are © 2006 WIlliam Pitcock, Tonry Vroon, George Averill, Giacomo
+ Lozito, Derek Pomery, Yoshiki Yazawa, and Matti Hamalainen, and are distributed
+ under the GPL.
+
+The Debian packaging is © 2006-2009, Adam Cécile (Le_Vert) <gandalf@le-vert.net>
+and © 2010 Chris Taylor <ctaylor@debian.org> and is licensed under the GPL, 
+see above.
