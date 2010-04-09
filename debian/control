@@ -3,15 +3,44 @@ Section: sound
 Priority: optional
 Maintainer: Debian Audacious Packagers <pkg-audacious-maintainers@lists.alioth.debian.org>
 Uploaders: Chris Taylor <ctaylor@debian.org>
-Build-Depends: debhelper (>= 7), autotools-dev, audacious-dev (>= 2.1), libgtk2.0-dev (>= 2.6), libglade2-dev (>= 2.3.1), libtagc0-dev (>= 1.4),
-               libsdl1.2-dev (>= 1.2.9) | libsdl-dev (>= 1.2.9), libvorbis-dev (>= 1.2), libogg-dev (>= 1.0), libflac-dev (>= 1.1.2),
+Build-Depends: audacious-dev (>= 2.1),
+               debhelper (>= 7),
                libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
-               libesd0-dev (>= 0.2), libsidplay2-dev | libsidplay1-dev, libresid-builder-dev, liblircclient-dev, libjack0.100.0-dev | libjack0.80.0-dev | libjack-dev,
-               libsamplerate0-dev (>=0.0.15) | libsamplerate-dev (>=0.0.15), libsndfile1-dev (>= 0.19) | libsndfile-dev (>= 0.19),
-               libpulse-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], quilt, libwavpack-dev, libmms-dev, libfluidsynth-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libgtkglext1,
-               libmad0-dev, libmcs-dev,libxcomposite-dev, libbinio-dev, libcurl4-gnutls-dev,  libneon27-gnutls-dev (>= 0.26),
-               libcdio-cdda-dev (>= 0.70), libcddb2-dev (>= 1.2.1) | libcddb-dev (>= 1.2.1), libmtp-dev, libprojectm-dev, libimlib2-dev (>= 1.1.0),
-               libshout3-dev, autoconf, automake
+               libbinio-dev,
+               libcddb2-dev (>= 1.2.1) | libcddb-dev (>= 1.2.1),
+               libcdio-cdda-dev (>= 0.70),
+               libcurl4-gnutls-dev,
+               libesd0-dev (>= 0.2),
+               libflac-dev (>= 1.1.2),
+               libfluidsynth-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+               libglade2-dev (>= 2.3.1),
+               libgtk2.0-dev (>= 2.6),
+               libgtkglext1,
+               libimlib2-dev (>= 1.1.0),
+               libjack0.100.0-dev | libjack0.80.0-dev | libjack-dev,
+               liblircclient-dev,
+               libmad0-dev,
+               libmcs-dev,
+               libmms-dev,
+               libmtp-dev,
+               libneon27-gnutls-dev (>= 0.26),
+               libogg-dev (>= 1.0),
+               libprojectm-dev,
+               libpulse-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+               libresid-builder-dev,
+               libsamplerate0-dev (>=0.0.15) | libsamplerate-dev (>=0.0.15),
+               libsdl1.2-dev (>= 1.2.9) | libsdl-dev (>= 1.2.9),
+               libshout3-dev,
+               libsidplay2-dev | libsidplay1-dev,
+               libsndfile1-dev (>= 0.19) | libsndfile-dev (>= 0.19),
+               libtagc0-dev (>= 1.4),
+               libvorbis-dev (>= 1.2),
+               libwavpack-dev,
+               libxcomposite-dev,
+               quilt,
+               autotools-dev,
+               autoconf,
+               automake
 Homepage: http://www.audacious-media-player.org/
 Standards-Version: 3.8.4
 VCS-Browser: http://git.debian.org/?p=pkg-audacious/audacious-plugins.git;a=summary
@@ -19,8 +48,11 @@ VCS-Git: git://git.debian.org/pkg-audacious/audacious-plugins.git
 
 Package: audacious-plugins
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, audacious (>= 2.1)
-Conflicts: audacious (<< 1.2), audacious-plugins-extra (<< 1.3.5-4)
+Depends: audacious (>= 2.1),
+         ${misc:Depends},
+         ${shlibs:Depends}
+Conflicts: audacious (<< 1.2),
+           audacious-plugins-extra (<< 1.3.5-4)
 Replaces: audacious-plugins-extra
 Description: Base plugins for audacious
  Audacious is a fork of beep-media-player which supports winamp skins
@@ -56,7 +88,42 @@ Description: Base plugins for audacious
 Package: audacious-plugins-dev
 Section: devel
 Architecture: any
-Depends: ${misc:Depends}, audacious-plugins (= ${binary:Version}), audacious-dev (>= 2.1), debhelper (>= 5), autotools-dev, libgtk2.0-dev (>= 2.6), libglade2-dev (>= 2.3.1), libtagc0-dev (>= 1.4), libsdl1.2-dev (>= 1.2.9) | libsdl-dev (>= 1.2.9), libvorbis-dev (>= 1.2), libogg-dev (>= 1.0) , libflac-dev (>= 1.1.2), libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libesd0-dev (>= 0.2), libsidplay2-dev | libsidplay1-dev, libresid-builder-dev, liblircclient-dev, libjack0.100.0-dev | libjack0.80.0-dev | libjack-dev, libsamplerate0-dev (>=0.0.15) | libsamplerate-dev (>=0.0.15), libsndfile1-dev (>= 0.19) | libsndfile-dev (>= 0.19), libpulse-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], quilt, libwavpack-dev, libmms-dev, libfluidsynth-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386], libmad0-dev, libmcs-dev, libxcomposite-dev, libbinio-dev, libcurl4-gnutls-dev, libneon27-gnutls-dev (>= 0.26), libcdio-cdda-dev (>= 0.70), libcddb2-dev (>= 1.2.1) | libcddb-dev (>= 1.2.1), libmtp-dev, libprojectm-dev, libimlib2-dev (>= 1.1.0)
+Depends: audacious-dev (>= 2.1),
+         audacious-plugins (= ${binary:Version}),
+         libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+         libbinio-dev,
+         libcddb2-dev (>= 1.2.1) | libcddb-dev (>= 1.2.1),
+         libcdio-cdda-dev (>= 0.70),
+         libcurl4-gnutls-dev,
+         libesd0-dev (>= 0.2),
+         libflac-dev (>= 1.1.2),
+         libfluidsynth-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+         libglade2-dev (>= 2.3.1),
+         libgtk2.0-dev (>= 2.6),
+         libimlib2-dev (>= 1.1.0),
+         libjack0.100.0-dev | libjack0.80.0-dev | libjack-dev,
+         liblircclient-dev,
+         libmad0-dev,
+         libmcs-dev,
+         libmms-dev,
+         libmtp-dev,
+         libneon27-gnutls-dev (>= 0.26),
+         libogg-dev (>= 1.0),
+         libprojectm-dev,
+         libpulse-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
+         libresid-builder-dev,
+         libsamplerate0-dev (>=0.0.15) | libsamplerate-dev (>=0.0.15),
+         libsdl1.2-dev (>= 1.2.9) | libsdl-dev (>= 1.2.9),
+         libsidplay2-dev | libsidplay1-dev,
+         libsndfile1-dev (>= 0.19) | libsndfile-dev (>= 0.19),
+         libtagc0-dev (>= 1.4),
+         libvorbis-dev (>= 1.2),
+         libwavpack-dev,
+         libxcomposite-dev,
+         debhelper (>= 5),
+         autotools-dev,
+         quilt,
+         ${misc:Depends}
 Description: Useful virtual package for doing audacious plugin development
  Audacious is a fork of beep-media-player which supports winamp skins
  and many codecs.
