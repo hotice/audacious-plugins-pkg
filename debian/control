@@ -3,7 +3,7 @@ Section: sound
 Priority: optional
 Maintainer: Debian Audacious Packagers <pkg-audacious-maintainers@lists.alioth.debian.org>
 Uploaders: Chris Taylor <ctaylor@debian.org>
-Build-Depends: audacious-dev (>= 2.1),
+Build-Depends: audacious-dev (>= 2.3),
                debhelper (>= 7.0.50~),
                libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
                libbinio-dev,
@@ -44,7 +44,7 @@ VCS-Git: git://git.debian.org/pkg-audacious/audacious-plugins.git
 
 Package: audacious-plugins
 Architecture: any
-Depends: audacious (>= 2.1),
+Depends: audacious (>= 2.3),
          ${misc:Depends},
          ${shlibs:Depends}
 Conflicts: audacious (<< 1.2),
@@ -84,7 +84,7 @@ Description: Base plugins for audacious
 Package: audacious-plugins-dev
 Section: devel
 Architecture: any
-Depends: audacious-dev (>= 2.1),
+Depends: audacious-dev (>= 2.3),
          audacious-plugins (= ${binary:Version}),
          libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
          libbinio-dev,
