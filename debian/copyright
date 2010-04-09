@@ -309,7 +309,7 @@ terms of GNU Lesser General Public License.
 "src/psf/*" are © 2007 R. Belmont and Richard Bannister and are distributed
  under the terms of the GPL.
 
-"src/psf/peops*/*" are © 2992 Pete Bernert and are distributed under the terms
+"src/psf/peops*/*" are © 2002 Pete Bernert and are distributed under the terms
  of the GPL.
 
 "src/resample/*" are © 2010 John Lindgren and are distributed under the 3 part
@@ -330,51 +330,29 @@ terms of GNU Lesser General Public License.
 "src/rocklight/thinklight.c" is © 2004 Benedikt Heinz and is distributed under
  the GPL.
 
-"src/sid/*" are © 1999-2009 Tecnic Software productions (TNSP) and are distributed
- under the GPL.
+"src/sid/*" are © 1999-2009 Tecnic Software productions (TNSP) and are
+ distributed under the GPL.
 
-"src/sexypsf/*" are © 1999-2002 Pcsx Team and distributed under
-terms of GNU General Public License.
+"src/skins/plugin.*"i, "src/skins/skins_cfg.*", "src/skins/ui_skinned_*" are ©
+ 2007-2008 Tomasz Mon, 2003-2004 BMP development team, 1998-2003 XMSS 
+ development team and are distributed under the GPL.
 
-  Except the files below :
+   Except the files below:
 
-  "src/sexypsf/spu.c" is © 2002 Pete Bernert and distributed
-  under terms of GNU General Public License.
+   "src/skins/ui_skinned_playlist.c" is also © 2008 William Pitcock, 
+    2009 John Lindgren.
 
-  "src/sexypsf/xmms.c" is © 2002-2004 xodnizel and distributed
-  under terms of GNU Lesser General Public License.
+   "src/skins/ui_skinned_playlist.h" is also © 2009 John Lindgren.
 
-  "src/sexypsf/spu/*" are © 2002 Pete Bernert and distributed
-  under terms of GNU General Public License.
+   "src/skins/ui_skinned_window.*" are © 2007 William Pitcock and are
+    distributed under the terms of the GPL version 3.
 
-    Except the files below :
+"src/skins/platform/smartinclude.h" is © 2006-2007 WIlliam Pitcock and is 
+ distributed under the terms of the GPL.
 
-    "src/sexypsf/spu/gauss_i.h" is © 2003 Chris Moeller and
-    distributed under terms of GNU General Public License.
-
-"src/sid/*" is © 1999-2005 Tecnic Software productions (TNSP)
-and distributed under terms of GNU General Public License.
-
-  Except the file below :
-
-  "src/sid/xs_md5.c" is © 1999 Aladdin Enterprises and
-  distributed under the license below :
-
-    This software is provided 'as-is', without any express or implied
-    warranty.  In no event will the authors be held liable for any damages
-    arising from the use of this software.
-
-    Permission is granted to anyone to use this software for any purpose,
-    including commercial applications, and to alter it and redistribute it
-    freely, subject to the following restrictions:
-
-    1. The origin of this software must not be misrepresented; you must not
-       claim that you wrote the original software. If you use this software
-       in a product, an acknowledgment in the product documentation would be
-       appreciated but is not required.
-    2. Altered source versions must be plainly marked as such, and must not be
-       misrepresented as being the original software.
-    3. This notice may not be removed or altered from any source distribution.
+"src/skins/ui_main.h"," "src/skins/ui_playlist.h", "src/skins/ui_skinselector.*"
+  are © 2003-2004 BMP development team, 1998-2003 XMMS
+ development team and are distributed under the GPL.
 
 "src/timidity/*" are © 1995 Tuukka Toivonen and distributed
 under terms of GNU General Public License.
