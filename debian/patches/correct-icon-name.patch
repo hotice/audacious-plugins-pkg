@@ -1,0 +1,18 @@
+Description: Check for audacious2 instead of audacious
+Author: Benjamin Drung <bdrung@ubuntu.com>
+Bug: http://jira.atheme.org/browse/AUDPLUG-214
+
+--- audacious-plugins-2.3.orig/src/statusicon/si_ui.c
++++ audacious-plugins-2.3/src/statusicon/si_ui.c
+@@ -60,9 +60,9 @@ si_ui_statusicon_create ( void )
+     GtkIconTheme *theme;
+ 
+     theme = gtk_icon_theme_get_default();
+-    if (gtk_icon_theme_has_icon(theme, "audacious"))
++    if (gtk_icon_theme_has_icon(theme, "audacious2"))
+     {
+-        icon = gtk_status_icon_new_from_icon_name("audacious");
++        icon = gtk_status_icon_new_from_icon_name("audacious2");
+     } else {
+         icon = gtk_status_icon_new_from_file(DATA_DIR "/images/audacious_player.xpm");
+     }
