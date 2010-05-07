@@ -1,3 +1,20 @@
+audacious-plugins (2.3-2) unstable; urgency=low
+
+  * Upload to unstable.
+  * Build-Depend on libav* for ffaudio.
+  * Add myself to uploaders.
+  * Break and replace audacious (<< 2.3) (Closes: #577283).
+  * Remove version libjack build dependencies.
+  * Drop audacious-plugins-dev package. "apt-get build-dep audacious-plugins"
+    will do the same job.
+  * audacious-plugins recommends audacious instead of depending on it to
+    break the circular dependency (Closes: #528588).
+  * Enable parallel build.
+  * Add panel-icon.patch to make panel icon themable (LP: #563043).
+  * Disable SSE2 on i386 (LP: #565381).
+
+ -- Benjamin Drung <bdrung@ubuntu.com>  Fri, 07 May 2010 22:54:40 +0200
+
 audacious-plugins (2.3-1) experimental; urgency=low
 
   * New uploader.
