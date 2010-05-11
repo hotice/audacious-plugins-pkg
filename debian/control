@@ -72,7 +72,7 @@ Description: Base plugins for audacious
   * Many module formats and much more!
  .
  Additionally, Audacious is extendable through plugins, and contains
- other useful features like LIRC support and support for last.fm.
+ other useful features like LIRC support.
  .
  This package contains the plugins for Audacious.
   * Audio CD reading
@@ -109,7 +109,7 @@ Description: Audacious-Plugins debug symbols
   * Many module formats and much more!
  .
  Additionally, Audacious is extendable through plugins, and contains
- other useful features like LIRC support and support for last.fm.
+ other useful features like LIRC support.
  .
  This package contains the debugging symbols for the plugins collection of
  Audacious. Please install it before reporting any crashes, as it makes bug
