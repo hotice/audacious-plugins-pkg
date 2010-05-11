@@ -1,6 +1,10 @@
 audacious-plugins (2.3-2) unstable; urgency=low
 
+  [Chris Taylor]
+  * Update debian/copyright.
   * Upload to unstable.
+
+  [Benjamin Drung]
   * Build-Depend on libav* for ffaudio.
   * Add myself to uploaders.
   * Break and replace audacious (<< 2.3) (Closes: #577283).
@@ -13,7 +17,7 @@ audacious-plugins (2.3-2) unstable; urgency=low
   * Add panel-icon.patch to make panel icon themable (LP: #563043).
   * Disable SSE2 on i386 (LP: #565381).
 
- -- Benjamin Drung <bdrung@ubuntu.com>  Fri, 07 May 2010 22:54:40 +0200
+ -- Chris Taylor <ctaylor@debian.org>  Fri, 10 May 2010 18:15:26 -0700
 
 audacious-plugins (2.3-1) experimental; urgency=low
 
