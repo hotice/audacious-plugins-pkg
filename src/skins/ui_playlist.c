@@ -47,7 +47,6 @@
 #include "ui_main.h"
 #include "ui_manager.h"
 #include "ui_playlist_evlisteners.h"
-#include "ui_playlist_manager.h"
 #include "util.h"
 
 #include "ui_skinned_window.h"
@@ -58,6 +57,8 @@
 
 #include <audacious/i18n.h>
 #include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
+
 #include "images/audacious_playlist.xpm"
 
 gint active_playlist;
@@ -605,7 +606,7 @@ playlistwin_fileinfo(void)
     gint rows, first, focused;
 
     ui_skinned_playlist_row_info (playlistwin_list, & rows, & first, & focused);
-    aud_fileinfo_show (active_playlist, focused);
+    audgui_infowin_show (active_playlist, focused);
 }
 
 static void
@@ -956,32 +957,10 @@ playlistwin_hide_timer(void)
     ui_skinned_textbox_set_text(playlistwin_time_sec, "  ");
 }
 
-void
-playlistwin_set_time(gint time, gint length, TimerMode mode)
+void playlistwin_set_time (const gchar * minutes, const gchar * seconds)
 {
-    gchar *text, sign;
-
-    if (mode == TIMER_REMAINING && length != -1) {
-        time = length - time;
-        sign = '-';
-    }
-    else
-        sign = ' ';
-
-    time /= 1000;
-
-    if (time < 0)
-        time = 0;
-    if (time > 99 * 60)
-        time /= 60;
-
-    text = g_strdup_printf("%c%-2.2d", sign, time / 60);
-    ui_skinned_textbox_set_text(playlistwin_time_min, text);
-    g_free(text);
-
-    text = g_strdup_printf("%-2.2d", time % 60);
-    ui_skinned_textbox_set_text(playlistwin_time_sec, text);
-    g_free(text);
+    ui_skinned_textbox_set_text (playlistwin_time_min, minutes);
+    ui_skinned_textbox_set_text (playlistwin_time_sec, seconds);
 }
 
 static void drag_motion (GtkWidget * widget, GdkDragContext * context, gint x,
@@ -1524,7 +1503,7 @@ void action_playlist_next (void)
 
 void action_playlist_delete (void)
 {
-    confirm_playlist_delete (active_playlist);
+    audgui_confirm_playlist_delete (active_playlist);
 }
 
 void action_playlist_save_list (void)
@@ -1553,7 +1532,7 @@ action_playlist_refresh_list(void)
 void
 action_open_list_manager(void)
 {
-    playlist_manager_ui_show();
+    audgui_playlist_manager_ui_show(mainwin);
 }
 
 void
@@ -1606,78 +1585,4 @@ playlistwin_select_search_kp_cb(GtkWidget *entry, GdkEventKey *event,
         default:
             return FALSE;
     }
-}
-
-static void confirm_delete_cb (GtkButton * button, void * data)
-{
-    if (GPOINTER_TO_INT (data) < aud_playlist_count ())
-        aud_playlist_delete (GPOINTER_TO_INT (data));
-}
-
-void confirm_playlist_delete (gint playlist)
-{
-    GtkWidget * window, * vbox, * hbox, * label, * button;
-    gchar * message;
-
-    if (config.no_confirm_playlist_delete)
-    {
-        aud_playlist_delete (playlist);
-        return;
-    }
-
-    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_type_hint ((GtkWindow *) window,
-     GDK_WINDOW_TYPE_HINT_DIALOG);
-    gtk_window_set_resizable ((GtkWindow *) window, FALSE);
-    gtk_container_set_border_width ((GtkContainer *) window, 6);
-    widget_destroy_on_escape (window);
-
-    vbox = gtk_vbox_new (FALSE, 6);
-    gtk_container_add ((GtkContainer *) window, vbox);
-
-    hbox = gtk_hbox_new (FALSE, 6);
-    gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
-
-    gtk_box_pack_start ((GtkBox *) hbox, gtk_image_new_from_stock
-     (GTK_STOCK_DIALOG_QUESTION, GTK_ICON_SIZE_DIALOG), FALSE, FALSE, 0);
-
-    message = g_strdup_printf (_("Are you sure you want to close %s?  If you "
-     "do, any changes made since the playlist was exported will be lost."),
-     aud_playlist_get_title (playlist));
-    label = gtk_label_new (message);
-    g_free (message);
-    gtk_label_set_line_wrap ((GtkLabel *) label, TRUE);
-    gtk_widget_set_size_request (label, 320, -1);
-    gtk_box_pack_start ((GtkBox *) hbox, label, TRUE, FALSE, 0);
-
-    hbox = gtk_hbox_new (FALSE, 6);
-    gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
-
-    button = gtk_check_button_new_with_mnemonic (_("_Don't show this message "
-     "again"));
-    gtk_box_pack_start ((GtkBox *) hbox, button, FALSE, FALSE, 0);
-    g_signal_connect ((GObject *) button, "toggled", (GCallback)
-     check_button_toggled, & config.no_confirm_playlist_delete);
-
-    hbox = gtk_hbox_new (FALSE, 6);
-    gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
-
-    button = gtk_button_new_from_stock (GTK_STOCK_NO);
-    gtk_box_pack_end ((GtkBox *) hbox, button, FALSE, FALSE, 0);
-    g_signal_connect_swapped (button, "clicked", (GCallback)
-     gtk_widget_destroy, window);
-
-    button = gtk_button_new_from_stock (GTK_STOCK_YES);
-    gtk_box_pack_end ((GtkBox *) hbox, button, FALSE, FALSE, 0);
-#if GTK_CHECK_VERSION (2, 18, 0)
-    gtk_widget_set_can_default (button, TRUE);
-#endif
-    gtk_widget_grab_default (button);
-    gtk_widget_grab_focus (button);
-    g_signal_connect ((GObject *) button, "clicked", (GCallback)
-     confirm_delete_cb, GINT_TO_POINTER (playlist));
-    g_signal_connect_swapped ((GObject *) button, "clicked", (GCallback)
-     gtk_widget_destroy, window);
-
-    gtk_widget_show_all (window);
 }

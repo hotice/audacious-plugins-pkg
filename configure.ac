@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([audacious-plugins], [2.3], [bugs+audacious-plugins@atheme.org])
+AC_INIT([audacious-plugins], [2.4-alpha1], [bugs+audacious-plugins@atheme.org])
 AC_PREREQ([2.59])
 
 AC_CANONICAL_HOST
@@ -134,8 +134,8 @@ AC_DEFINE_UNQUOTED(DEV_MIXER, "$dev_mixer",
 dnl These plugins are always built.
 
 INPUT_PLUGINS="tonegen console psf xsf metronom vtx"
-OUTPUT_PLUGINS="crossfade null"
-EFFECT_PLUGINS="compressor crystalizer ladspa voice_removal sndstretch stereo_plugin echo_plugin"
+OUTPUT_PLUGINS="null"
+EFFECT_PLUGINS="compressor crossfade crystalizer ladspa voice_removal sndstretch stereo_plugin echo_plugin"
 GENERAL_PLUGINS="song_change alarm skins vfstrace gtkui"
 VISUALIZATION_PLUGINS="blur_scope spectrum"
 CONTAINER_PLUGINS="m3u pls"
@@ -150,7 +150,7 @@ PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 2.3],
 
 CFLAGS="$CFLAGS $AUDACIOUS_CFLAGS"
 CPPFLAGS="$CPPFLAGS $AUDACIOUS_CPPFLAGS"
-LDFLAGS="$LDFLAGS $AUDACIOUS_LIBS"
+LIBS="$LIBS $AUDACIOUS_LIBS"
 
 dnl Check for GTK/GLib/GThread/Pango/DBus
 
@@ -296,28 +296,6 @@ else
 	have_coreaudio=no
 fi
 
-dnl *** Icecast
-
-AC_ARG_ENABLE( icecast,
-    [  --disable-icecast       disable Icecast output plugin (default=enabled)],
-    [enable_icecast=$enableval],
-    [enable_icecast="yes"]
-)
-
-if test "x$enable_icecast" = "xyes"; then
-    PKG_CHECK_MODULES(SHOUT, [shout >= 2.0],
-         [have_shout=yes
-	  enable_filewriter=yes],
-         [have_shout=no]
-    )
-else
-    AC_MSG_RESULT([*** icecast output plugin disabled per user request ***])
-    have_shout=no
-fi
-
-AC_SUBST(SHOUT_CFLAGS)
-AC_SUBST(SHOUT_LIBS)
-
 dnl *** Dock Album Art (MacOS)
 
 AC_ARG_ENABLE(dockalbumart,
@@ -424,8 +402,8 @@ AC_ARG_ENABLE(mp3,
 )
 
 if test "x$enable_mp3" = "xyes"; then
-    AM_PATH_LIBMAD([enable_mp3=yes],
-        [AC_MSG_WARN([*** Cannot find libmad, mp3 plugin will not be built ***])
+    PKG_CHECK_MODULES(MPG123, [libmpg123], [enable_mp3=yes],
+        [AC_MSG_WARN([*** Cannot find libmpg123, mp3 plugin will not be built ***])
          enable_mp3=no]
     )
 else
@@ -434,11 +412,11 @@ else
 fi
 
 if test "x$enable_mp3" = "xyes"; then
-	INPUT_PLUGINS="$INPUT_PLUGINS madplug"
+	INPUT_PLUGINS="$INPUT_PLUGINS mpg123"
 fi
 
-AC_SUBST(MAD_CFLAGS)
-AC_SUBST(MAD_LIBS)
+AC_SUBST(MPG123_CFLAGS)
+AC_SUBST(MPG123_LIBS)
 
 dnl *** Rocklight
 
@@ -972,7 +950,7 @@ else
 fi
 
 if test "x$have_oss4" = "xyes"; then
-	OUTPUT_PLUGINS="$OUTPUT_PLUGINS OSS4"
+	OUTPUT_PLUGINS="$OUTPUT_PLUGINS oss4"
 fi
 
 AC_SUBST(OSS_LIBS)
@@ -1482,10 +1460,6 @@ fi
 AC_SUBST(FILEWRITER_CFLAGS)
 AC_SUBST(FILEWRITER_LIBS)
 
-if test "x$have_shout" = "xyes"; then
-   OUTPUT_PLUGINS="$OUTPUT_PLUGINS icecast"
-fi
-
 dnl *** BS2B effect plugin
 
 AC_ARG_ENABLE(bs2b,
@@ -1617,13 +1591,12 @@ echo "  FileWriter:                             $enable_filewriter"
 echo "    -> FileWriter MP3 output part:        $have_lame"
 echo "    -> FileWriter Vorbis output part:     $have_vorbisenc"
 echo "    -> FileWriter FLAC output part:       $have_writer_flac"
-echo "  Icecast audio output (icecast):         $have_shout"
 echo "  Null Audio output (null):               yes"
 echo
 echo "  Input Plugins"
 echo "  -------------"
-echo "  MPEG 1/2/3 (madplug):                   $enable_mp3"
-echo "  MPEG 4 Audio (AAC):                     $enable_aac"
+echo "  MPEG-1 Layer I/II/III (mpg123):         $enable_mp3"
+echo "  MPEG-2/4 AAC (aac):                     $enable_aac"
 echo "  FFaudio (ffaudio):                      $have_ffaudio"
 echo "  Module decoder (modplug):               $have_modplug"
 echo "  MIDI modular plugin (amidi-plug):       $enable_amidiplug"
@@ -1672,7 +1645,6 @@ echo "  Extra Stereo:                           yes"
 echo "  Echo/Surround:                          yes"
 echo "  SndStretch:                             yes"
 echo "  Crystalizer:                            yes"
-echo "  Icecast effect plugin (icecast):        $have_shout"
 echo "  Bauer stereophonic-to-binaural (bs2b):  $have_bs2b"
 echo "  Sample Rate Converter (resample):       $enable_resample"
 echo

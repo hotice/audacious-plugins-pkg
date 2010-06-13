@@ -20,6 +20,9 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
+
 #include "filewriter.h"
 #include "plugins.h"
 #include "convert.h"
@@ -151,7 +154,11 @@ static OutputPluginInitStatus file_init(void)
     aud_cfg_db_close(db);
 
     if (file_path == NULL)
-        file_path = g_strdup_printf ("file://%s", g_get_home_dir ());
+    {
+        g_return_val_if_fail (getenv ("HOME") != NULL, OUTPUT_PLUGIN_INIT_FAIL);
+        file_path = g_filename_to_uri (getenv ("HOME"), NULL, NULL);
+        g_return_val_if_fail (file_path != NULL, OUTPUT_PLUGIN_INIT_FAIL);
+    }
 
     set_plugin();
     if (plugin->init)
@@ -160,31 +167,27 @@ static OutputPluginInitStatus file_init(void)
     return OUTPUT_PLUGIN_INIT_FOUND_DEVICES;
 }
 
-void file_about(void)
+void file_about (void)
 {
-    static GtkWidget *dialog;
+    static GtkWidget * dialog;
 
-    if (dialog != NULL)
-        return;
-
-    dialog = audacious_info_dialog(_("About FileWriter-Plugin"),
-                               _("FileWriter-Plugin\n\n"
-                               "This program is free software; you can redistribute it and/or modify\n"
-                               "it under the terms of the GNU General Public License as published by\n"
-                               "the Free Software Foundation; either version 2 of the License, or\n"
-                               "(at your option) any later version.\n"
-                               "\n"
-                               "This program is distributed in the hope that it will be useful,\n"
-                               "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-                               "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
-                               "GNU General Public License for more details.\n"
-                               "\n"
-                               "You should have received a copy of the GNU General Public License\n"
-                               "along with this program; if not, write to the Free Software\n"
-                               "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,\n"
-                               "USA."), _("Ok"), FALSE, NULL, NULL);
-    gtk_signal_connect(GTK_OBJECT(dialog), "destroy",
-                       GTK_SIGNAL_FUNC(gtk_widget_destroyed), &dialog);
+    audgui_simple_message (& dialog, GTK_MESSAGE_INFO,
+     _("About FileWriter-Plugin"),
+     _("FileWriter-Plugin\n\n"
+     "This program is free software; you can redistribute it and/or modify\n"
+     "it under the terms of the GNU General Public License as published by\n"
+     "the Free Software Foundation; either version 2 of the License, or\n"
+     "(at your option) any later version.\n"
+     "\n"
+     "This program is distributed in the hope that it will be useful,\n"
+     "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+     "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+     "GNU General Public License for more details.\n"
+     "\n"
+     "You should have received a copy of the GNU General Public License\n"
+     "along with this program; if not, write to the Free Software\n"
+     "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,\n"
+     "USA."));
 }
 
 static VFSFile * safe_create (const gchar * filename)
@@ -215,7 +218,7 @@ static VFSFile * safe_create (const gchar * filename)
 static gint file_open(AFormat fmt, gint rate, gint nch)
 {
     gchar *filename = NULL, *temp = NULL;
-    const gchar *directory;
+    gchar * directory;
     gint pos;
     gint rv;
     gint playlist;
@@ -224,7 +227,7 @@ static gint file_open(AFormat fmt, gint rate, gint nch)
     input.frequency = rate;
     input.channels = nch;
 
-    playlist = aud_playlist_get_active();
+    playlist = aud_playlist_get_playing ();
     if (playlist < 0)
         return 0;
 
@@ -237,22 +240,22 @@ static gint file_open(AFormat fmt, gint rate, gint nch)
     {
         gchar *utf8 = aud_tuple_formatter_make_title_string(tuple, aud_get_gentitle_format());
 
-        g_strchomp(utf8); /* chop trailing ^J --yaz */
-
-        filename = g_locale_from_utf8(utf8, -1, NULL, NULL, NULL);
-        g_free(utf8);
-        while (filename != NULL && (temp = strchr(filename, '/')) != NULL)
-            *temp = '-';
+        string_replace_char (utf8, '/', ' ');
+        filename = string_encode_percent (utf8, FALSE);
+        g_free (utf8);
     }
-    if (filename == NULL)
+    else
     {
-        filename = g_strdup(aud_tuple_get_string(tuple, FIELD_FILE_NAME, NULL));
+        const gchar * original = strrchr (aud_playlist_entry_get_filename
+         (playlist, pos), '/');
+
+        g_return_val_if_fail (original != NULL, 0);
+        filename = g_strdup (original + 1);
+
         if (!use_suffix)
             if ((temp = strrchr(filename, '.')) != NULL)
                 *temp = '\0';
     }
-    if (filename == NULL)
-        filename = g_strdup_printf("aud-%d", pos);
 
     if (prependnumber)
     {
@@ -260,23 +263,34 @@ static gint file_open(AFormat fmt, gint rate, gint nch)
         if (!tuple || !number)
             number = pos + 1;
 
-        temp = g_strdup_printf("%.02d %s", number, filename);
+        temp = g_strdup_printf ("%d%%20%s", number, filename);
         g_free(filename);
         filename = temp;
     }
 
     if (save_original)
-        directory = aud_tuple_get_string(tuple, FIELD_FILE_PATH, NULL);
+    {
+        directory = g_strdup (aud_playlist_entry_get_filename (playlist, pos));
+        temp = strrchr (directory, '/');
+        g_return_val_if_fail (temp != NULL, 0);
+        temp[1] = 0;
+    }
     else
-        directory = file_path;
+    {
+        g_return_val_if_fail (file_path[0], 0);
+        if (file_path[strlen (file_path) - 1] == '/')
+            directory = g_strdup (file_path);
+        else
+            directory = g_strdup_printf ("%s/", file_path);
+    }
 
-    temp = g_strdup_printf ("%s%s%s.%s", directory, strcmp (directory + 7, "/")
-     ? "/" : "", filename, fileext_str[fileext]);
-    g_free(filename);
+    temp = g_strdup_printf ("%s%s.%s", directory, filename, fileext_str[fileext]);
+    g_free (directory);
+    g_free (filename);
     filename = temp;
 
     output_file = safe_create (filename);
-    g_free(filename);
+    g_free (filename);
 
     if (output_file == NULL)
         return 0;
@@ -342,9 +356,8 @@ static void configure_ok_cb(gpointer data)
 
     fileext = gtk_combo_box_get_active(GTK_COMBO_BOX(fileext_combo));
 
-    g_free(file_path);
-    file_path = g_strdup_printf ("file://%s",
-     gtk_file_chooser_get_current_folder ((GtkFileChooser *) path_dirbrowser));
+    g_free (file_path);
+    file_path = gtk_file_chooser_get_uri ((GtkFileChooser *) path_dirbrowser);
 
     use_suffix =
         gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(use_suffix_toggle));
@@ -513,8 +526,7 @@ static void file_configure(void)
         path_dirbrowser =
             gtk_file_chooser_button_new (_("Pick a folder"),
                                          GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(path_dirbrowser),
-         file_path + 7);
+        gtk_file_chooser_set_uri ((GtkFileChooser *) path_dirbrowser, file_path);
         gtk_box_pack_start(GTK_BOX(path_hbox), path_dirbrowser, TRUE, TRUE, 0);
 
         if (save_original)
