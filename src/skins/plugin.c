@@ -29,9 +29,9 @@
 #include "ui_playlist_evlisteners.h"
 #include <audacious/i18n.h>
 #include <libaudgui/libaudgui.h>
-#include <libintl.h>
+#include <libaudgui/libaudgui-gtk.h>
 
-#include "ui_playlist_manager.h"
+#include <libintl.h>
 
 gchar * skins_paths[SKINS_PATH_COUNT];
 
@@ -157,8 +157,7 @@ gboolean skins_cleanup (void)
         gtk_widget_destroy (playlistwin);
         skins_cfg_save();
 
-        if (playman_win)
-            gtk_widget_destroy (playman_win);
+        audgui_playlist_manager_destroy();
 
         cleanup_skins();
         skins_free_paths();
@@ -172,23 +171,18 @@ gboolean skins_cleanup (void)
     return TRUE;
 }
 
-void skins_about(void) {
-    static GtkWidget* about_window = NULL;
+void skins_about (void)
+{
+    static GtkWidget * about_window = NULL;
 
-    if (about_window) {
-        gtk_window_present(GTK_WINDOW(about_window));
-        return;
-    }
-
-    about_window = audacious_info_dialog(_("About Skinned GUI"),
-                   _("Copyright (c) 2008, by Tomasz Moń <desowin@gmail.com>\n\n"),
-                   _("OK"), FALSE, NULL, NULL);
-
-    g_signal_connect(G_OBJECT(about_window), "destroy",	G_CALLBACK(gtk_widget_destroyed), &about_window);
+    audgui_simple_message (& about_window, GTK_MESSAGE_INFO,
+     _("About Skinned GUI"),
+     _("Copyright (c) 2008, by Tomasz Moń <desowin@gmail.com>\n\n"));
 }
 
 void show_preferences_window(gboolean show) {
-    static GtkWidget **prefswin = NULL;
+    /* static GtkWidget * * prefswin = NULL; */
+    static void * * prefswin = NULL;
 
     if (show) {
         if ((prefswin != NULL) && (*prefswin != NULL)) {
