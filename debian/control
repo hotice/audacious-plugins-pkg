@@ -88,69 +88,6 @@ Description: Base plugins for audacious
   * Disk writer output
   * And many more!
 
-Package: audacious-plugins-dev
-Section: devel
-Architecture: any
-Depends: audacious-dev (>= 2.3),
-         audacious-plugins (= ${binary:Version}),
-         libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
-         libavcodec-dev,
-         libavformat-dev,
-         libavutil-dev,
-         libbinio-dev,
-         libcddb2-dev (>= 1.2.1) | libcddb-dev (>= 1.2.1),
-         libcdio-cdda-dev (>= 0.70),
-         libcue-dev,
-         libcurl4-gnutls-dev,
-         libesd0-dev (>= 0.2),
-         libfaad-dev,
-         libflac-dev (>= 1.1.2),
-         libfluidsynth-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
-         libglade2-dev (>= 2.3.1),
-         libgtk2.0-dev (>= 2.6),
-         libgtkglext1,
-         libimlib2-dev (>= 1.1.0),
-         libjack-dev,
-         liblircclient-dev,
-         libmad0-dev,
-         libmcs-dev,
-         libmms-dev,
-         libmtp-dev,
-         libneon27-gnutls-dev (>= 0.26),
-         libogg-dev (>= 1.0),
-         libprojectm-dev,
-         libpulse-dev [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
-         libresid-builder-dev,
-         libsamplerate0-dev (>=0.0.15) | libsamplerate-dev (>=0.0.15),
-         libsdl1.2-dev (>= 1.2.9) | libsdl-dev (>= 1.2.9),
-         libshout3-dev,
-         libsidplay2-dev | libsidplay1-dev,
-         libsndfile1-dev (>= 0.19) | libsndfile-dev (>= 0.19),
-         libtagc0-dev (>= 1.4),
-         libvorbis-dev (>= 1.2),
-         libwavpack-dev,
-         libxcomposite-dev,
-         ${misc:Depends}
-Description: Useful virtual package for doing audacious plugin development
- Audacious is a fork of beep-media-player which supports winamp skins
- and many codecs.
- .
- In the default install, the following codecs are supported:
- .
-  * MP3
-  * Ogg Vorbis
-  * AAC and AAC+
-  * FLAC
-  * Windows Media (WMA)
-  * TTA
-  * Many module formats and much more!
- .
- Additionally, Audacious is extendable through plugins, and contains
- other useful features like LIRC support and support for last.fm.
- .
- This package is a virtual package which will install audacious-dev and all
- build-depends required by the plugins.
-
 Package: audacious-plugins-dbg
 Section: debug
 Priority: extra
