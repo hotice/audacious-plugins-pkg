@@ -1,3 +1,12 @@
+audacious-plugins (2.4~alpha1-1) experimental; urgency=low
+
+  * New upstream release.
+  * Drop all patches.
+  * Drop override_dh_auto_clean.
+  * Refer to versioned copyright file.
+
+ -- Benjamin Drung <bdrung@ubuntu.com>  Tue, 15 Jun 2010 16:52:52 +0200
+
 audacious-plugins (2.3-2) unstable; urgency=low
 
   [Chris Taylor]
