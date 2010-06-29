@@ -20,13 +20,11 @@
 #ifndef UI_NEW_H
 #define UI_NEW_H
 
-static GtkWidget *window;       /* the main window */
 extern gboolean multi_columns_view;
 
 extern Interface gtkui_interface;
-void show_preferences_window(gboolean show);
 
-GtkNotebook *get_playlist_notebook(void);
-gint get_switched_page_num();
+void setup_panes (void);
+void show_preferences_window(gboolean show);
 
 #endif

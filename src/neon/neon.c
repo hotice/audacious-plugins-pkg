@@ -52,12 +52,12 @@ gint64 neon_aud_vfs_fwrite_impl (const void * ptr, gint64 size, gint64 nmemb,
 gint neon_aud_vfs_getc_impl(VFSFile* file);
 gint neon_aud_vfs_ungetc_impl(gint c, VFSFile* file);
 void neon_aud_vfs_rewind_impl(VFSFile* file);
-glong neon_aud_vfs_ftell_impl(VFSFile* file);
+gint64 neon_aud_vfs_ftell_impl (VFSFile * file);
 gboolean neon_aud_vfs_feof_impl(VFSFile* file);
-gint neon_aud_vfs_truncate_impl(VFSFile* file, glong size);
-gint neon_aud_vfs_fseek_impl(VFSFile* file, glong offset, gint whence);
+gint neon_aud_vfs_truncate_impl (VFSFile * file, gint64 size);
+gint neon_aud_vfs_fseek_impl (VFSFile * file, gint64 offset, gint whence);
 gchar *neon_aud_vfs_metadata_impl(VFSFile* file, const gchar * field);
-off_t neon_aud_vfs_fsize_impl(VFSFile* file);
+gint64 neon_aud_vfs_fsize_impl (VFSFile * file);
 
 
 VFSConstructor neon_http_const = {
@@ -702,11 +702,13 @@ static gint open_handle(struct neon_handle* handle, gulong startbyte) {
             return 0;
         } else if (-1 == ret) {
             ne_session_destroy(handle->session);
+            handle->session = NULL;
             return -1;
         }
 
         _DEBUG("<%p> Following redirect...", handle);
         ne_session_destroy(handle->session);
+        handle->session = NULL;
     }
 
     /*
@@ -878,7 +880,9 @@ gint neon_aud_vfs_fclose_impl(VFSFile* file) {
     }
 
     _DEBUG("<%p> Destroying session", h);
-    ne_session_destroy(h->session);
+    if (NULL != h->session) {
+        ne_session_destroy(h->session);
+    }
 
     handle_free(h);
 
@@ -1167,8 +1171,8 @@ void neon_aud_vfs_rewind_impl(VFSFile* file) {
  * -----
  */
 
-glong neon_aud_vfs_ftell_impl(VFSFile* file) {
-
+gint64 neon_aud_vfs_ftell_impl (VFSFile * file)
+{
     struct neon_handle* h = (struct neon_handle *)file->handle;
 
     _DEBUG("<%p> Current file position: %ld", h, h->pos);
@@ -1193,7 +1197,8 @@ gboolean neon_aud_vfs_feof_impl(VFSFile* file) {
  * -----
  */
 
-gint neon_aud_vfs_truncate_impl(VFSFile* file, glong size) {
+gint neon_aud_vfs_truncate_impl (VFSFile * file, gint64 size)
+{
     _ERROR ("<%p> NOT IMPLEMENTED", (void *) file->handle);
 
     return 0;
@@ -1203,8 +1208,8 @@ gint neon_aud_vfs_truncate_impl(VFSFile* file, glong size) {
  * -----
  */
 
-gint neon_aud_vfs_fseek_impl(VFSFile* file, glong offset, gint whence) {
-
+gint neon_aud_vfs_fseek_impl (VFSFile * file, gint64 offset, gint whence)
+{
     struct neon_handle* h = (struct neon_handle*)file->handle;
     glong newpos;
     glong content_length;
@@ -1270,7 +1275,10 @@ gint neon_aud_vfs_fseek_impl(VFSFile* file, glong offset, gint whence) {
     if (NULL != h->request) {
         ne_request_destroy(h->request);
     }
-    ne_session_destroy(h->session);
+    if (NULL != h->session) {
+        ne_session_destroy(h->session);
+        h->session = NULL;
+    }
     reset_rb(&h->rb);
 
     if (0 != open_handle(h, newpos)) {
@@ -1326,8 +1334,8 @@ gchar *neon_aud_vfs_metadata_impl(VFSFile* file, const gchar* field) {
  * -----
  */
 
-off_t neon_aud_vfs_fsize_impl(VFSFile* file) {
-
+gint64 neon_aud_vfs_fsize_impl (VFSFile * file)
+{
     struct neon_handle* h = (struct neon_handle*)file->handle;
 
     if (-1 == h->content_length) {
