@@ -1,5 +1,6 @@
-/*  
+/*
  *  Copyright (C) 2010 William Pitcock <nenolod@atheme.org>.
+ *  Copyright (C) 2010 John Lindgren <john.lindgren@tds.net>.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -35,47 +36,76 @@
 
 #define DEFAULT_ARTWORK DATA_DIR "/images/audio.png"
 #define STREAM_ARTWORK DATA_DIR "/images/streambrowser-64x64.png"
+#define ICON_SIZE 64
+#define SPECT_BANDS 12
+#define VIS_OFFSET (10 + 12 * SPECT_BANDS + 7)
+
+typedef struct {
+    GtkWidget *parent;
+
+    gchar * title, * artist, * album;
+    gchar * last_title, * last_artist, * last_album;
+    gfloat alpha, last_alpha;
+
+    gboolean stopped;
+    gint fade_timeout;
+    guint8 visdata[SPECT_BANDS];
+
+    GdkPixbuf * pb, * last_pb;
+} UIInfoArea;
 
 static const gfloat alpha_step = 0.10;
 
-const Tuple *
-ui_infoarea_get_current_tuple(void)
-{
-    gint playlist;
-    gint entry;
-
-    playlist = aud_playlist_get_playing();
-    entry = aud_playlist_get_position(playlist);
-
-    return aud_playlist_entry_get_tuple(playlist, entry);
-}
+static void ui_infoarea_draw_visualizer (UIInfoArea * area);
 
 /****************************************************************************/
 
 static void
 ui_infoarea_visualization_timeout(gpointer hook_data, UIInfoArea *area)
 {
+    const gfloat xscale[SPECT_BANDS + 1] = {0.00, 0.59, 1.52, 3.00, 5.36, 9.10,
+     15.0, 24.5, 39.4, 63.2, 101, 161, 256}; /* logarithmic scale - 1 */
     VisNode *vis = (VisNode*) hook_data;
     gint16 mono_freq[2][256];
 
-    const int xscale[] = { 0, 2, 3, 5, 6, 11, 
-                           20, 41, 62, 82, 143, 255 };
-
     aud_calc_mono_freq(mono_freq, vis->data, vis->nch);
-    memset(area->visdata, 0, 20);
 
-    for (auto gint i = 0; i < 12; i++) {
-        gint y = mono_freq[0][xscale[i]] / 128;
-        area->visdata[i] = CLAMP(y, 0, 64);
+    for (gint i = 0; i < SPECT_BANDS; i ++)
+    {
+        gint a = ceil (xscale[i]);
+        gint b = floor (xscale[i + 1]);
+        gint n = 0;
+
+        if (a > 0)
+            n += mono_freq[0][a - 1] * (a - xscale[i]);
+        for (; a < b; a ++)
+            n += mono_freq[0][a];
+        if (b < 256)
+            n += mono_freq[0][b] * (xscale[i + 1] - b);
+
+        n = 32 * log10 (n / 327.67); /* 40 dB range */
+        n = CLAMP (n, 0, 64);
+        area->visdata[i] = MAX (area->visdata[i] - 3, n);
     }
 
-    gtk_widget_queue_draw(GTK_WIDGET(area->parent));
+#if GTK_CHECK_VERSION (2, 20, 0)
+    if (gtk_widget_is_drawable (area->parent))
+#else
+    if (GTK_WIDGET_DRAWABLE (area->parent))
+#endif
+        ui_infoarea_draw_visualizer (area);
+}
+
+static void vis_clear_cb (void * hook_data, UIInfoArea * area)
+{
+    memset (area->visdata, 0, 20);
 }
 
 /****************************************************************************/
 
-static void
-ui_infoarea_draw_text(UIInfoArea *area, gint x, gint y, gfloat alpha, const gchar *font, const gchar *text)
+static void ui_infoarea_draw_text (UIInfoArea * area, gint x, gint y, gint
+ width, gfloat r, gfloat g, gfloat b, gfloat a, const gchar * font,
+ const gchar * text)
 {
     cairo_t *cr;
     PangoLayout *pl;
@@ -87,13 +117,15 @@ ui_infoarea_draw_text(UIInfoArea *area, gint x, gint y, gfloat alpha, const gcha
     cr = gdk_cairo_create(area->parent->window);
     cairo_move_to(cr, x, y);
     cairo_set_operator(cr, CAIRO_OPERATOR_ATOP);
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, alpha);
+    cairo_set_source_rgba(cr, r, g, b, a);
 
     desc = pango_font_description_from_string(font);
     pl = gtk_widget_create_pango_layout(area->parent, NULL);
     pango_layout_set_markup(pl, str, -1);
     pango_layout_set_font_description(pl, desc);
     pango_font_description_free(desc);
+    pango_layout_set_width (pl, width * PANGO_SCALE);
+    pango_layout_set_ellipsize (pl, PANGO_ELLIPSIZE_END);
 
     AUDDBG("Drawing %s to %d, %d at %p layout %p\n", text, x, y, cr, pl);
 
@@ -125,10 +157,7 @@ static struct {
     { 0xec, 0xce, 0xb6 },
 };
 
-#define SPECT_BANDS	(12)
-
-void
-ui_infoarea_draw_visualizer(UIInfoArea *area)
+static void ui_infoarea_draw_visualizer (UIInfoArea * area)
 {
     GtkAllocation alloc;
     cairo_t *cr;
@@ -140,67 +169,105 @@ ui_infoarea_draw_visualizer(UIInfoArea *area)
     {
         gint x, y, w, h;
 
-        x = alloc.width - (12 * SPECT_BANDS + 12) + (i * 12);
-        y = 11 + (64 - (area->visdata[i]));
-        w = 10;
+        x = alloc.width - VIS_OFFSET + 10 + 12 * i;
+        w = 9;
+
+        y = 10;
+        h = 64 - area->visdata[i];
+
+        cairo_set_source_rgb (cr, 0, 0, 0);
+        cairo_rectangle (cr, x, y, w, h);
+        cairo_fill (cr);
+
+        y = 10 + 64 - area->visdata[i];
         h = area->visdata[i];
 
-        cairo_set_source_rgba(cr, colors[i].red / 255., colors[i].green / 255., colors[i].blue / 255., area->alpha.title);
-        cairo_rectangle(cr, x, y, w, h);
-        cairo_fill(cr);
+        cairo_set_source_rgb (cr, colors[i].red / 255.0, colors[i].green /
+         255.0, colors[i].blue / 255.0);
+        cairo_rectangle (cr, x, y, w, h);
+        cairo_fill (cr);
     }
 
     cairo_destroy(cr);
 }
 
-void
-ui_infoarea_draw_album_art(UIInfoArea *area)
+static GdkPixbuf * get_current_album_art (void)
 {
-    GError *err = NULL;
-    GdkPixbuf *pb;
-    cairo_t *cr;
+    gint playlist = aud_playlist_get_playing ();
+    gint position = aud_playlist_get_position (playlist);
+    const gchar * filename = aud_playlist_entry_get_filename (playlist, position);
+    InputPlugin * decoder = aud_playlist_entry_get_decoder (playlist, position);
+    void * data;
+    gint size;
+    GdkPixbuf * pixbuf;
 
-    if (area->tu == NULL)
-        return;
+    if (filename == NULL || decoder == NULL || ! aud_file_read_image (filename,
+     decoder, & data, & size))
+        return NULL;
 
-    if (area->pb == NULL)
+    pixbuf = audgui_pixbuf_from_data (data, size);
+    g_free (data);
+    return pixbuf;
+}
+
+void ui_infoarea_draw_album_art (UIInfoArea * area)
+{
+    cairo_t * cr;
+
+    if (audacious_drct_get_playing () && ! area->pb)
     {
-        if (tuple_get_int(area->tu, FIELD_LENGTH, NULL) <= 0)
-            pb = gdk_pixbuf_new_from_file(STREAM_ARTWORK, &err);
-        else
-            pb = gdk_pixbuf_new_from_file(DEFAULT_ARTWORK, &err);
+        area->pb = get_current_album_art ();
+
+        if (! area->pb)
+            area->pb = gdk_pixbuf_new_from_file (DEFAULT_ARTWORK, NULL);
+
+        if (area->pb)
+            audgui_pixbuf_scale_within (& area->pb, ICON_SIZE);
     }
-    else
-        pb = g_object_ref(area->pb);
 
-    if (pb == NULL)
-        return;
+    cr = gdk_cairo_create (area->parent->window);
 
-    cr = gdk_cairo_create(area->parent->window);
-    audgui_pixbuf_scale_within(&pb, 64);
-    gdk_cairo_set_source_pixbuf(cr, pb, 10.0, 10.0);
-    cairo_paint_with_alpha(cr, area->alpha.artwork);
+    if (area->pb)
+    {
+        gdk_cairo_set_source_pixbuf (cr, area->pb, 10.0, 10.0);
+        cairo_paint_with_alpha (cr, area->alpha);
+    }
 
-    cairo_destroy(cr);
-    g_object_unref(pb);
+    if (area->last_pb)
+    {
+        gdk_cairo_set_source_pixbuf (cr, area->last_pb, 10.0, 10.0);
+        cairo_paint_with_alpha (cr, area->last_alpha);
+    }
+
+    cairo_destroy (cr);
 }
 
-void
-ui_infoarea_draw_title(UIInfoArea *area)
+void ui_infoarea_draw_title (UIInfoArea * area)
 {
-    const gchar *str;
+    GtkAllocation alloc;
+    gint width;
 
-    if (area->tu == NULL)
-        return;
+    gtk_widget_get_allocation (area->parent, & alloc);
+    width = alloc.width - (86 + VIS_OFFSET + 6);
 
-    if ((str = tuple_get_string(area->tu, FIELD_TITLE, NULL)) != NULL)
-        ui_infoarea_draw_text(area, 86,  8, area->alpha.title, "Sans 20", str);
-
-    if ((str = tuple_get_string(area->tu, FIELD_ARTIST, NULL)) != NULL)
-        ui_infoarea_draw_text(area, 86, 42, area->alpha.artist, "Sans 9", str);
-
-    if ((str = tuple_get_string(area->tu, FIELD_ALBUM, NULL)) != NULL)
-        ui_infoarea_draw_text(area, 86, 58, area->alpha.album, "Sans 9", str);
+    if (area->title)
+        ui_infoarea_draw_text (area, 86, 8, width, 1, 1, 1, area->alpha,
+         "Sans 18", area->title);
+    if (area->last_title)
+        ui_infoarea_draw_text (area, 86, 8, width, 1, 1, 1, area->last_alpha,
+         "Sans 18", area->last_title);
+    if (area->artist)
+        ui_infoarea_draw_text (area, 86, 42, width, 1, 1, 1, area->alpha,
+         "Sans 9", area->artist);
+    if (area->last_artist)
+        ui_infoarea_draw_text (area, 86, 42, width, 1, 1, 1, area->last_alpha,
+         "Sans 9", area->last_artist);
+    if (area->album)
+        ui_infoarea_draw_text (area, 86, 58, width, 0.7, 0.7, 0.7, area->alpha,
+         "Sans 9", area->album);
+    if (area->last_album)
+        ui_infoarea_draw_text (area, 86, 58, width, 0.7, 0.7, 0.7,
+         area->last_alpha, "Sans 9", area->last_album);
 }
 
 void
@@ -234,162 +301,131 @@ ui_infoarea_expose_event(UIInfoArea *area, GdkEventExpose *event, gpointer unuse
     return TRUE;
 }
 
-static gboolean
-ui_infoarea_do_fade_in(UIInfoArea *area)
+static gboolean ui_infoarea_do_fade (UIInfoArea * area)
 {
     gboolean ret = FALSE;
 
-    if (area->alpha.title < 1.0)
+    if (audacious_drct_get_playing () && area->alpha < 1)
     {
-        area->alpha.title += alpha_step;
+        area->alpha += alpha_step;
         ret = TRUE;
     }
 
-    if (area->alpha.artist < 1.0)
+    if (area->last_alpha > 0)
     {
-        area->alpha.artist += alpha_step;
+        area->last_alpha -= alpha_step;
         ret = TRUE;
     }
 
-    if (area->alpha.album < 0.7)
-    {
-        area->alpha.album += alpha_step;
-        ret = TRUE;
-    }
+    gtk_widget_queue_draw ((GtkWidget *) area->parent);
 
-    if (area->alpha.artwork < 0.7)
-    {
-        area->alpha.artwork += alpha_step;
-        ret = TRUE;
-    }
-
-    gtk_widget_queue_draw(GTK_WIDGET(area->parent));
-
-    if (ret == FALSE)
-        area->fadein_timeout = 0;
-
-    if (ret == FALSE)
-        AUDDBG("fadein complete\n");
+    if (! ret)
+        area->fade_timeout = 0;
 
     return ret;
 }
 
-static gboolean
-ui_infoarea_do_fade_out(UIInfoArea *area)
+void ui_infoarea_set_title (void * data, UIInfoArea * area)
 {
-    gboolean ret = FALSE;
+    gint playlist = aud_playlist_get_playing ();
+    gint entry = aud_playlist_get_position (playlist);
+    const Tuple * tuple = aud_playlist_entry_get_tuple (playlist, entry);
+    const gchar * s;
 
-    if (area->alpha.title > 0.0)
-    {
-        area->alpha.title -= alpha_step;
-        ret = TRUE;
-    }
+    g_free (area->title);
+    area->title = NULL;
+    g_free (area->artist);
+    area->artist = NULL;
+    g_free (area->album);
+    area->album = NULL;
 
-    if (area->alpha.artist > 0.0)
-    {
-        area->alpha.artist -= alpha_step;
-        ret = TRUE;
-    }
+    if (tuple && (s = tuple_get_string (tuple, FIELD_TITLE, NULL)))
+        area->title = g_strdup (s);
+    else
+        area->title = g_strdup (aud_playlist_entry_get_title (playlist, entry));
 
-    if (area->alpha.album > 0.0)
-    {
-        area->alpha.album -= alpha_step;
-        ret = TRUE;
-    }
+    if (tuple && (s = tuple_get_string (tuple, FIELD_ARTIST, NULL)))
+        area->artist = g_strdup (s);
 
-    if (area->alpha.artwork > 0.0)
-    {
-        area->alpha.artwork -= alpha_step;
-        ret = TRUE;
-    }
+    if (tuple && (s = tuple_get_string (tuple, FIELD_ALBUM, NULL)))
+        area->album = g_strdup (s);
 
-    gtk_widget_queue_draw(GTK_WIDGET(area->parent));
-
-    if (ret == FALSE) {
-        area->fadeout_timeout = 0;
-
-        if (area->tu != NULL) {
-            mowgli_object_unref(area->tu);
-            area->tu = NULL;
-        }
-
-        if (area->pb != NULL) {
-            g_object_unref(area->pb);
-            area->pb = NULL;
-        }
-
-        AUDDBG("fadeout complete\n");
-    }
-
-    return ret;
+    gtk_widget_queue_draw ((GtkWidget *) area->parent);
 }
 
-void
-ui_infoarea_set_title(gpointer unused, UIInfoArea *area)
+static void infoarea_next (UIInfoArea * area)
 {
-    const Tuple *tuple;
+    if (area->last_pb)
+        g_object_unref (area->last_pb);
+    area->last_pb = area->pb;
+    area->pb = NULL;
 
-    g_return_if_fail(area != NULL);
+    g_free (area->last_title);
+    area->last_title = area->title;
+    area->title = NULL;
 
-    tuple = ui_infoarea_get_current_tuple();
+    g_free (area->last_artist);
+    area->last_artist = area->artist;
+    area->artist = NULL;
 
-    if (area->tu != NULL)
-        mowgli_object_unref(area->tu);
+    g_free (area->last_album);
+    area->last_album = area->album;
+    area->album = NULL;
 
-    area->tu = tuple_copy(tuple);
-    area->alpha.artist = area->alpha.album = area->alpha.artwork = area->alpha.title = 0.0;
+    area->last_alpha = area->alpha;
+    area->alpha = 0;
 
-    if (!area->fadein_timeout)
-        area->fadein_timeout = g_timeout_add(10, (GSourceFunc) ui_infoarea_do_fade_in, area);
-
-    if (area->fadeout_timeout) {
-        g_source_remove(area->fadeout_timeout);
-        area->fadeout_timeout = 0;
-    }
-
-    gtk_widget_queue_draw(GTK_WIDGET(area->parent));
+    gtk_widget_queue_draw ((GtkWidget *) area->parent);
 }
 
-
-void
-ui_infoarea_playback_start(InputPlayback *playback, UIInfoArea *area)
+static void ui_infoarea_playback_start (void * data, UIInfoArea * area)
 {
-    g_return_if_fail(area != NULL);
+    if (! area->stopped) /* moved to the next song without stopping? */
+        infoarea_next (area);
+    area->stopped = FALSE;
 
-    area->playback = playback;
-
-    if (area->pb != NULL)
-    {
-        g_object_unref(area->pb);
-        area->pb = NULL;
-    }
-
-    if (area->playback && area->playback->filename != NULL)
-    {
-        gpointer data;
-        gint size;
-
-        if (aud_file_read_image(area->playback->filename, area->playback->plugin, &data, &size))
-        {
-            area->pb = audgui_pixbuf_from_data(data, size);
-            g_free (data);
-        }
-    }
+    if (! area->fade_timeout)
+        area->fade_timeout = g_timeout_add (30, (GSourceFunc)
+         ui_infoarea_do_fade, area);
 }
 
-void
-ui_infoarea_playback_stop(gpointer unused, UIInfoArea *area)
+static void ui_infoarea_playback_stop (void * data, UIInfoArea * area)
 {
-    g_return_if_fail(area != NULL);
+    infoarea_next (area);
+    area->stopped = TRUE;
 
-    if (!area->fadeout_timeout)
-        area->fadeout_timeout = g_timeout_add(10, (GSourceFunc) ui_infoarea_do_fade_out, area);
-
-    gtk_widget_queue_draw(GTK_WIDGET(area->parent));
+    if (! area->fade_timeout)
+        area->fade_timeout = g_timeout_add (30, (GSourceFunc)
+         ui_infoarea_do_fade, area);
 }
 
-UIInfoArea *
-ui_infoarea_new(void)
+static void destroy_cb (GtkObject * parent, UIInfoArea * area)
+{
+    aud_hook_dissociate ("title change", (HookFunction) ui_infoarea_set_title);
+    aud_hook_dissociate ("playback begin", (HookFunction)
+     ui_infoarea_playback_start);
+    aud_hook_dissociate ("playback stop", (HookFunction)
+     ui_infoarea_playback_stop);
+    aud_hook_dissociate ("visualization timeout", (HookFunction)
+     ui_infoarea_visualization_timeout);
+    aud_hook_dissociate ("visualization clear", (HookFunction) vis_clear_cb);
+
+    g_free (area->title);
+    g_free (area->artist);
+    g_free (area->album);
+    g_free (area->last_title);
+    g_free (area->last_artist);
+    g_free (area->last_album);
+
+    if (area->pb)
+        g_object_unref (area->pb);
+    if (area->last_pb)
+        g_object_unref (area->last_pb);
+
+    g_slice_free (UIInfoArea, area);
+}
+
+GtkWidget * ui_infoarea_new (void)
 {
     UIInfoArea *area;
     GtkWidget *evbox;
@@ -401,13 +437,19 @@ ui_infoarea_new(void)
 
     gtk_widget_set_size_request(GTK_WIDGET(evbox), -1, 84);
 
-    g_signal_connect_swapped(area->parent, "expose-event", 
+    g_signal_connect_swapped(area->parent, "expose-event",
                              G_CALLBACK(ui_infoarea_expose_event), area);
 
     aud_hook_associate("title change", (HookFunction) ui_infoarea_set_title, area);
     aud_hook_associate("playback begin", (HookFunction) ui_infoarea_playback_start, area);
     aud_hook_associate("playback stop", (HookFunction) ui_infoarea_playback_stop, area);
     aud_hook_associate("visualization timeout", (HookFunction) ui_infoarea_visualization_timeout, area);
+    aud_hook_associate("visualization clear", (HookFunction) vis_clear_cb, area);
 
-    return area;
+    g_signal_connect (area->parent, "destroy", (GCallback) destroy_cb, area);
+
+    if (audacious_drct_get_playing ())
+        ui_infoarea_playback_start (NULL, area);
+
+    return area->parent;
 }

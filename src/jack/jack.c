@@ -8,7 +8,8 @@
 
 #include <audacious/plugin.h>
 #include <dlfcn.h>
-#include <gtk/gtk.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 #include <audacious/i18n.h>
 #include <stdio.h>
 #include "config.h"
@@ -285,6 +286,7 @@ static void jack_close(void)
 static gint jack_open(AFormat fmt, gint sample_rate, gint num_channels)
 {
   int bits_per_sample;
+  int floating_point = FALSE;
   int retval;
   unsigned long rate;
 
@@ -294,9 +296,23 @@ static gint jack_open(AFormat fmt, gint sample_rate, gint num_channels)
   if((fmt == FMT_U8) || (fmt == FMT_S8))
   {
     bits_per_sample = 8;
-  } else
+  } else if(fmt == FMT_S16_NE)
   {
     bits_per_sample = 16;
+  } else if (fmt == FMT_S24_NE)
+  {
+    /* interpreted by bio2jack as 24 bit values packed to 32 bit samples */
+    bits_per_sample = 24;
+  } else if (fmt == FMT_S32_NE)
+  {
+    bits_per_sample = 32;
+  } else if (fmt == FMT_FLOAT)
+  {
+    bits_per_sample = 32;
+    floating_point = TRUE;
+  } else {
+    TRACE("sample format not supported\n");
+    return 0;
   }
 
   /* record some useful information */
@@ -323,6 +339,7 @@ static gint jack_open(AFormat fmt, gint sample_rate, gint num_channels)
       TRACE("output.frequency is %ld, jack_open called with %ld\n", output.frequency, input.frequency);
       TRACE("output.format is %d, jack_open called with %d\n", output.format, input.format);
       jack_close();
+      JACK_Close(driver);
     } else
     {
         TRACE("output_opened is TRUE and no options changed, not reopening\n");
@@ -337,7 +354,7 @@ static gint jack_open(AFormat fmt, gint sample_rate, gint num_channels)
   output.format    = input.format;
 
   rate = output.frequency;
-  retval = JACK_Open(&driver, bits_per_sample, &rate, output.channels);
+  retval = JACK_Open(&driver, bits_per_sample, floating_point, &rate, output.channels);
   output.frequency = rate; /* avoid compile warning as output.frequency differs in type
                               from what JACK_Open() wants for the type of the rate parameter */
   if((retval == ERR_RATE_MISMATCH))
@@ -416,14 +433,15 @@ static void jack_about(void)
 
     if (aboutbox == NULL)
     {
-        aboutbox = audacious_info_dialog(
-            _("About JACK Output Plugin 0.17"),
+        gchar *description = g_strdup_printf(
             _("XMMS jack Driver 0.17\n\n"
               "xmms-jack.sf.net\nChris Morgan<cmorgan@alum.wpi.edu>\n\n"
-              "Audacious port by\nGiacomo Lozito from develia.org"),
-            _("Ok"), FALSE, NULL, NULL);
-        g_signal_connect(GTK_OBJECT(aboutbox), "destroy",
-                   (GCallback)gtk_widget_destroyed, &aboutbox);
+              "Audacious port by\nGiacomo Lozito from develia.org"));
+
+        audgui_simple_message (& aboutbox, GTK_MESSAGE_INFO,
+         _("About JACK Output Plugin 0.17"), description);
+        
+        g_free(description);
     }
 }
 

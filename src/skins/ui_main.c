@@ -50,6 +50,7 @@
 #include <regex.h>
 #endif
 
+#include "actions-playlist.h"
 #include "ui_main.h"
 #include "ui_dock.h"
 #include "actions-mainwin.h"
@@ -671,11 +672,10 @@ mainwin_scrolled(GtkWidget *widget, GdkEventScroll *event,
 static gboolean
 mainwin_widget_contained(GdkEventButton *event, int x, int y, int w, int h)
 {
-    if ((event->x > x && event->y > y) &&
-        (event->x < x+w && event->y < y+h))
-        return TRUE;
+    gint ex = event->x / MAINWIN_SCALE_FACTOR;
+    gint ey = event->y / MAINWIN_SCALE_FACTOR;
 
-    return FALSE;
+    return (ex > x && ey > y && ex < x + w && ey < y + h);
 }
 
 static gboolean
@@ -684,7 +684,7 @@ mainwin_mouse_button_press(GtkWidget * widget,
                            gpointer callback_data)
 {
     if (event->button == 1 && event->type == GDK_2BUTTON_PRESS && event->y /
-     config.scale_factor < 14)
+     MAINWIN_SCALE_FACTOR < 14)
     {
         mainwin_set_shade(!config.player_shaded);
         if (dock_is_moving(GTK_WINDOW(mainwin)))
@@ -756,22 +756,16 @@ gboolean mainwin_keypress (GtkWidget * widget, GdkEventKey * event,
         case GDK_space:
             audacious_drct_pause();
             break;
-        case GDK_c:
-            if (event->state & GDK_CONTROL_MASK) {
-                gint playlist = aud_playlist_get_active ();
-                gint pos = aud_playlist_get_position(playlist);
-                const gchar * title = aud_playlist_entry_get_title (playlist,
-                 pos);
+        case GDK_Tab: /* GtkUIManager does not handle tab, apparently. */
+            if (event->state & GDK_SHIFT_MASK)
+                action_playlist_prev ();
+            else
+                action_playlist_next ();
 
-                if (title != NULL) {
-                    GtkClipboard *clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
-                    gtk_clipboard_set_text(clip, title, -1);
-                    gtk_clipboard_store(clip);
-                }
-
-                return TRUE;
-            }
-            return FALSE;
+            break;
+        case GDK_ISO_Left_Tab:
+            action_playlist_prev ();
+            break;
         default:
             return FALSE;
     }
@@ -947,7 +941,7 @@ mainwin_drag_data_received(GtkWidget * widget,
         }
     }
 
-    open_drag_list ((const gchar *) selection_data->data);
+    audgui_urilist_open ((const gchar *) selection_data->data);
 }
 
 static void
@@ -2262,10 +2256,13 @@ static void mainwin_update_time_display (gint time, gint length)
 
     if (config.timer_mode == TIMER_REMAINING && length > 0)
     {
-        if (length - time < 6000000)  /* "-MM:SS" */
+        if (length - time < 60000)         /* " -0:SS" */
+            snprintf (scratch, sizeof scratch, " -0:%02d", (length - time) /
+             1000);
+        else if (length - time < 6000000)  /* "-MM:SS" */
             snprintf (scratch, sizeof scratch, "%3d:%02d", (time - length) /
              60000, (length - time) / 1000 % 60);
-        else                          /* "-HH:MM" */
+        else                               /* "-HH:MM" */
             snprintf (scratch, sizeof scratch, "%3d:%02d", (time - length) /
              3600000, (length - time) / 60000 % 60);
     }
@@ -2381,15 +2378,20 @@ action_playback_shuffle( GtkToggleAction * action )
     ui_skinned_button_set_inside(mainwin_shuffle, aud_cfg->shuffle);
 }
 
-void
-action_stop_after_current_song( GtkToggleAction * action )
+void action_stop_after_current_song (GtkToggleAction * action)
 {
-    aud_cfg->stopaftersong = gtk_toggle_action_get_active( action );
+    gboolean active = gtk_toggle_action_get_active (action);
 
-    if (aud_cfg->stopaftersong)
-        show_status_message (_("Stopping after song."));
-    else
-        show_status_message (_("Not stopping after song."));
+    if (active != aud_cfg->stopaftersong)
+    {
+        if (active)
+            show_status_message (_("Stopping after song."));
+        else
+            show_status_message (_("Not stopping after song."));
+
+        aud_cfg->stopaftersong = active;
+        aud_hook_call ("toggle stop after song", NULL);
+    }
 }
 
 void

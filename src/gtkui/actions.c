@@ -1,5 +1,5 @@
 /*  Audacious - Cross-platform multimedia player
- *  Copyright (C) 2005-2009  Audacious development team.
+ *  Copyright (C) 2005-2010  Audacious development team.
  *
  *  BMP - Cross-platform multimedia player
  *  Copyright (C) 2003-2004  BMP development team.
@@ -54,6 +54,13 @@
 #include "ui_gtk.h"
 #include "util.h"
 #include "playlist_util.h"
+#include "gtkui_cfg.h"
+#include "ui_infoarea.h"
+
+extern GtkWidget *window;
+extern GtkWidget *menu;
+extern GtkWidget *playlist_box;
+extern GtkWidget *infoarea;
 
 static GtkWidget *mainwin_jtt = NULL;
 
@@ -77,9 +84,45 @@ void action_playback_shuffle(GtkToggleAction * action)
     aud_cfg->shuffle = gtk_toggle_action_get_active(action);
 }
 
-void action_stop_after_current_song(GtkToggleAction * action)
+void action_stop_after_current_song (GtkToggleAction * action)
 {
-    aud_cfg->stopaftersong = gtk_toggle_action_get_active(action);
+    gboolean active = gtk_toggle_action_get_active (action);
+
+    if (active != aud_cfg->stopaftersong)
+    {
+        aud_cfg->stopaftersong = active;
+        aud_hook_call ("toggle stop after song", NULL);
+    }
+}
+
+void action_view_playlist(GtkToggleAction *action)
+{
+    config.playlist_visible = gtk_toggle_action_get_active (action);
+    setup_panes ();
+}
+
+void action_view_infoarea(GtkToggleAction *action)
+{
+    config.infoarea_visible = gtk_toggle_action_get_active (action);
+
+    if (config.infoarea_visible)
+        gtk_widget_show (infoarea);
+    else
+        gtk_widget_hide (infoarea);
+
+    setup_panes ();
+}
+
+void action_view_menu(GtkToggleAction *action)
+{
+    config.menu_visible = gtk_toggle_action_get_active (action);
+
+    if (config.menu_visible)
+        gtk_widget_show (menu);
+    else
+        gtk_widget_hide (menu);
+
+    setup_panes ();
 }
 
 /* actionentries actions */
@@ -274,7 +317,7 @@ void action_playback_play(void)
 {
     if (ab_position_a != -1)
         audacious_drct_seek(ab_position_a);
-    else if (audacious_drct_get_paused())
+    else if (audacious_drct_get_playing () && audacious_drct_get_paused ())
         audacious_drct_pause();
     else
         audacious_drct_play();
@@ -445,22 +488,9 @@ void action_playlist_remove_all(void)
     aud_playlist_entry_delete(playlist, 0, aud_playlist_entry_count(playlist));
 }
 
-void action_playlist_remove_selected(GtkAction *act)
+void action_playlist_remove_selected (GtkAction * act)
 {
-    aud_playlist_delete_selected(aud_playlist_get_active());
-    gint active_playlist_num = aud_playlist_get_active();
-    gint sel_pos;
-    gboolean clap_sel_pos = FALSE;
-
-    sel_pos = get_active_selected_pos();
-    gint max_pos = aud_playlist_entry_count(active_playlist_num) -  aud_playlist_selected_count(active_playlist_num) - 1;
-    if (sel_pos > max_pos)
-        clap_sel_pos = TRUE;
-
-    aud_playlist_delete_selected(active_playlist_num);
-
-    if (clap_sel_pos)
-        treeview_select_pos(get_active_playlist_treeview(), sel_pos);
+    treeview_remove_selected (playlist_get_treeview (aud_playlist_get_active ()));
 }
 
 void action_playlist_remove_unselected(void)
@@ -491,22 +521,26 @@ void action_playlist_new(void)
     gint playlist = aud_playlist_count();
 
     aud_playlist_insert(playlist);
-    //aud_playlist_set_active(playlist);
+    aud_playlist_set_active(playlist);
 }
 
-void action_playlist_prev(void)
+void action_playlist_prev (void)
 {
-    aud_playlist_set_active(aud_playlist_get_active() - 1);
+    if (aud_playlist_get_active ())
+        aud_playlist_set_active (aud_playlist_get_active () - 1);
+    else
+        aud_playlist_set_active (aud_playlist_count () - 1);
 }
 
-void action_playlist_next(void)
+void action_playlist_next (void)
 {
-    aud_playlist_set_active(aud_playlist_get_active() + 1);
+    aud_playlist_set_active ((aud_playlist_get_active () + 1) %
+     aud_playlist_count ());
 }
 
 void action_playlist_delete(void)
 {
-    aud_playlist_delete(aud_playlist_get_active());
+    audgui_confirm_playlist_delete (aud_playlist_get_active ());
 }
 
 #if 0
@@ -652,11 +686,8 @@ void action_playlist_save_list(void)
         if (dot == NULL || dot == basename)
         {
             gchar *oldname = filename;
-#ifdef HAVE_XSPF_PLAYLIST
             filename = g_strconcat(oldname, ".xspf", NULL);
-#else
-            filename = g_strconcat(oldname, ".m3u", NULL);
-#endif
+
             g_free(oldname);
         }
         g_free(basename);
@@ -747,12 +778,18 @@ void action_playlist_invert_selection(void)
 
 void action_playlist_select_none(void)
 {
-    g_message("implement me");
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(playlist_get_active_treeview());
+
+    gtk_widget_grab_focus(GTK_WIDGET(playlist_get_active_treeview()));
+    gtk_tree_selection_unselect_all(selection);
 }
 
 void action_playlist_select_all(void)
 {
-    g_message("implement me");
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(playlist_get_active_treeview());
+
+    gtk_widget_grab_focus(GTK_WIDGET(playlist_get_active_treeview()));
+    gtk_tree_selection_select_all(selection);
 }
 
 void action_playlist_save_all_playlists(void)
@@ -760,3 +797,33 @@ void action_playlist_save_all_playlists(void)
     aud_save_all_playlists();
 }
 
+void action_playlist_copy(void)
+{
+    GtkClipboard *clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    gchar *list = audgui_urilist_create_from_selected (aud_playlist_get_active());
+
+    if (list == NULL)
+        return;
+
+    gtk_clipboard_set_text(clip, list, -1);
+    g_free(list);
+}
+
+void action_playlist_cut(void)
+{
+    action_playlist_copy();
+    action_playlist_remove_selected(NULL);
+}
+
+void action_playlist_paste(void)
+{
+    GtkClipboard *clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    gchar *list = gtk_clipboard_wait_for_text(clip);
+    GtkTreeView * tree = playlist_get_treeview (aud_playlist_get_active ());
+
+    if (list == NULL)
+        return;
+
+    treeview_add_urilist (tree, treeview_get_focus (tree), list);
+    g_free (list);
+}

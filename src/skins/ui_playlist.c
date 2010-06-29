@@ -492,9 +492,26 @@ playlistwin_select_search(void)
          /* check if a new playlist should be created after searching */
          if ( gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(searchdlg_checkbt_newplaylist)) == TRUE )
              copy_selected_to_new (active_playlist);
-         /* check if matched entries should be queued */
-         else if ( gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(searchdlg_checkbt_autoenqueue)) == TRUE )
-             aud_playlist_queue_insert_selected (active_playlist, -1);
+         else
+         {
+             /* set focus on the first entry found */
+             gint entries = aud_playlist_entry_count (active_playlist);
+             gint count;
+
+             for (count = 0; count < entries; count ++)
+             {
+                 if (aud_playlist_entry_get_selected (active_playlist, count))
+                 {
+                     ui_skinned_playlist_set_focused (playlistwin_list, count);
+                     break;
+                 }
+             }
+
+             /* check if matched entries should be queued */
+             if (gtk_toggle_button_get_active ((GtkToggleButton *)
+              searchdlg_checkbt_autoenqueue))
+                 aud_playlist_queue_insert_selected (active_playlist, -1);
+         }
 
          playlistwin_update ();
          break;
@@ -992,7 +1009,8 @@ static void drag_drop (GtkWidget * widget, GdkDragContext * context, gint x,
 static void drag_data_received (GtkWidget * widget, GdkDragContext * context,
  gint x, gint y, GtkSelectionData * data, guint info, guint time, void * unused)
 {
-    insert_drag_list (active_playlist, drop_position, (const gchar *) data->data);
+    audgui_urilist_insert (active_playlist, drop_position, (const gchar *)
+     data->data);
     drop_position = -1;
 }
 
@@ -1469,6 +1487,38 @@ void action_playlist_remove_unselected (void)
     playlistwin_inverse_selection ();
     aud_playlist_delete_selected (active_playlist);
     aud_playlist_select_all (active_playlist, TRUE);
+}
+
+void action_playlist_copy (void)
+{
+    GtkClipboard * clip = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
+    gchar * list = audgui_urilist_create_from_selected (active_playlist);
+
+    if (list == NULL)
+        return;
+
+    gtk_clipboard_set_text (clip, list, -1);
+    g_free (list);
+}
+
+void action_playlist_cut (void)
+{
+    action_playlist_copy ();
+    action_playlist_remove_selected ();
+}
+
+void action_playlist_paste (void)
+{
+    GtkClipboard * clip = gtk_clipboard_get (GDK_SELECTION_CLIPBOARD);
+    gchar * list = gtk_clipboard_wait_for_text (clip);
+    gint rows, first, focused;
+
+    if (list == NULL)
+        return;
+
+    ui_skinned_playlist_row_info (playlistwin_list, & rows, & first, & focused);
+    audgui_urilist_insert (active_playlist, focused, list);
+    g_free (list);
 }
 
 void
