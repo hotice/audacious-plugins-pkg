@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian Audacious Packagers <pkg-audacious-maintainers@lists.alioth.debian.org>
 Uploaders: Chris Taylor <ctaylor@debian.org>,
            Benjamin Drung <bdrung@ubuntu.com>
-Build-Depends: audacious-dev (>= 2.4~alpha2),
+Build-Depends: audacious-dev (>= 2.4~beta1),
                debhelper (>= 7.0.50~),
                libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
                libavcodec-dev,
