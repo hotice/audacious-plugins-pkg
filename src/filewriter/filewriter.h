@@ -34,7 +34,7 @@
 
 
 struct format_info {
-    AFormat format;
+    gint format;
     int frequency;
     int channels;
 };
@@ -43,7 +43,7 @@ extern struct format_info input;
 
 extern VFSFile *output_file;
 extern guint64 offset;
-extern Tuple *tuple;
+extern const Tuple * tuple;
 
 typedef gint (*write_output_callback)(void *ptr, gint length);
 
@@ -54,7 +54,7 @@ typedef struct _FileWriter
     gint (*open)(void);
     void (*write)(void *ptr, gint length);
     void (*close)(void);
-    AFormat format_required;
+    gint format_required;
 } FileWriter;
 
 #endif

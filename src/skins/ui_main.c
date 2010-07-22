@@ -36,7 +36,12 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include <audacious/audconfig.h>
+#include <audacious/drct.h>
 #include <audacious/i18n.h>
+#include <audacious/playlist.h>
+#include <libaudcore/audstrings.h>
+#include <libaudcore/hook.h>
 #include <libaudgui/libaudgui.h>
 
 /* GDK including */
@@ -70,7 +75,6 @@
 #include "ui_skinned_monostereo.h"
 #include "ui_skinned_playlist.h"
 #include "ui_main_evlisteners.h"
-#include <audacious/plugin.h>
 #include "skins_cfg.h"
 #include "util.h"
 
@@ -217,6 +221,8 @@ static void
 mainwin_vis_set_analyzer_type(AnalyzerType mode)
 {
     config.analyzer_type = mode;
+    ui_vis_clear_data (mainwin_vis);
+    ui_svis_clear_data (mainwin_svis);
 }
 
 void
@@ -255,7 +261,7 @@ mainwin_vis_set_type_menu_cb(VisType mode)
     ui_vis_clear_data (mainwin_vis);
     ui_svis_clear_data (mainwin_svis);
 
-    start_stop_visual ();
+    start_stop_visual (FALSE);
 }
 
 static void
@@ -661,10 +667,10 @@ mainwin_scrolled(GtkWidget *widget, GdkEventScroll *event,
             mainwin_set_volume_diff (-5);
             break;
         case GDK_SCROLL_LEFT:
-            audacious_drct_seek (audacious_drct_get_time () - 5000);
+            aud_drct_seek (aud_drct_get_time () - 5000);
             break;
         case GDK_SCROLL_RIGHT:
-            audacious_drct_seek (audacious_drct_get_time () + 5000);
+            aud_drct_seek (aud_drct_get_time () + 5000);
             break;
     }
 }
@@ -737,24 +743,24 @@ gboolean mainwin_keypress (GtkWidget * widget, GdkEventKey * event,
         case GDK_Left:
         case GDK_KP_Left:
         case GDK_KP_7:
-            audacious_drct_seek (audacious_drct_get_time () - 5000);
+            aud_drct_seek (aud_drct_get_time () - 5000);
             break;
         case GDK_Right:
         case GDK_KP_Right:
         case GDK_KP_9:
-            audacious_drct_seek (audacious_drct_get_time () + 5000);
+            aud_drct_seek (aud_drct_get_time () + 5000);
             break;
         case GDK_KP_4:
-            audacious_drct_pl_prev ();
+            aud_drct_pl_prev ();
             break;
         case GDK_KP_6:
-            audacious_drct_pl_next ();
+            aud_drct_pl_next ();
             break;
         case GDK_KP_Insert:
             action_jump_to_file();
             break;
         case GDK_space:
-            audacious_drct_pause();
+            aud_drct_pause();
             break;
         case GDK_Tab: /* GtkUIManager does not handle tab, apparently. */
             if (event->state & GDK_SHIFT_MASK)
@@ -789,7 +795,7 @@ mainwin_jump_to_time_cb(GtkWidget * widget,
     else
         return;
 
-    audacious_drct_seek (time*1000);
+    aud_drct_seek (time*1000);
     gtk_widget_destroy (mainwin_jtt);
 }
 
@@ -803,7 +809,7 @@ mainwin_jump_to_time(void)
     guint tindex;
     gchar time_str[10];
 
-    if (!audacious_drct_get_playing()) {
+    if (!aud_drct_get_playing()) {
         dialog =
             gtk_message_dialog_new (GTK_WINDOW (mainwin),
                                     GTK_DIALOG_DESTROY_WITH_PARENT,
@@ -858,7 +864,7 @@ mainwin_jump_to_time(void)
     label = gtk_label_new(_("Track length:"));
     gtk_box_pack_start(GTK_BOX(hbox_total), label, FALSE, FALSE, 5);
 
-    gint len = audacious_drct_get_length () / 1000;
+    gint len = aud_drct_get_length () / 1000;
     g_snprintf(time_str, sizeof(time_str), "%u:%2.2u", len / 60, len % 60);
     label = gtk_label_new(time_str);
 
@@ -881,7 +887,7 @@ mainwin_jump_to_time(void)
     g_signal_connect(jump, "clicked",
                      G_CALLBACK(mainwin_jump_to_time_cb), time_entry);
 
-    tindex = audacious_drct_get_time() / 1000;
+    tindex = aud_drct_get_time() / 1000;
     g_snprintf(time_str, sizeof(time_str), "%u:%2.2u", tindex / 60,
                tindex % 60);
     gtk_entry_set_text(GTK_ENTRY(time_entry), time_str);
@@ -916,7 +922,7 @@ mainwin_drag_data_received(GtkWidget * widget,
     g_return_if_fail(selection_data != NULL);
     g_return_if_fail(selection_data->data != NULL);
 
-    if (aud_str_has_prefix_nocase((gchar *) selection_data->data, "fonts:///"))
+    if (str_has_prefix_nocase((gchar *) selection_data->data, "fonts:///"))
     {
         gchar *path = (gchar *) selection_data->data;
         gchar *decoded = g_filename_from_uri(path, NULL, NULL);
@@ -933,9 +939,9 @@ mainwin_drag_data_received(GtkWidget * widget,
     }
 
     /* perhaps make suffix check case-insensitive -- desowin */
-    if (aud_str_has_prefix_nocase((char*)selection_data->data, "file:///")) {
-        if (aud_str_has_suffix_nocase((char*)selection_data->data, ".wsz\r\n") ||
-            aud_str_has_suffix_nocase((char*)selection_data->data, ".zip\r\n")) {
+    if (str_has_prefix_nocase((char*)selection_data->data, "file:///")) {
+        if (str_has_suffix_nocase((char*)selection_data->data, ".wsz\r\n") ||
+            str_has_suffix_nocase((char*)selection_data->data, ".zip\r\n")) {
             on_skin_view_drag_data_received(GTK_WIDGET(user_data), context, x, y, selection_data, info, time, NULL);
             return;
         }
@@ -1130,9 +1136,9 @@ static gboolean seek_release (GtkWidget * widget, GdkEventButton * event,
     if (held < SEEK_THRESHOLD)
     {
         if (GPOINTER_TO_INT (rewind))
-            audacious_drct_pl_prev ();
+            aud_drct_pl_prev ();
         else
-            audacious_drct_pl_next ();
+            aud_drct_pl_next ();
     }
     else
         mainwin_position_release_cb (mainwin_position,
@@ -1148,15 +1154,15 @@ void
 mainwin_play_pushed(void)
 {
     if (ab_position_a != -1)
-        audacious_drct_seek(ab_position_a / 1000);
+        aud_drct_seek(ab_position_a / 1000);
 
-    audacious_drct_play ();
+    aud_drct_play ();
 }
 
 void
 mainwin_stop_pushed(void)
 {
-    audacious_drct_stop();
+    aud_drct_stop();
     mainwin_clear_song_info();
     ab_position_a = ab_position_b = -1;
 }
@@ -1227,10 +1233,10 @@ mainwin_spos_motion_cb(GtkWidget *widget, gint pos)
 
     pos--;
 
-    time = audacious_drct_get_length () / 1000 * pos / 12;
+    time = aud_drct_get_length () / 1000 * pos / 12;
 
     if (config.timer_mode == TIMER_REMAINING) {
-        time = audacious_drct_get_length () / 1000 - time;
+        time = aud_drct_get_length () / 1000 - time;
         time_msg = g_strdup_printf("-%2.2d", time / 60);
         ui_skinned_textbox_set_text(mainwin_stime_min, time_msg);
         g_free(time_msg);
@@ -1249,7 +1255,7 @@ mainwin_spos_motion_cb(GtkWidget *widget, gint pos)
 void
 mainwin_spos_release_cb(GtkWidget *widget, gint pos)
 {
-    audacious_drct_seek (audacious_drct_get_length () * (pos - 1) / 12);
+    aud_drct_seek (aud_drct_get_length () * (pos - 1) / 12);
 }
 
 void
@@ -1258,7 +1264,7 @@ mainwin_position_motion_cb(GtkWidget *widget, gint pos)
     gint length, time;
     gchar *seek_msg;
 
-    length = audacious_drct_get_length () / 1000;
+    length = aud_drct_get_length () / 1000;
     time = (length * pos) / 219;
     seek_msg = g_strdup_printf(_("Seek to: %d:%-2.2d/%d:%-2.2d (%d%%)"),
                                time / 60, time % 60,
@@ -1273,9 +1279,9 @@ mainwin_position_release_cb(GtkWidget *widget, gint pos)
 {
     gint length, time;
 
-    length = audacious_drct_get_length();
+    length = aud_drct_get_length();
     time = (gint64) length * pos / 219;
-    audacious_drct_seek(time);
+    aud_drct_seek(time);
     mainwin_release_info_text();
 }
 
@@ -1294,12 +1300,8 @@ mainwin_adjust_volume_motion(gint v)
     mainwin_lock_info_text(volume_msg);
     g_free(volume_msg);
 
-    if (balance < 0)
-        audacious_drct_set_volume(v, (v * (100 - abs(balance))) / 100);
-    else if (balance > 0)
-        audacious_drct_set_volume((v * (100 - abs(balance))) / 100, v);
-    else
-        audacious_drct_set_volume(v, v);
+    aud_drct_set_volume_main (v);
+    aud_drct_set_volume_balance (balance);
 }
 
 void
@@ -1312,23 +1314,17 @@ void
 mainwin_adjust_balance_motion(gint b)
 {
     gchar *balance_msg;
-    gint v, pvl, pvr;
 
     balance = b;
-    aud_input_get_volume(&pvl, &pvr);
-    v = MAX(pvl, pvr);
-    if (b < 0) {
+    aud_drct_set_volume_balance (b);
+
+    if (b < 0)
         balance_msg = g_strdup_printf(_("Balance: %d%% left"), -b);
-        audacious_drct_set_volume(v, (gint) rint(((100 + b) / 100.0) * v));
-    }
-    else if (b == 0) {
+    else if (b == 0)
         balance_msg = g_strdup_printf(_("Balance: center"));
-        audacious_drct_set_volume(v, v);
-    }
-    else {                      /* b > 0 */
+    else
         balance_msg = g_strdup_printf(_("Balance: %d%% right"), b);
-        audacious_drct_set_volume((gint) rint(((100 - b) / 100.0) * v), v);
-    }
+
     mainwin_lock_info_text(balance_msg);
     g_free(balance_msg);
 }
@@ -1390,12 +1386,9 @@ mainwin_balance_release_cb(GtkWidget *widget, gint pos)
 void
 mainwin_set_volume_diff(gint diff)
 {
-    gint vl, vr, vol;
+    gint vol;
 
-    aud_input_get_volume(&vl, &vr);
-    vol = MAX(vl, vr);
-    vol = CLAMP(vol + diff, 0, 100);
-
+    aud_drct_get_volume_main (& vol);
     mainwin_adjust_volume_motion(vol);
     mainwin_set_volume_slider(vol);
     equalizerwin_set_volume_slider(vol);
@@ -1418,14 +1411,14 @@ mainwin_set_balance_diff(gint diff)
 
 static void mainwin_real_show (void)
 {
-    start_stop_visual ();
+    start_stop_visual (FALSE);
     gtk_window_present(GTK_WINDOW(mainwin));
 }
 
 static void mainwin_real_hide (void)
 {
     gtk_widget_hide(mainwin);
-    start_stop_visual ();
+    start_stop_visual (FALSE);
 }
 
 void mainwin_show (gboolean show)
@@ -1535,34 +1528,34 @@ mainwin_general_menu_callback(gpointer data,
             equalizerwin_show (GTK_CHECK_MENU_ITEM (item)->active);
             break;
         case MAINWIN_GENERAL_PREV:
-            audacious_drct_pl_prev ();
+            aud_drct_pl_prev ();
             break;
         case MAINWIN_GENERAL_PLAY:
             mainwin_play_pushed();
             break;
         case MAINWIN_GENERAL_PAUSE:
-            audacious_drct_pause();
+            aud_drct_pause();
             break;
         case MAINWIN_GENERAL_STOP:
             mainwin_stop_pushed();
             break;
         case MAINWIN_GENERAL_NEXT:
-            audacious_drct_pl_next ();
+            aud_drct_pl_next ();
             break;
 #if 0
         case MAINWIN_GENERAL_BACK5SEC:
-            if (audacious_drct_get_playing()
+            if (aud_drct_get_playing()
                 && aud_playlist_get_current_length(playlist) != -1)
                 playback_seek_relative(-5);
             break;
         case MAINWIN_GENERAL_FWD5SEC:
-            if (audacious_drct_get_playing()
+            if (aud_drct_get_playing()
                 && aud_playlist_get_current_length(playlist) != -1)
                 playback_seek_relative(5);
             break;
 #endif
         case MAINWIN_GENERAL_START:
-            audacious_drct_pl_set_pos (0);
+            aud_drct_pl_set_pos (0);
             break;
         case MAINWIN_GENERAL_JTT:
             mainwin_jump_to_time();
@@ -1571,29 +1564,29 @@ mainwin_general_menu_callback(gpointer data,
             action_jump_to_file();
             break;
         case MAINWIN_GENERAL_EXIT:
-            audacious_drct_quit ();
+            aud_drct_quit ();
             break;
         case MAINWIN_GENERAL_SETAB:
-            if (audacious_drct_get_length () > 0)
+            if (aud_drct_get_length () > 0)
             {
                 if (ab_position_a == -1) {
-                    ab_position_a = audacious_drct_get_time();
+                    ab_position_a = aud_drct_get_time();
                     ab_position_b = -1;
                     mainwin_lock_info_text("'Loop-Point A Position' set.");
                 } else if (ab_position_b == -1) {
-                    int time = audacious_drct_get_time();
+                    int time = aud_drct_get_time();
                     if (time > ab_position_a)
                         ab_position_b = time;
                     mainwin_release_info_text();
                 } else {
-                    ab_position_a = audacious_drct_get_time();
+                    ab_position_a = aud_drct_get_time();
                     ab_position_b = -1;
                     mainwin_lock_info_text("'Loop-Point A Position' reset.");
                 }
             }
             break;
         case MAINWIN_GENERAL_CLEARAB:
-            if (audacious_drct_get_length () > 0)
+            if (aud_drct_get_length () > 0)
             {
                 ab_position_a = ab_position_b = -1;
                 mainwin_release_info_text();
@@ -1683,19 +1676,10 @@ mainwin_mr_release(GtkWidget *widget, MenuRowItem i, GdkEventButton *event)
 void
 ui_main_set_initial_volume(void)
 {
-    gint vl, vr, b, v;
+    gint b, v;
 
-    aud_input_get_volume(&vl, &vr);
-
-    vl = CLAMP(vl, 0, 100);
-    vr = CLAMP(vr, 0, 100);
-    v = MAX(vl, vr);
-    if (vl > vr)
-        b = (gint) rint(((gdouble) vr / vl) * 100) - 100;
-    else if (vl < vr)
-        b = 100 - (gint) rint(((gdouble) vl / vr) * 100);
-    else
-        b = 0;
+    aud_drct_get_volume_main (& v);
+    aud_drct_get_volume_balance (& b);
 
     mainwin_set_volume_slider(v);
     equalizerwin_set_volume_slider(v);
@@ -1734,20 +1718,20 @@ static void change_timer_mode(void) {
         set_timer_mode(TIMER_REMAINING);
     else
         set_timer_mode(TIMER_ELAPSED);
-    if (audacious_drct_get_playing())
+    if (aud_drct_get_playing())
         mainwin_update_song_info();
 }
 
 static void
 mainwin_aud_playlist_prev(void)
 {
-    audacious_drct_pl_prev ();
+    aud_drct_pl_prev ();
 }
 
 static void
 mainwin_aud_playlist_next(void)
 {
-    audacious_drct_pl_next ();
+    aud_drct_pl_next ();
 }
 
 void
@@ -1939,7 +1923,7 @@ mainwin_create_widgets(void)
     mainwin_close = ui_skinned_button_new();
     ui_skinned_push_button_setup(mainwin_close, SKINNED_WINDOW(mainwin)->normal,
                                  264, 3, 9, 9, 18, 0, 18, 9, SKIN_TITLEBAR);
-    g_signal_connect ((GObject *) mainwin_close, "clicked", audacious_drct_quit,
+    g_signal_connect ((GObject *) mainwin_close, "clicked", aud_drct_quit,
      0);
 
     mainwin_rew = ui_skinned_button_new();
@@ -1966,7 +1950,7 @@ mainwin_create_widgets(void)
     mainwin_pause = ui_skinned_button_new();
     ui_skinned_push_button_setup(mainwin_pause, SKINNED_WINDOW(mainwin)->normal,
                                  62, 88, 23, 18, 46, 0, 46, 18, SKIN_CBUTTONS);
-    g_signal_connect(mainwin_pause, "clicked", audacious_drct_pause, NULL );
+    g_signal_connect(mainwin_pause, "clicked", aud_drct_pause, NULL );
 
     mainwin_stop = ui_skinned_button_new();
     ui_skinned_push_button_setup(mainwin_stop, SKINNED_WINDOW(mainwin)->normal,
@@ -2081,7 +2065,7 @@ mainwin_create_widgets(void)
     ui_skinned_push_button_setup(mainwin_shaded_close, SKINNED_WINDOW(mainwin)->shaded,
                                  264, 3, 9, 9, 18, 0, 18, 9, SKIN_TITLEBAR);
     g_signal_connect ((GObject *) mainwin_shaded_close, "clicked",
-     audacious_drct_quit, 0);
+     aud_drct_quit, 0);
 
     mainwin_srew = ui_skinned_button_new();
     ui_skinned_small_button_setup(mainwin_srew, SKINNED_WINDOW(mainwin)->shaded, 169, 4, 8, 7);
@@ -2093,7 +2077,7 @@ mainwin_create_widgets(void)
 
     mainwin_spause = ui_skinned_button_new();
     ui_skinned_small_button_setup(mainwin_spause, SKINNED_WINDOW(mainwin)->shaded, 187, 4, 10, 7);
-    g_signal_connect(mainwin_spause, "clicked", audacious_drct_pause, NULL);
+    g_signal_connect(mainwin_spause, "clicked", aud_drct_pause, NULL);
 
     mainwin_sstop = ui_skinned_button_new();
     ui_skinned_small_button_setup(mainwin_sstop, SKINNED_WINDOW(mainwin)->shaded, 197, 4, 9, 7);
@@ -2168,7 +2152,7 @@ static gboolean state_cb (GtkWidget * widget, GdkEventWindowState * event,
 
 static gboolean delete_cb (GtkWidget * widget, GdkEvent * event, void * unused)
 {
-    audacious_drct_quit ();
+    aud_drct_quit ();
     return TRUE;
 }
 
@@ -2222,8 +2206,9 @@ void mainwin_unhook (void)
         seek_source = 0;
     }
 
-    aud_hook_dissociate ("show main menu", (HookFunction) show_main_menu);
+    hook_dissociate ("show main menu", (HookFunction) show_main_menu);
     ui_main_evlistener_dissociate ();
+    start_stop_visual (TRUE);
 }
 
 void
@@ -2236,7 +2221,7 @@ mainwin_create(void)
     mainwin_create_widgets();
     show_widgets ();
 
-    aud_hook_associate ("show main menu", (HookFunction) show_main_menu, 0);
+    hook_associate ("show main menu", (HookFunction) show_main_menu, 0);
     status_message_enabled = TRUE;
 }
 
@@ -2244,8 +2229,8 @@ static void mainwin_update_volume (void)
 {
     gint volume, balance;
 
-    audacious_drct_get_volume_main (& volume);
-    audacious_drct_get_volume_balance (& balance);
+    aud_drct_get_volume_main (& volume);
+    aud_drct_get_volume_balance (& balance);
     mainwin_set_volume_slider (volume);
     mainwin_set_balance_slider (balance);
 }
@@ -2321,16 +2306,16 @@ void mainwin_update_song_info (void)
 
     mainwin_update_volume ();
 
-    if (! audacious_drct_get_playing ())
+    if (! aud_drct_get_playing ())
         return;
 
-    time = audacious_drct_get_time ();
-    length = audacious_drct_get_length ();
+    time = aud_drct_get_time ();
+    length = aud_drct_get_length ();
 
     /* Ugh, this does NOT belong here. -jlindgren */
     if (ab_position_a > -1 && ab_position_b > -1 && time >= ab_position_b)
     {
-        audacious_drct_seek (ab_position_a);
+        aud_drct_seek (ab_position_a);
         return;
     }
 
@@ -2390,7 +2375,7 @@ void action_stop_after_current_song (GtkToggleAction * action)
             show_status_message (_("Not stopping after song."));
 
         aud_cfg->stopaftersong = active;
-        aud_hook_call ("toggle stop after song", NULL);
+        hook_call ("toggle stop after song", NULL);
     }
 }
 
@@ -2536,30 +2521,30 @@ action_play_file( void )
 void
 action_play_location( void )
 {
-    audgui_show_add_url_window();
+    audgui_show_add_url_window (TRUE);
 }
 
 void
 action_ab_set( void )
 {
-    if (audacious_drct_get_length () > 0)
+    if (aud_drct_get_length () > 0)
     {
         if (ab_position_a == -1)
         {
-            ab_position_a = audacious_drct_get_time();
+            ab_position_a = aud_drct_get_time();
             ab_position_b = -1;
             mainwin_lock_info_text("LOOP-POINT A POSITION SET.");
         }
         else if (ab_position_b == -1)
         {
-            int time = audacious_drct_get_time();
+            int time = aud_drct_get_time();
             if (time > ab_position_a)
                 ab_position_b = time;
             mainwin_release_info_text();
         }
         else
         {
-            ab_position_a = audacious_drct_get_time();
+            ab_position_a = aud_drct_get_time();
             ab_position_b = -1;
             mainwin_lock_info_text("LOOP-POINT A POSITION RESET.");
         }
@@ -2569,7 +2554,7 @@ action_ab_set( void )
 void
 action_ab_clear( void )
 {
-    if (audacious_drct_get_length () > 0)
+    if (aud_drct_get_length () > 0)
     {
         ab_position_a = ab_position_b = -1;
         mainwin_release_info_text();
@@ -2591,7 +2576,7 @@ action_jump_to_file( void )
 void
 action_jump_to_playlist_start( void )
 {
-    audacious_drct_pl_set_pos (0);
+    aud_drct_pl_set_pos (0);
 }
 
 void
@@ -2603,13 +2588,13 @@ action_jump_to_time( void )
 void
 action_playback_next( void )
 {
-    audacious_drct_pl_next ();
+    aud_drct_pl_next ();
 }
 
 void
 action_playback_previous( void )
 {
-    audacious_drct_pl_prev ();
+    aud_drct_pl_prev ();
 }
 
 void
@@ -2621,7 +2606,7 @@ action_playback_play( void )
 void
 action_playback_pause( void )
 {
-    audacious_drct_pause();
+    aud_drct_pause();
 }
 
 void
@@ -2639,5 +2624,5 @@ action_preferences( void )
 void
 action_quit( void )
 {
-    audacious_drct_quit ();
+    aud_drct_quit ();
 }

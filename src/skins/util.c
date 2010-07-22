@@ -42,8 +42,10 @@
 #  include <fts.h>
 #endif
 
+#include <audacious/debug.h>
 #include <audacious/i18n.h>
 #include <libaudcore/audstrings.h>
+#include <libaudcore/hook.h>
 
 #include "plugin.h"
 
@@ -122,20 +124,20 @@ gchar * load_text_file (const gchar * filename)
     gint size;
     gchar * buffer;
 
-    file = aud_vfs_fopen (filename, "r");
+    file = vfs_fopen (filename, "r");
 
     if (file == NULL)
         return NULL;
 
-    size = aud_vfs_fsize (file);
+    size = vfs_fsize (file);
     size = MAX (0, size);
     buffer = g_malloc (size + 1);
 
-    size = aud_vfs_fread (buffer, 1, size, file);
+    size = vfs_fread (buffer, 1, size, file);
     size = MAX (0, size);
     buffer[size] = 0;
 
-    aud_vfs_fclose (file);
+    vfs_fclose (file);
 
     return buffer;
 }
@@ -452,7 +454,7 @@ INIFile *open_ini_file(const gchar *filename)
     unsigned char x[] = { 0xff, 0xfe, 0x00 };
 
     g_return_val_if_fail(filename, NULL);
-    aud_vfs_file_get_contents(filename, &buffer, &filesize);
+    vfs_file_get_contents(filename, (void * *) &buffer, &filesize);
     if (buffer == NULL)
         return NULL;
 
@@ -659,7 +661,6 @@ gchar *read_ini_string(INIFile *inifile, const gchar *section, const gchar *key)
     g_string_free(section_string, TRUE);
     g_string_free(key_string, TRUE);
 
-    g_return_val_if_fail(value, NULL);
     return value;
 }
 
@@ -868,5 +869,5 @@ void check_set (GtkActionGroup * action_group, const gchar * action_name,
     g_return_if_fail (action != NULL);
 
     gtk_toggle_action_set_active ((GtkToggleAction *) action, is_on);
-    aud_hook_call (action_name, GINT_TO_POINTER (is_on));
+    hook_call (action_name, GINT_TO_POINTER (is_on));
 }

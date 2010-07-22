@@ -6,7 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <audacious/configdb.h>
 #include <audacious/plugin.h>
+#include <audacious/preferences.h>
 #include <audacious/i18n.h>
 
 vorbis_config_t vorbis_cfg;

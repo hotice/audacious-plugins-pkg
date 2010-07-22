@@ -28,7 +28,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <audacious/misc.h>
 #include <audacious/plugin.h>
+#include <libaudcore/tuple_formatter.h>
 
 #include "ao.h"
 #include "corlett.h"
@@ -78,7 +80,7 @@ static gchar *path;
 
 int ao_get_lib(char *filename, uint8 **buffer, uint64 *length)
 {
-	guchar *filebuf;
+	void *filebuf;
 	gint64 size;
 	char buf[PATH_MAX];
 	gchar path2[PATH_MAX];
@@ -86,7 +88,7 @@ int ao_get_lib(char *filename, uint8 **buffer, uint64 *length)
 	g_strlcpy(path2, path, PATH_MAX);
 	snprintf(buf, PATH_MAX, "%s/%s", dirname(path2), filename);
 
-	aud_vfs_file_get_contents (buf, & filebuf, & size);
+	vfs_file_get_contents (buf, & filebuf, & size);
 
 	*buffer = filebuf;
 	*length = (uint64)size;
@@ -100,10 +102,10 @@ Tuple *psf2_tuple(const gchar *filename)
 {
 	Tuple *t;
 	corlett_t *c;
-	guchar *buf;
+	void *buf;
 	gint64 sz;
 
-	aud_vfs_file_get_contents (filename, & buf, & sz);
+	vfs_file_get_contents (filename, & buf, & sz);
 
 	if (!buf)
 		return NULL;
@@ -111,17 +113,17 @@ Tuple *psf2_tuple(const gchar *filename)
 	if (corlett_decode(buf, sz, NULL, NULL, &c) != AO_SUCCESS)
 		return NULL;
 
-	t = aud_tuple_new_from_filename(filename);
+	t = tuple_new_from_filename(filename);
 
-	aud_tuple_associate_int(t, FIELD_LENGTH, NULL, c->inf_length ? psfTimeToMS(c->inf_length) + psfTimeToMS(c->inf_fade) : -1);
-	aud_tuple_associate_string(t, FIELD_ARTIST, NULL, c->inf_artist);
-	aud_tuple_associate_string(t, FIELD_ALBUM, NULL, c->inf_game);
-	aud_tuple_associate_string(t, -1, "game", c->inf_game);
-	aud_tuple_associate_string(t, FIELD_TITLE, NULL, c->inf_title);
-	aud_tuple_associate_string(t, FIELD_COPYRIGHT, NULL, c->inf_copy);
-	aud_tuple_associate_string(t, FIELD_QUALITY, NULL, "sequenced");
-	aud_tuple_associate_string(t, FIELD_CODEC, NULL, "PlayStation 1/2 Audio");
-	aud_tuple_associate_string(t, -1, "console", "PlayStation 1/2");
+	tuple_associate_int(t, FIELD_LENGTH, NULL, c->inf_length ? psfTimeToMS(c->inf_length) + psfTimeToMS(c->inf_fade) : -1);
+	tuple_associate_string(t, FIELD_ARTIST, NULL, c->inf_artist);
+	tuple_associate_string(t, FIELD_ALBUM, NULL, c->inf_game);
+	tuple_associate_string(t, -1, "game", c->inf_game);
+	tuple_associate_string(t, FIELD_TITLE, NULL, c->inf_title);
+	tuple_associate_string(t, FIELD_COPYRIGHT, NULL, c->inf_copy);
+	tuple_associate_string(t, FIELD_QUALITY, NULL, "sequenced");
+	tuple_associate_string(t, FIELD_CODEC, NULL, "PlayStation 1/2 Audio");
+	tuple_associate_string(t, -1, "console", "PlayStation 1/2");
 
 	free(c);
 	g_free(buf);
@@ -136,9 +138,9 @@ gchar *psf2_title(gchar *filename, gint *length)
 
 	if (tuple != NULL)
 	{
-		title = aud_tuple_formatter_make_title_string(tuple, aud_get_gentitle_format());
-		*length = aud_tuple_get_int(tuple, FIELD_LENGTH, NULL);
-		aud_tuple_free(tuple);
+		title = tuple_formatter_make_title_string(tuple, aud_get_gentitle_format());
+		*length = tuple_get_int(tuple, FIELD_LENGTH, NULL);
+		tuple_free(tuple);
 	}
 	else
 	{
@@ -151,7 +153,7 @@ gchar *psf2_title(gchar *filename, gint *length)
 
 void psf2_play(InputPlayback *data)
 {
-	guchar *buffer;
+	void *buffer;
 	gint64 size;
 	gint length;
 	gchar *title = psf2_title(data->filename, &length);
@@ -159,7 +161,7 @@ void psf2_play(InputPlayback *data)
 	PSFEngineFunctors *f;
 
 	path = g_strdup(data->filename);
-	aud_vfs_file_get_contents (data->filename, & buffer, & size);
+	vfs_file_get_contents (data->filename, & buffer, & size);
 
 	eng = psf_probe(buffer);
 	if (eng == ENG_NONE || eng == ENG_COUNT)
@@ -263,7 +265,7 @@ void psf2_pause(InputPlayback *playback, short p)
 int psf2_is_our_fd(const gchar *filename, VFSFile *file)
 {
 	uint8 magic[4];
-	aud_vfs_fread(magic, 1, 4, file);
+	vfs_fread(magic, 1, 4, file);
 
 	return (psf_probe(magic) != ENG_NONE);
 }

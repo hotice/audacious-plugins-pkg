@@ -20,6 +20,11 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include <audacious/configdb.h>
+#include <audacious/misc.h>
+#include <audacious/playlist.h>
+#include <libaudcore/audstrings.h>
+#include <libaudcore/tuple_formatter.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 
@@ -82,13 +87,13 @@ static gboolean prependnumber = FALSE;
 static gchar *file_path = NULL;
 
 VFSFile *output_file = NULL;
-Tuple *tuple = NULL;
+const Tuple *tuple = NULL;
 
 static gint64 samples_written;
 
 static OutputPluginInitStatus file_init(void);
 static void file_about(void);
-static gint file_open(AFormat fmt, gint rate, gint nch);
+static gint file_open(gint fmt, gint rate, gint nch);
 static void file_write(void *ptr, gint length);
 static gint file_write_output(void *ptr, gint length);
 static void file_close(void);
@@ -142,7 +147,7 @@ static void set_plugin(void)
 
 static OutputPluginInitStatus file_init(void)
 {
-    ConfigDb *db;
+    mcs_handle_t *db;
 
     db = aud_cfg_db_open();
     aud_cfg_db_get_int(db, FILEWRITER_CFGID, "fileext", &fileext);
@@ -192,8 +197,8 @@ void file_about (void)
 
 static VFSFile * safe_create (const gchar * filename)
 {
-    if (! aud_vfs_file_test (filename, G_FILE_TEST_EXISTS))
-        return aud_vfs_fopen (filename, "w");
+    if (! vfs_file_test (filename, G_FILE_TEST_EXISTS))
+        return vfs_fopen (filename, "w");
 
     const gchar * extension = strrchr (filename, '.');
     gint length = strlen (filename);
@@ -208,14 +213,14 @@ static VFSFile * safe_create (const gchar * filename)
             sprintf (scratch, "%.*s-%d%s", (gint) (extension - filename),
              filename, count, extension);
 
-        if (! aud_vfs_file_test (scratch, G_FILE_TEST_EXISTS))
-            return aud_vfs_fopen (scratch, "w");
+        if (! vfs_file_test (scratch, G_FILE_TEST_EXISTS))
+            return vfs_fopen (scratch, "w");
     }
 
     return NULL;
 }
 
-static gint file_open(AFormat fmt, gint rate, gint nch)
+static gint file_open(gint fmt, gint rate, gint nch)
 {
     gchar *filename = NULL, *temp = NULL;
     gchar * directory;
@@ -232,13 +237,13 @@ static gint file_open(AFormat fmt, gint rate, gint nch)
         return 0;
 
     pos = aud_playlist_get_position(playlist);
-    tuple = (Tuple*) aud_playlist_entry_get_tuple(playlist, pos);
+    tuple = aud_playlist_entry_get_tuple (playlist, pos, FALSE);
     if (tuple == NULL)
         return 0;
 
     if (filenamefromtags)
     {
-        gchar *utf8 = aud_tuple_formatter_make_title_string(tuple, aud_get_gentitle_format());
+        gchar *utf8 = tuple_formatter_make_title_string(tuple, aud_get_gentitle_format());
 
         string_replace_char (utf8, '/', ' ');
         filename = string_encode_percent (utf8, FALSE);
@@ -259,7 +264,7 @@ static gint file_open(AFormat fmt, gint rate, gint nch)
 
     if (prependnumber)
     {
-        gint number = aud_tuple_get_int(tuple, FIELD_TRACK_NUMBER, NULL);
+        gint number = tuple_get_int(tuple, FIELD_TRACK_NUMBER, NULL);
         if (!tuple || !number)
             number = pos + 1;
 
@@ -315,7 +320,7 @@ static void file_write(void *ptr, gint length)
 
 static gint file_write_output(void *ptr, gint length)
 {
-    return aud_vfs_fwrite(ptr, 1, length, output_file);
+    return vfs_fwrite(ptr, 1, length, output_file);
 }
 
 static void file_close(void)
@@ -324,7 +329,7 @@ static void file_close(void)
     convert_free();
 
     if (output_file != NULL)
-        aud_vfs_fclose(output_file);
+        vfs_fclose(output_file);
     output_file = NULL;
 }
 
@@ -352,7 +357,7 @@ static gint file_get_time (void)
 
 static void configure_ok_cb(gpointer data)
 {
-    ConfigDb *db;
+    mcs_handle_t *db;
 
     fileext = gtk_combo_box_get_active(GTK_COMBO_BOX(fileext_combo));
 

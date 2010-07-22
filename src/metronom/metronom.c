@@ -18,10 +18,13 @@
  */
 
 #include "config.h"
-#include <audacious/plugin.h>
+
 #include <audacious/i18n.h>
+#include <audacious/misc.h>
+#include <audacious/plugin.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
+
 #include <glib.h>
 
 #define MIN_BPM         1
@@ -239,12 +242,12 @@ static void metronom_pause(InputPlayback * playback, short paused)
 
 static Tuple *metronom_get_song_tuple(const gchar * filename)
 {
-    Tuple *tuple = aud_tuple_new_from_filename(filename);
+    Tuple *tuple = tuple_new_from_filename(filename);
     metronom_t metronom;
     gchar *tmp = NULL;
 
     if (metronom_get_cp(filename, &metronom, &tmp))
-        aud_tuple_associate_string(tuple, FIELD_TITLE, NULL, tmp);
+        tuple_associate_string(tuple, FIELD_TITLE, NULL, tmp);
 
     g_free(tmp);
 
