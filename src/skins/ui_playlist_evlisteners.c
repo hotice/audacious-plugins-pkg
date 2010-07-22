@@ -18,10 +18,11 @@
  * Audacious or using our public API to be a derived work.
  */
 
-#include "ui_playlist_evlisteners.h"
-
 #include <glib.h>
+#include <libaudcore/hook.h>
+
 #include "ui_playlist.h"
+#include "ui_playlist_evlisteners.h"
 
 static void
 ui_playlist_evlistener_playlistwin_show(gpointer hook_data, gpointer user_data)
@@ -32,10 +33,10 @@ ui_playlist_evlistener_playlistwin_show(gpointer hook_data, gpointer user_data)
 
 void ui_playlist_evlistener_init(void)
 {
-    aud_hook_associate("playlistwin show", ui_playlist_evlistener_playlistwin_show, NULL);
+    hook_associate("playlistwin show", ui_playlist_evlistener_playlistwin_show, NULL);
 }
 
 void ui_playlist_evlistener_dissociate(void)
 {
-    aud_hook_dissociate("playlistwin show", ui_playlist_evlistener_playlistwin_show);
+    hook_dissociate("playlistwin show", ui_playlist_evlistener_playlistwin_show);
 }

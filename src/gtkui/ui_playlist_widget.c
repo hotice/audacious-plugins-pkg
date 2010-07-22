@@ -1,6 +1,6 @@
 /*  Audacious - Cross-platform multimedia player
  *  Copyright (C) 2008 Tomasz Moń <desowin@gmail.com>
- *  Copyright (C) 2009 William Pitcock <nenolod@atheme.org>
+ *  Copyright (C) 2009-2010 William Pitcock <nenolod@atheme.org>
  *  Copyright (C) 2010 Michał Lipski <tallica@o2.pl>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -23,7 +23,9 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
-#include <audacious/plugin.h>
+#include <audacious/audconfig.h>
+#include <audacious/drct.h>
+#include <audacious/playlist.h>
 #include <libaudgui/libaudgui.h>
 
 #include "ui_manager.h"
@@ -53,8 +55,7 @@ static void _ui_playlist_widget_drag_begin(GtkWidget *widget, GdkDragContext * c
 
     t->source = (GtkTreeView *) widget;
     t->source_playlist = playlist;
-    t->source_pos = GPOINTER_TO_INT (g_object_get_data ((GObject *) widget,
-     "recently clicked"));
+    t->source_pos = treeview_get_focus (t->source);
     t->dest_path = NULL;
     t->append = FALSE;
 }
@@ -239,8 +240,8 @@ static void ui_playlist_widget_change_song(GtkTreeView * treeview, guint pos)
     aud_playlist_set_playing(playlist);
     aud_playlist_set_position(playlist, pos);
 
-    if (!audacious_drct_get_playing())
-        audacious_drct_play();
+    if (!aud_drct_get_playing())
+        aud_drct_play();
 }
 
 static void ui_playlist_widget_row_activated(GtkTreeView * treeview, GtkTreePath * path, GtkTreeViewColumn *column, gpointer user_data)
@@ -274,14 +275,16 @@ static gboolean ui_playlist_widget_keypress_cb(GtkWidget * widget, GdkEventKey *
       case GDK_MOD1_MASK:
       {
         if ((event->keyval == GDK_Up) || (event->keyval == GDK_Down)) {
-            gint playlist = playlist_get_playlist_from_treeview(GTK_TREE_VIEW(widget));
-            /* Copy the event, so we can get the selection to move as well */
-            GdkEvent * ev = gdk_event_copy((GdkEvent *) event);
-            ((GdkEventKey *) ev)->state = 0;
+            gint focus = treeview_get_focus ((GtkTreeView *) widget);
+            if (focus < 0)
+                return TRUE;
 
-            aud_playlist_shift_selected(playlist, (event->keyval == GDK_Up) ? -1 : 1);
-            gtk_propagate_event(widget, ev);
-            gdk_event_free(ev);
+            gint playlist = playlist_get_playlist_from_treeview ((GtkTreeView *)
+             widget);
+            aud_playlist_entry_set_selected (playlist, focus, TRUE);
+            focus += aud_playlist_shift (playlist, focus, (event->keyval ==
+             GDK_Up) ? -1 : 1);
+            treeview_set_focus ((GtkTreeView *) widget, focus);
             return TRUE;
         }
       }
@@ -296,7 +299,6 @@ static gint pos[2];
 static gboolean ui_playlist_widget_button_press_cb(GtkWidget * widget, GdkEventButton * event)
 {
     GtkTreePath *path = NULL;
-    GtkTreeSelection *sel = NULL;
     gint state = event->state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK);
 
     gtk_tree_view_get_path_at_pos ((GtkTreeView *) widget, event->x, event->y,
@@ -304,8 +306,8 @@ static gboolean ui_playlist_widget_button_press_cb(GtkWidget * widget, GdkEventB
 
     /* Save the row clicked on for drag and drop. */
     if (path)
-        g_object_set_data ((GObject *) widget, "recently clicked",
-         GINT_TO_POINTER (gtk_tree_path_get_indices (path)[0]));
+        treeview_set_focus ((GtkTreeView *) widget, gtk_tree_path_get_indices
+         (path)[0]);
 
     if (event->button == 1 && !state)
     {
@@ -316,27 +318,19 @@ static gboolean ui_playlist_widget_button_press_cb(GtkWidget * widget, GdkEventB
     if (event->button == 1 && state)
         goto NOT_HANDLED;
 
-    sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
-
     if (event->type == GDK_BUTTON_PRESS && event->button == 3)
         ui_manager_popup_menu_show(GTK_MENU(playlistwin_popup_menu), event->x_root, event->y_root + 2, 3, event->time);
 
-    if (path == NULL)
-        goto NOT_HANDLED;
-
-    if (event->button == 1 && !state && event->type == GDK_2BUTTON_PRESS)
+    /* Hack: Keep GTK from messing with a multiple selection.  As this blocks
+     * double click, we handle that case also. */
+    if (path && gtk_tree_selection_path_is_selected
+     (gtk_tree_view_get_selection ((GtkTreeView *) widget), path))
     {
-        gtk_tree_view_row_activated(GTK_TREE_VIEW(widget), path, NULL);
-        pos[0] = -1;
+        if (event->type == GDK_2BUTTON_PRESS)
+            gtk_tree_view_row_activated ((GtkTreeView *) widget, path, NULL);
+
         goto HANDLED;
     }
-
-    if (gtk_tree_selection_path_is_selected(sel, path) &&
-        playlist_get_selected_length(GTK_TREE_VIEW(widget)) > 1 &&
-        event->type == GDK_BUTTON_PRESS)
-        goto HANDLED;
-
-    pos[0] = -1;
 
 NOT_HANDLED:
     if (path)
@@ -373,7 +367,7 @@ static gboolean ui_playlist_widget_button_release_cb(GtkWidget * widget, GdkEven
     return FALSE;
 }
 
-static void ui_playlist_widget_set_column(GtkWidget *treeview, gchar *title, gint column_id, gint width, gboolean ellipsize, gboolean resizable)
+static void ui_playlist_widget_set_column(GtkWidget *treeview, gchar *title, gint column_id, gint width, gboolean ellipsize, gboolean resizable, gboolean expand)
 {
     GtkCellRenderer *renderer;
     GtkTreeViewColumn *column;
@@ -389,6 +383,9 @@ static void ui_playlist_widget_set_column(GtkWidget *treeview, gchar *title, gin
 
     if (resizable)
         gtk_tree_view_column_set_resizable(column, TRUE);
+
+    if (expand)
+        gtk_tree_view_column_set_expand(column, TRUE);
 
     if (ellipsize)
         g_object_set(G_OBJECT(renderer), "ypad", 1, "xpad", 1, "ellipsize-set", TRUE, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
@@ -424,13 +421,14 @@ GtkWidget *ui_playlist_widget_new(gint playlist)
         if (aud_cfg->show_numbers_in_pl)
             ui_playlist_widget_set_column (treeview, NULL,
              PLAYLIST_MULTI_COLUMN_NUM, calculate_column_width (treeview,
-             model->num_rows), FALSE, FALSE);
+             model->num_rows), FALSE, FALSE, FALSE);
 
-        ui_playlist_widget_set_column(treeview, "Artist", PLAYLIST_MULTI_COLUMN_ARTIST, 150, TRUE, TRUE);
-        ui_playlist_widget_set_column(treeview, "Album", PLAYLIST_MULTI_COLUMN_ALBUM, 200, TRUE, TRUE);
-        ui_playlist_widget_set_column(treeview, "No", PLAYLIST_MULTI_COLUMN_TRACK_NUM, 40, FALSE, TRUE);
-        ui_playlist_widget_set_column(treeview, "Title", PLAYLIST_MULTI_COLUMN_TITLE, 250, TRUE, TRUE);
-        ui_playlist_widget_set_column(treeview, "Time", PLAYLIST_MULTI_COLUMN_TIME, 50, FALSE, FALSE);
+        ui_playlist_widget_set_column(treeview, "Artist", PLAYLIST_MULTI_COLUMN_ARTIST, 150, TRUE, TRUE, FALSE);
+        ui_playlist_widget_set_column(treeview, "Album", PLAYLIST_MULTI_COLUMN_ALBUM, 200, TRUE, TRUE, FALSE);
+        ui_playlist_widget_set_column(treeview, "No", PLAYLIST_MULTI_COLUMN_TRACK_NUM, 40, FALSE, TRUE, FALSE);
+        ui_playlist_widget_set_column(treeview, "Title", PLAYLIST_MULTI_COLUMN_TITLE, 250, TRUE, TRUE, TRUE);
+        ui_playlist_widget_set_column(treeview, "Queue", PLAYLIST_MULTI_COLUMN_QUEUED, 50, FALSE, TRUE, FALSE);
+        ui_playlist_widget_set_column(treeview, "Time", PLAYLIST_MULTI_COLUMN_TIME, 50, FALSE, FALSE, FALSE);
     }
     else
     {
@@ -451,6 +449,12 @@ GtkWidget *ui_playlist_widget_new(gint playlist)
         gtk_tree_view_column_pack_start(column, renderer, TRUE);
         gtk_tree_view_column_set_attributes(column, renderer, "text", PLAYLIST_COLUMN_TEXT, "weight", PLAYLIST_COLUMN_WEIGHT, NULL);
         g_object_set(G_OBJECT(renderer), "ypad", 1, "xpad", 1, "ellipsize-set", TRUE, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
+
+        renderer = gtk_cell_renderer_text_new ();
+        gtk_tree_view_column_pack_start (column, renderer, FALSE);
+        gtk_tree_view_column_set_attributes (column, renderer, "text",
+         PLAYLIST_COLUMN_QUEUED, "weight", PLAYLIST_COLUMN_WEIGHT, NULL);
+        g_object_set ((GObject *) renderer, "ypad", 1, "xpad", 1, NULL);
 
         renderer = gtk_cell_renderer_text_new();
         gtk_tree_view_column_pack_start(column, renderer, FALSE);

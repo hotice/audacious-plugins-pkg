@@ -17,8 +17,10 @@
  */
 
 #include "config.h"
-#include <audacious/plugin.h>
+
 #include <audacious/i18n.h>
+#include <audacious/misc.h>
+#include <audacious/plugin.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 
@@ -192,7 +194,7 @@ static void tone_pause(InputPlayback * playback, gshort paused)
 
 static Tuple *tone_get_song_tuple(const gchar * filename)
 {
-    Tuple *tuple = aud_tuple_new_from_filename(filename);
+    Tuple *tuple = tuple_new_from_filename(filename);
     gchar *tmp;
 
     if (tuple == NULL)
@@ -200,7 +202,7 @@ static Tuple *tone_get_song_tuple(const gchar * filename)
 
     if ((tmp = tone_title(filename)) != NULL)
     {
-        aud_tuple_associate_string(tuple, FIELD_TITLE, NULL, tmp);
+        tuple_associate_string(tuple, FIELD_TITLE, NULL, tmp);
         g_free(tmp);
     }
 

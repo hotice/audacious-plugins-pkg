@@ -19,7 +19,11 @@
  */
 
 #include "config.h"
-#include <audacious/plugin.h>
+
+#include <audacious/debug.h>
+#include <audacious/playlist.h>
+#include <libaudcore/hook.h>
+
 #include "ui_playlist_model.h"
 #include "ui_playlist_widget.h"
 #include "playlist_util.h"
@@ -125,6 +129,7 @@ ui_playlist_model_init(UiPlaylistModel *model)
         model->column_types[PLAYLIST_MULTI_COLUMN_ALBUM] = G_TYPE_STRING;
         model->column_types[PLAYLIST_MULTI_COLUMN_TITLE] = G_TYPE_STRING;
         model->column_types[PLAYLIST_MULTI_COLUMN_TRACK_NUM] = G_TYPE_UINT;
+        model->column_types[PLAYLIST_MULTI_COLUMN_QUEUED] = G_TYPE_STRING;
         model->column_types[PLAYLIST_MULTI_COLUMN_TIME] = G_TYPE_STRING;
         model->column_types[PLAYLIST_MULTI_COLUMN_WEIGHT] = PANGO_TYPE_WEIGHT;
     }
@@ -135,6 +140,7 @@ ui_playlist_model_init(UiPlaylistModel *model)
         model->column_types = g_new0(GType, PLAYLIST_N_COLUMNS);
         model->column_types[PLAYLIST_COLUMN_NUM] = G_TYPE_UINT;
         model->column_types[PLAYLIST_COLUMN_TEXT] = G_TYPE_STRING;
+        model->column_types[PLAYLIST_COLUMN_QUEUED] = G_TYPE_STRING;
         model->column_types[PLAYLIST_COLUMN_TIME] = G_TYPE_STRING;
         model->column_types[PLAYLIST_COLUMN_WEIGHT] = PANGO_TYPE_WEIGHT;
     }
@@ -151,6 +157,7 @@ ui_playlist_model_finalize(GObject *object)
 
     ui_playlist_model_dissociate_hooks(model);
 
+    g_list_free (model->queue);
     g_free(model->column_types);
 
     (* parent_class->finalize) (object);
@@ -230,7 +237,8 @@ ui_playlist_model_get_path(GtkTreeModel *tree_model, GtkTreeIter *iter)
 
 static void ui_playlist_model_get_value_time(UiPlaylistModel *model, GValue *value, gint position)
 {
-    gint length = aud_playlist_entry_get_length(model->playlist, position) / 1000;
+    gint length = aud_playlist_entry_get_length (model->playlist, position,
+     TRUE) / 1000;
     gchar * len = g_strdup_printf("%02i:%02i", length / 60, length % 60);
     g_value_set_string(value, len);
     g_free(len);
@@ -240,7 +248,7 @@ static void
 ui_playlist_model_get_value(GtkTreeModel *tree_model, GtkTreeIter *iter, gint column, GValue *value)
 {
     UiPlaylistModel *model;
-    gint n;
+    gint n, i;
 
     g_return_if_fail(UI_IS_PLAYLIST_MODEL(tree_model));
     g_return_if_fail(iter != NULL);
@@ -257,7 +265,8 @@ ui_playlist_model_get_value(GtkTreeModel *tree_model, GtkTreeIter *iter, gint co
 
     if (multi_column_view)
     {
-        Tuple *tu = (Tuple*) aud_playlist_entry_get_tuple(model->playlist, n);
+        const Tuple * tu = aud_playlist_entry_get_tuple (model->playlist, n,
+         TRUE);
 
         switch (column)
         {
@@ -280,11 +289,19 @@ ui_playlist_model_get_value(GtkTreeModel *tree_model, GtkTreeIter *iter, gint co
             {
                 const gchar *title = tuple_get_string(tu, FIELD_TITLE, NULL);
                 if (title == NULL)
-                    g_value_set_string(value, aud_playlist_entry_get_title(model->playlist, n));
+                    g_value_set_string (value, aud_playlist_entry_get_title
+                     (model->playlist, n, TRUE));
                 else
                     g_value_set_string(value, title);
                 break;
             }
+
+            case PLAYLIST_MULTI_COLUMN_QUEUED:
+                if ((i = aud_playlist_queue_find_entry (model->playlist, n)) < 0)
+                    g_value_set_string (value, "");
+                else
+                    g_value_take_string (value, g_strdup_printf ("#%d", 1 + i));
+                break;
 
             case PLAYLIST_MULTI_COLUMN_TIME:
                 ui_playlist_model_get_value_time(model, value, n);
@@ -309,7 +326,15 @@ ui_playlist_model_get_value(GtkTreeModel *tree_model, GtkTreeIter *iter, gint co
                 break;
 
             case PLAYLIST_COLUMN_TEXT:
-                g_value_set_string(value, aud_playlist_entry_get_title(model->playlist, n));
+                g_value_set_string (value, aud_playlist_entry_get_title
+                 (model->playlist, n, TRUE));
+                break;
+
+            case PLAYLIST_COLUMN_QUEUED:
+                if ((i = aud_playlist_queue_find_entry (model->playlist, n)) < 0)
+                    g_value_set_string (value, "");
+                else
+                    g_value_take_string (value, g_strdup_printf ("#%d", 1 + i));
                 break;
 
             case PLAYLIST_COLUMN_TIME:
@@ -435,6 +460,7 @@ ui_playlist_model_new(gint playlist)
     model->playlist = playlist;
     model->num_rows = aud_playlist_entry_count(playlist);
     model->position = aud_playlist_get_position (playlist);
+    model->queue = NULL;
     model->song_changed = FALSE;
     model->focus_changed = FALSE;
     model->selection_changed = FALSE;
@@ -518,6 +544,29 @@ static void ui_playlist_model_playlist_position (void * hook_data, void *
         model->song_changed = TRUE;
 }
 
+static void update_queue_row_changed (void * row, void * model)
+{
+    ui_playlist_model_row_changed (model, GPOINTER_TO_INT (row));
+}
+
+static void update_queue (UiPlaylistModel * model)
+{
+    gint i;
+
+    /* update previously queued rows */
+    g_list_foreach (model->queue, update_queue_row_changed, model);
+
+    g_list_free (model->queue);
+    model->queue = NULL;
+
+    for (i = aud_playlist_queue_count (model->playlist); i --; )
+        model->queue = g_list_prepend (model->queue, GINT_TO_POINTER
+         (aud_playlist_queue_get_entry (model->playlist, i)));
+
+    /* update currently queued rows */
+    g_list_foreach (model->queue, update_queue_row_changed, model);
+}
+
 static void
 ui_playlist_model_playlist_update(gpointer hook_data, gpointer user_data)
 {
@@ -577,6 +626,8 @@ ui_playlist_model_playlist_update(gpointer hook_data, gpointer user_data)
         AUDDBG("playlist metadata update\n");
         ui_playlist_model_playlist_rearraged(model);
     }
+    else if (type == PLAYLIST_UPDATE_SELECTION)
+        update_queue (model);
 
     if (model->song_changed)
     {
@@ -623,15 +674,15 @@ ui_playlist_model_playlist_delete(gpointer hook_data, gpointer user_data)
 static void
 ui_playlist_model_associate_hooks(UiPlaylistModel *model)
 {
-    aud_hook_associate("playlist update", ui_playlist_model_playlist_update, model);
-    aud_hook_associate("playlist delete", ui_playlist_model_playlist_delete, model);
-    aud_hook_associate("playlist position", ui_playlist_model_playlist_position, model);
+    hook_associate("playlist update", ui_playlist_model_playlist_update, model);
+    hook_associate("playlist delete", ui_playlist_model_playlist_delete, model);
+    hook_associate("playlist position", ui_playlist_model_playlist_position, model);
 }
 
 static void
 ui_playlist_model_dissociate_hooks(UiPlaylistModel *model)
 {
-    aud_hook_dissociate_full("playlist update", ui_playlist_model_playlist_update, model);
-    aud_hook_dissociate_full("playlist delete", ui_playlist_model_playlist_delete, model);
-    aud_hook_dissociate_full("playlist position", ui_playlist_model_playlist_position, model);
+    hook_dissociate_full("playlist update", ui_playlist_model_playlist_update, model);
+    hook_dissociate_full("playlist delete", ui_playlist_model_playlist_delete, model);
+    hook_dissociate_full("playlist position", ui_playlist_model_playlist_position, model);
 }

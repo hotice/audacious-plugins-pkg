@@ -9,12 +9,13 @@
 #include <stdio.h>
 
 #include <glib.h>
-#include <audacious/plugin.h>
-#include <libaudcore/md5.h>
-#include <audacious/i18n.h>
-
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+
+#include <audacious/configdb.h>
+#include <audacious/i18n.h>
+#include <audacious/preferences.h>
+#include <libaudcore/md5.h>
 
 #include "plugin.h"
 
@@ -164,7 +165,6 @@ create_cfgdlg(void)
   GtkWidget *label1;
   GtkWidget *label2;
   GtkWidget *label4;
-  GtkWidget *himage1;
   GtkWidget *align1;
   GtkWidget *notebook1;
   GtkStyle *style;
@@ -234,7 +234,7 @@ create_cfgdlg(void)
                    NULL);
   gtk_widget_show (entry2);
   gtk_table_attach_defaults (GTK_TABLE (table1), entry2, 1, 2, 3, 4);
-  
+
   entry3 = gtk_entry_new ();
   gtk_widget_show (entry3);
   gtk_table_attach_defaults (GTK_TABLE (table1), entry3, 1, 2, 4, 5);
@@ -245,11 +245,6 @@ create_cfgdlg(void)
 
   // common
   gtk_box_pack_start (GTK_BOX (vbox2), notebook1, TRUE, TRUE, 6);
-
-  himage1 = gtk_image_new_from_file (DATA_DIR "/images/audioscrobbler_badge.png");
-  gtk_widget_show (himage1);
-  gtk_box_pack_start (GTK_BOX (vbox2), himage1, FALSE, FALSE, 0);
-  gtk_misc_set_alignment (GTK_MISC (himage1), 1, 0.5);
 
 	gtk_entry_set_text(GTK_ENTRY(entry1), "");
 	gtk_entry_set_text(GTK_ENTRY(ge_entry1), "");
@@ -265,14 +260,14 @@ create_cfgdlg(void)
                         g_free(username);
 			username = NULL;
                 }
-                
+
 		aud_cfg_db_get_string(db, "audioscrobbler", "sc_url", &sc_url);
 		if (sc_url) {
                		gtk_entry_set_text(GTK_ENTRY(entry3), sc_url);
                		g_free(sc_url);
 	             	sc_url = NULL;
 		}
-				
+
                 aud_cfg_db_close(db);
         }
 
@@ -285,15 +280,13 @@ create_cfgdlg(void)
 
 /* TODO: don't use WIDGET_CUSTOM there */
 static PreferencesWidget settings[] = {
-    {WIDGET_CUSTOM, NULL, NULL, NULL, NULL, FALSE, {.populate = create_cfgdlg}},    
+    {WIDGET_CUSTOM, NULL, NULL, NULL, NULL, FALSE, {.populate = create_cfgdlg}},
 };
 
 PluginPreferences preferences = {
     .title = N_("Scrobbler"),
-    .imgurl = DATA_DIR "/images/audioscrobbler.png",
     .prefs = settings,
     .n_prefs = G_N_ELEMENTS(settings),
-    .type = PREFERENCES_PAGE,
     .apply = configure_apply,
     .cleanup = configure_cleanup,
 };

@@ -47,7 +47,12 @@
 #include <regex.h>
 #endif
 
-#include <audacious/plugin.h>
+#include <audacious/audconfig.h>
+#include <audacious/drct.h>
+#include <audacious/misc.h>
+#include <audacious/playlist.h>
+#include <libaudcore/audstrings.h>
+#include <libaudcore/hook.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 
@@ -56,11 +61,7 @@
 #include "playlist_util.h"
 #include "gtkui_cfg.h"
 #include "ui_infoarea.h"
-
-extern GtkWidget *window;
-extern GtkWidget *menu;
-extern GtkWidget *playlist_box;
-extern GtkWidget *infoarea;
+#include "ui_statusbar.h"
 
 static GtkWidget *mainwin_jtt = NULL;
 
@@ -91,7 +92,7 @@ void action_stop_after_current_song (GtkToggleAction * action)
     if (active != aud_cfg->stopaftersong)
     {
         aud_cfg->stopaftersong = active;
-        aud_hook_call ("toggle stop after song", NULL);
+        hook_call ("toggle stop after song", NULL);
     }
 }
 
@@ -105,10 +106,20 @@ void action_view_infoarea(GtkToggleAction *action)
 {
     config.infoarea_visible = gtk_toggle_action_get_active (action);
 
-    if (config.infoarea_visible)
+    if (config.infoarea_visible && ! infoarea)
+    {
+        infoarea = ui_infoarea_new ();
+        gtk_box_pack_end ((GtkBox *) vbox, infoarea, FALSE, FALSE, 0);
+        gtk_box_reorder_child(GTK_BOX(vbox), infoarea, -1);
+
         gtk_widget_show (infoarea);
-    else
-        gtk_widget_hide (infoarea);
+    }
+
+    if (! config.infoarea_visible && infoarea)
+    {
+        gtk_widget_destroy (infoarea);
+        infoarea = NULL;
+    }
 
     setup_panes ();
 }
@@ -125,6 +136,30 @@ void action_view_menu(GtkToggleAction *action)
     setup_panes ();
 }
 
+void action_view_statusbar(GtkToggleAction *action)
+{
+    config.statusbar_visible = gtk_toggle_action_get_active(action);
+
+    if (config.statusbar_visible && !statusbar)
+    {
+        statusbar = ui_statusbar_new();
+        gtk_box_pack_end(GTK_BOX(vbox), statusbar, FALSE, FALSE, 3);
+
+        if (infoarea != NULL)
+            gtk_box_reorder_child(GTK_BOX(vbox), infoarea, -1);
+
+        gtk_widget_show_all(statusbar);
+    }
+
+    if (!config.statusbar_visible && statusbar)
+    {
+        gtk_widget_destroy(statusbar);
+        statusbar = NULL;
+    }
+
+    setup_panes();
+}
+
 /* actionentries actions */
 
 void action_about_audacious(void)
@@ -139,29 +174,29 @@ void action_play_file(void)
 
 void action_play_location(void)
 {
-    audgui_show_add_url_window();
+    audgui_show_add_url_window (TRUE);
 }
 
 void action_ab_set(void)
 {
-    if (audacious_drct_get_length() > 0)
+    if (aud_drct_get_length() > 0)
     {
         if (ab_position_a == -1)
         {
-            ab_position_a = audacious_drct_get_time();
+            ab_position_a = aud_drct_get_time();
             ab_position_b = -1;
             /* info-text: Loop-Point A position set */
         }
         else if (ab_position_b == -1)
         {
-            int time = audacious_drct_get_time();
+            int time = aud_drct_get_time();
             if (time > ab_position_a)
                 ab_position_b = time;
             /* release info text */
         }
         else
         {
-            ab_position_a = audacious_drct_get_time();
+            ab_position_a = aud_drct_get_time();
             ab_position_b = -1;
             /* info-text: Loop-Point A position reset */
         }
@@ -187,7 +222,7 @@ void action_jump_to_file(void)
 
 void action_jump_to_playlist_start(void)
 {
-    audacious_drct_pl_set_pos(0);
+    aud_drct_pl_set_pos(0);
 }
 
 static void mainwin_jump_to_time_cb(GtkWidget * widget, GtkWidget * entry)
@@ -204,7 +239,7 @@ static void mainwin_jump_to_time_cb(GtkWidget * widget, GtkWidget * entry)
     else
         return;
 
-    audacious_drct_seek(time);
+    aud_drct_seek(time);
     gtk_widget_destroy(mainwin_jtt);
 }
 
@@ -217,7 +252,7 @@ void mainwin_jump_to_time(void)
     guint tindex;
     gchar time_str[10];
 
-    if (!audacious_drct_get_playing())
+    if (!aud_drct_get_playing())
     {
         dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, _("Can't jump to time when no track is being played.\n"));
         gtk_dialog_run(GTK_DIALOG(dialog));
@@ -286,7 +321,7 @@ void mainwin_jump_to_time(void)
     gtk_container_add(GTK_CONTAINER(bbox), jump);
     g_signal_connect(jump, "clicked", G_CALLBACK(mainwin_jump_to_time_cb), time_entry);
 
-    tindex = audacious_drct_get_time() / 1000;
+    tindex = aud_drct_get_time() / 1000;
     g_snprintf(time_str, sizeof(time_str), "%u:%2.2u", tindex / 60, tindex % 60);
     gtk_entry_set_text(GTK_ENTRY(time_entry), time_str);
 
@@ -305,32 +340,35 @@ void action_jump_to_time(void)
 
 void action_playback_next(void)
 {
-    audacious_drct_pl_next();
+    aud_drct_pl_next();
 }
 
 void action_playback_previous(void)
 {
-    audacious_drct_pl_prev();
+    aud_drct_pl_prev();
 }
 
 void action_playback_play(void)
 {
     if (ab_position_a != -1)
-        audacious_drct_seek(ab_position_a);
-    else if (audacious_drct_get_playing () && audacious_drct_get_paused ())
-        audacious_drct_pause();
+        aud_drct_seek(ab_position_a);
+    else if (aud_drct_get_playing () && aud_drct_get_paused ())
+        aud_drct_pause();
     else
-        audacious_drct_play();
+    {
+        aud_playlist_set_playing (aud_playlist_get_active ());
+        aud_drct_play();
+    }
 }
 
 void action_playback_pause(void)
 {
-    audacious_drct_pause();
+    aud_drct_pause();
 }
 
 void action_playback_stop(void)
 {
-    audacious_drct_stop();
+    aud_drct_stop();
 }
 
 void action_preferences(void)
@@ -340,7 +378,7 @@ void action_preferences(void)
 
 void action_quit(void)
 {
-    audacious_drct_quit();
+    aud_drct_quit();
 }
 
 void action_playlist_track_info(void)
@@ -366,13 +404,17 @@ void action_playlist_track_info(void)
 
 void action_queue_toggle(void)
 {
-    gint playlist = aud_playlist_get_active();
-    gint queued = aud_playlist_queue_count(playlist);
+    gint playlist = aud_playlist_get_active ();
+    gint focus = treeview_get_focus (playlist_get_treeview (playlist));
+    gint at;
 
-    if (queued == 0)
-        aud_playlist_queue_insert_selected(playlist, 0);
+    if (focus < 0)
+        return;
+
+    if ((at = aud_playlist_queue_find_entry (playlist, focus)) < 0)
+        aud_playlist_queue_insert (playlist, -1, focus);
     else
-        aud_playlist_queue_delete(playlist, 0, queued);
+        aud_playlist_queue_delete (playlist, at, 1);
 }
 
 void action_playlist_sort_by_track_number(void)
@@ -445,11 +487,6 @@ void action_playlist_sort_selected_by_filename(void)
     aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_FILENAME);
 }
 
-void action_playlist_randomize_list(void)
-{
-    aud_playlist_randomize(aud_playlist_get_active());
-}
-
 void action_playlist_reverse_list(void)
 {
     aud_playlist_reverse(aud_playlist_get_active());
@@ -513,7 +550,7 @@ void action_playlist_add_files(void)
 
 void action_playlist_add_url(void)
 {
-    audgui_show_add_url_window();
+    audgui_show_add_url_window (FALSE);
 }
 
 void action_playlist_new(void)
@@ -543,55 +580,16 @@ void action_playlist_delete(void)
     audgui_confirm_playlist_delete (aud_playlist_get_active ());
 }
 
-#if 0
-static void on_static_toggle(GtkToggleButton * button, gpointer data)
-{
-    Playlist *playlist = aud_playlist_get_active();
-
-    playlist->attribute = gtk_toggle_button_get_active(button) ? playlist->attribute | PLAYLIST_STATIC : playlist->attribute & ~PLAYLIST_STATIC;
-}
-
-static void on_relative_toggle(GtkToggleButton * button, gpointer data)
-{
-    Playlist *playlist = aud_playlist_get_active();
-
-    playlist->attribute = gtk_toggle_button_get_active(button) ? playlist->attribute | PLAYLIST_USE_RELATIVE : playlist->attribute & ~PLAYLIST_USE_RELATIVE;
-}
-#endif
-
 static gchar *playlist_file_selection_save(const gchar * title, const gchar * default_filename)
 {
     GtkWidget *dialog;
     gchar *filename;
-#if 0
-    GtkWidget *hbox;
-    GtkWidget *toggle, *toggle2;
-#endif
 
     g_return_val_if_fail(title != NULL, NULL);
 
     dialog = make_filebrowser(title, TRUE);
     gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), aud_cfg->playlist_path);
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), default_filename);
-
-#if 0
-    hbox = gtk_hbox_new(FALSE, 5);
-
-    /* static playlist */
-    toggle = gtk_check_button_new_with_label(_("Save as Static Playlist"));
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle), (aud_playlist_get_active()->attribute & PLAYLIST_STATIC) ? TRUE : FALSE);
-    g_signal_connect(G_OBJECT(toggle), "toggled", G_CALLBACK(on_static_toggle), dialog);
-    gtk_box_pack_start(GTK_BOX(hbox), toggle, FALSE, FALSE, 0);
-
-    /* use relative path */
-    toggle2 = gtk_check_button_new_with_label(_("Use Relative Path"));
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle2), (aud_playlist_get_active()->attribute & PLAYLIST_USE_RELATIVE) ? TRUE : FALSE);
-    g_signal_connect(G_OBJECT(toggle2), "toggled", G_CALLBACK(on_relative_toggle), dialog);
-    gtk_box_pack_start(GTK_BOX(hbox), toggle2, FALSE, FALSE, 0);
-
-    gtk_widget_show_all(hbox);
-    gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), hbox);
-#endif
 
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -633,35 +631,9 @@ static gboolean show_playlist_overwrite_prompt(GtkWindow * parent, const gchar *
     return (result == GTK_RESPONSE_YES);
 }
 
-static void show_playlist_save_format_error(GtkWindow * parent, const gchar * filename)
-{
-    const gchar *markup = N_("<b><big>Unable to save playlist.</big></b>\n\n" "Unknown file type for '%s'.\n");
-
-    GtkWidget *dialog;
-
-    g_return_if_fail(GTK_IS_WINDOW(parent));
-    g_return_if_fail(filename != NULL);
-
-    dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(parent), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _(markup), filename);
-
-    gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);    /* centering */
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
-}
-
 static void playlistwin_save_playlist(const gchar * filename)
 {
-    PlaylistContainer *plc;
-    gchar *ext = strrchr(filename, '.') + 1;
-
-    plc = aud_playlist_container_find(ext);
-    if (plc == NULL)
-    {
-        show_playlist_save_format_error(NULL, filename);
-        return;
-    }
-
-    aud_str_replace_in(&aud_cfg->playlist_path, g_path_get_dirname(filename));
+    str_replace_in(&aud_cfg->playlist_path, g_path_get_dirname(filename));
 
     if (g_file_test(filename, G_FILE_TEST_IS_REGULAR))
         if (!show_playlist_overwrite_prompt(NULL, filename))
@@ -676,7 +648,8 @@ void action_playlist_save_list(void)
     const gchar *default_filename = aud_playlist_get_filename(aud_playlist_get_active());
 
     gchar *dot = NULL, *basename = NULL;
-    gchar *filename = playlist_file_selection_save(_("Save Playlist"), default_filename);
+    gchar * filename = playlist_file_selection_save (_("Export Playlist"),
+     default_filename);
 
     if (filename)
     {
@@ -712,7 +685,7 @@ static void playlistwin_load_playlist(const gchar * filename)
 
     g_return_if_fail(filename != NULL);
 
-    aud_str_replace_in(&aud_cfg->playlist_path, g_path_get_dirname(filename));
+    str_replace_in(&aud_cfg->playlist_path, g_path_get_dirname(filename));
 
     aud_playlist_entry_delete(playlist, 0, aud_playlist_entry_count(playlist));
     aud_playlist_insert_playlist(playlist, 0, filename);
@@ -747,7 +720,8 @@ static gchar *playlist_file_selection_load(const gchar * title, const gchar * de
 void action_playlist_load_list(void)
 {
     const gchar *default_filename = aud_playlist_get_filename(aud_playlist_get_active());
-    gchar *filename = playlist_file_selection_load(_("Load Playlist"), default_filename);
+    gchar * filename = playlist_file_selection_load (_("Import Playlist"),
+     default_filename);
 
     if (filename)
     {
@@ -794,7 +768,7 @@ void action_playlist_select_all(void)
 
 void action_playlist_save_all_playlists(void)
 {
-    aud_save_all_playlists();
+    aud_save_playlists();
 }
 
 void action_playlist_copy(void)

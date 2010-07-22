@@ -23,9 +23,10 @@
  *  Audacious or using our public API to be a derived work.
  */
 
-#include "util.h"
-#include <audacious/plugin.h>
 #include <gtk/gtk.h>
+#include <libaudcore/hook.h>
+
+#include "util.h"
 
 GtkWidget *make_filebrowser(const gchar * title, gboolean save)
 {
@@ -57,5 +58,5 @@ void check_set(GtkActionGroup * action_group, const gchar * action_name, gboolea
     g_return_if_fail (action != NULL);
 
     gtk_toggle_action_set_active ((GtkToggleAction *) action, is_on);
-    aud_hook_call (action_name, GINT_TO_POINTER (is_on));
+    hook_call (action_name, GINT_TO_POINTER (is_on));
 }

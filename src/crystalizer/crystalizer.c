@@ -21,6 +21,8 @@
 #include "config.h"
 
 #include <gtk/gtk.h>
+
+#include <audacious/configdb.h>
 #include <audacious/i18n.h>
 #include <audacious/plugin.h>
 
@@ -44,6 +46,7 @@ EffectPlugin crystalizer_ep =
     .finish = cryst_finish,
     .decoder_to_output_time = cryst_decoder_to_output_time,
     .output_to_decoder_time = cryst_output_to_decoder_time,
+    .preserves_format = TRUE,
 };
 
 static GtkWidget *conf_dialog = NULL;

@@ -32,8 +32,10 @@
 
 #include <unistd.h>
 
+#include <audacious/debug.h>
 #include <audacious/plugin.h>
 #include <audacious/i18n.h>
+#include <libaudcore/audstrings.h>
 
 #include <mowgli.h>
 
@@ -84,24 +86,24 @@ dictionary_to_vorbis_comment(vorbis_comment * vc, mowgli_dictionary_t * dict)
     }
 }
 
-static void
-insert_str_tuple_field_to_dictionary(Tuple *tuple, int fieldn, mowgli_dictionary_t *dict, char *key)
+static void insert_str_tuple_field_to_dictionary (const Tuple * tuple, int
+ fieldn, mowgli_dictionary_t * dict, char * key)
 {
 
     if(mowgli_dictionary_find(dict, key) != NULL) g_free(mowgli_dictionary_delete(dict, key));
 
-    gchar *tmp = (gchar*)aud_tuple_get_string(tuple, fieldn, NULL);
+    gchar *tmp = (gchar*)tuple_get_string(tuple, fieldn, NULL);
     if(tmp != NULL && strlen(tmp) != 0) mowgli_dictionary_add(dict, key, g_strdup(tmp));
 }
 
-static void
-insert_int_tuple_field_to_dictionary(Tuple *tuple, int fieldn, mowgli_dictionary_t *dict, char *key)
+static void insert_int_tuple_field_to_dictionary (const Tuple * tuple, int
+ fieldn, mowgli_dictionary_t * dict, char * key)
 {
     int val;
 
     if(mowgli_dictionary_find(dict, key) != NULL) g_free(mowgli_dictionary_delete(dict, key));
 
-    if(aud_tuple_get_value_type(tuple, fieldn, NULL) == TUPLE_INT && (val = aud_tuple_get_int(tuple, fieldn, NULL)) >= 0) {
+    if(tuple_get_value_type(tuple, fieldn, NULL) == TUPLE_INT && (val = tuple_get_int(tuple, fieldn, NULL)) >= 0) {
         gchar *tmp = g_strdup_printf("%d", val);
         mowgli_dictionary_add(dict, key, tmp);
     }
@@ -113,8 +115,7 @@ destroy_cb(mowgli_dictionary_elem_t *delem, void *privdata)
     g_free(delem->data);
 }
 
-gboolean
-vorbis_update_song_tuple (Tuple *tuple, VFSFile *fd)
+gboolean vorbis_update_song_tuple (const Tuple * tuple, VFSFile * fd)
 {
 
     vcedit_state *state;
@@ -155,7 +156,7 @@ vorbis_update_song_tuple (Tuple *tuple, VFSFile *fd)
 
 /* from stdio VFS plugin */
 static gchar *
-aud_vfs_stdio_urldecode_path(const gchar * encoded_path)
+vfs_stdio_urldecode_path(const gchar * encoded_path)
 {
     const gchar *cur, *ext;
     gchar *path, *tmp;
@@ -164,12 +165,12 @@ aud_vfs_stdio_urldecode_path(const gchar * encoded_path)
     if (!encoded_path)
         return NULL;
 
-    if (!aud_str_has_prefix_nocase(encoded_path, "file:"))
+    if (!str_has_prefix_nocase(encoded_path, "file:"))
         return NULL;
 
     cur = encoded_path + 5;
 
-    if (aud_str_has_prefix_nocase(cur, "//localhost"))
+    if (str_has_prefix_nocase(cur, "//localhost"))
         cur += 11;
 
     if (*cur == '/')
@@ -209,7 +210,7 @@ write_and_pivot_files(vcedit_state * state)
 
     AUDDBG("creating temp file: %s\n", tmpfn);
 
-    if ((out = aud_vfs_fopen(tmpfn, "wb")) == NULL) {
+    if ((out = vfs_fopen(tmpfn, "wb")) == NULL) {
         g_free(tmpfn);
         AUDDBG("fileinfo.c: couldn't create temp file, %s\n", tmpfn);
         return FALSE;
@@ -217,15 +218,15 @@ write_and_pivot_files(vcedit_state * state)
 
     if (vcedit_write(state, out) < 0) {
         g_free(tmpfn);
-        aud_vfs_fclose(out);
+        vfs_fclose(out);
         AUDDBG("vcedit_write: %s\n", state->lasterror);
         return FALSE;
     }
 
-    aud_vfs_fclose(out);
+    vfs_fclose(out);
 
-    unq_tmpfn = aud_vfs_stdio_urldecode_path(tmpfn);
-    unq_in = aud_vfs_stdio_urldecode_path(((VFSFile*)state->in)->uri);
+    unq_tmpfn = vfs_stdio_urldecode_path(tmpfn);
+    unq_in = vfs_stdio_urldecode_path(((VFSFile*)state->in)->uri);
 
     if((retval = rename(unq_tmpfn, unq_in)) == 0) {
         AUDDBG("fileinfo.c: file %s renamed successfully to %s\n", unq_tmpfn, unq_in);

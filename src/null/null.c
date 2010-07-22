@@ -22,6 +22,8 @@
 #include "config.h"
 #include <glib.h>
 #include <gtk/gtk.h>
+
+#include <audacious/configdb.h>
 #include <audacious/plugin.h>
 #include <audacious/i18n.h>
 #include <libaudgui/libaudgui.h>
@@ -34,7 +36,7 @@ static gboolean real_time = TRUE;
 static gboolean paused, started;
 static GtkWidget *configurewin;
 static struct {
-	AFormat format;
+	gint format;
 	gint frequency;
 	gint channels;
 } input_format;
@@ -120,7 +122,7 @@ static void null_configure(void)
 	gtk_widget_show_all(configurewin);
 }
 
-static int null_open(AFormat fmt, int rate, int nch)
+static int null_open(gint fmt, int rate, int nch)
 {
 	offset_time = 0;
 	written = 0;

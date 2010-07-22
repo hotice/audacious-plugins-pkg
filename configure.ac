@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([audacious-plugins], [2.4-alpha2], [bugs+audacious-plugins@atheme.org])
+AC_INIT([audacious-plugins], [2.4-beta1], [bugs+audacious-plugins@atheme.org])
 AC_PREREQ([2.59])
 
 AC_CANONICAL_HOST
@@ -133,8 +133,8 @@ dnl These plugins are always built.
 
 INPUT_PLUGINS="tonegen console psf xsf metronom vtx"
 OUTPUT_PLUGINS="null"
-EFFECT_PLUGINS="compressor crossfade crystalizer ladspa voice_removal sndstretch stereo_plugin echo_plugin"
-GENERAL_PLUGINS="song_change alarm skins vfstrace gtkui"
+EFFECT_PLUGINS="compressor crossfade crystalizer ladspa sndstretch stereo_plugin voice_removal echo_plugin"
+GENERAL_PLUGINS="song_change alarm skins gtkui lyricwiki"
 VISUALIZATION_PLUGINS="blur_scope spectrum"
 CONTAINER_PLUGINS="m3u pls"
 TRANSPORT_PLUGINS="unix-io"
@@ -238,25 +238,6 @@ case "$target" in
 		;;
 esac
 
-dnl Check for esound
-
-AC_ARG_ENABLE( esd,
-    [  --disable-esd           disable esound output plugin (default=enabled)],
-    [enable_esd=$enableval],
-    [enable_esd="yes"]
-)
-
-if test "x$enable_esd" = "xyes"; then
-    PKG_CHECK_MODULES(ESD, [esound >= 0.2],
-        [have_esd=yes
-         OUTPUT_PLUGINS="$OUTPUT_PLUGINS esd"],
-        [have_esd=no]
-    )
-else
-    AC_MSG_RESULT([*** esound plugin disabled per user request ***])
-    have_esd=no
-fi
-
 dnl *** PulseAudio
 
 AC_ARG_ENABLE( pulse,
@@ -270,6 +251,25 @@ if test "x$enable_pulse" = "xyes"; then
          [have_pulse=yes
           OUTPUT_PLUGINS="$OUTPUT_PLUGINS pulse_audio"],
          [have_pulse=no]
+    )
+else
+    AC_MSG_RESULT([*** pulseaudio output plugin disabled per user request ***])
+    have_pulse=no
+fi
+
+dnl *** RoarAudio
+
+AC_ARG_ENABLE(roar,
+    [  --disable-roar          disable PulseAudio output plugin (default=enabled)],
+    [enable_roar=$enableval],
+    [enable_roar="yes"]
+)
+
+if test "x$enable_roar" = "xyes"; then
+    PKG_CHECK_MODULES(LIBROAR, [libroar],
+         [have_roar=yes
+          OUTPUT_PLUGINS="$OUTPUT_PLUGINS roaraudio"],
+         [have_roar=no]
     )
 else
     AC_MSG_RESULT([*** pulseaudio output plugin disabled per user request ***])
@@ -593,6 +593,25 @@ fi
 if test "x$have_aosd" = "xyes"; then
     GENERAL_PLUGINS="$GENERAL_PLUGINS aosd"
 fi
+
+
+dnl notify: libnotify-based OSD
+dnl ===========================
+
+AC_ARG_ENABLE(notify,
+ [  --disable-notify        disable notify plugin (default=enabled)],
+ [enable_notify=$enableval], [enable_notify="yes"])
+
+if test "x$enable_notify" = "xyes"; then
+    PKG_CHECK_MODULES(NOTIFY, [libnotify], [have_notify="yes"], [have_notify="no"])
+else
+    have_notify="no"
+fi
+
+if test "x$have_notify" = "xyes"; then
+    GENERAL_PLUGINS="$GENERAL_PLUGINS notify"
+fi
+
 
 dnl *** AdPlug requirement (libbinio)
 
@@ -1198,8 +1217,8 @@ esac
 dnl *** scrobbler ***
 
 AC_ARG_ENABLE(scrobbler,
- [  --enable-scrobbler      enable Scrobbler plugin (default=disabled)],
- [have_scrobbler=$enableval], [have_scrobbler="no"])
+ [  --enable-scrobbler      enable Scrobbler plugin (default=enabled)],
+ [have_scrobbler=$enableval], [have_scrobbler="yes"])
 
 if test "x$have_scrobbler" = "xyes"; then
     PKG_CHECK_MODULES(CURL, [libcurl >= 7.9.7],
@@ -1585,7 +1604,7 @@ echo "  Open Sound System (oss):                $have_oss"
 echo "  Open Sound System v4 (oss4):            $have_oss4"
 echo "  Advanced Linux Sound Arch. (alsa):      $have_alsa"
 echo "  PulseAudio (pulse):                     $have_pulse"
-echo "  Enlightenment Sound Daemon (esd):       $have_esd"
+echo "  RoarAudio (roaraudio):                  $have_roar"
 echo "  Jack Audio Connection Kit (jack):       $have_jack"
 echo "  BSD/SUN audio output (sun):             $have_sun"
 echo "  Mac OS X sound support (CoreAudio):     $have_coreaudio"
@@ -1629,6 +1648,7 @@ echo "  Song Change:                            yes"
 echo "  Status Icon:                            $have_statusicon"
 echo "  Audacious OSD:                          $have_aosd"
 echo "    -> X Composite support:               $have_aosd_xcomp"
+echo "  libnotify OSD:                          $have_notify"
 echo "  Control via event device (evdev-plug):  $have_evdevplug"
 echo "  Global Hotkey Plugin:                   $have_hotkey"
 echo "  Gnome Shortcuts Plugin:                 $have_gnomeshortcuts"
@@ -1638,6 +1658,7 @@ echo "  Upload to MTP device:                   $have_mtp_up"
 echo "  Bluetooth audio support:                $have_bluetooth"
 echo "  MacOS Dock Album Art plugin:            $have_dockalbumart"
 echo "  Streambrowser:                          $enable_streambrowser"
+echo "  LyricWiki viewer:                       yes"
 echo
 echo "  Effect"
 echo "  ------"

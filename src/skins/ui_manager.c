@@ -26,11 +26,6 @@
 #include "actions-playlist.h"
 #include "actions-equalizer.h"
 
-#if 0
-/* this header contains prototypes for plugin-available menu functions */
-#include "ui_plugin_menu.h"
-#endif
-
 /* TODO ui_main.h is only included because ui_manager.c needs the values of
    TimerMode enum; move that enum elsewhere so we can get rid of this include */
 #include "ui_main.h"
@@ -41,10 +36,12 @@
 #include "plugin.h"
 
 #include <audacious/i18n.h>
-#include <audacious/ui_plugin_menu.h>
+#include <audacious/misc.h>
 #include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
 static GtkUIManager *ui_manager = NULL;
+static GList * attached_menus = NULL;
 
 /* toggle action entries */
 
@@ -232,9 +229,8 @@ static GtkActionEntry action_entries_playlist[] = {
 };
 
 static GtkActionEntry action_entries_view[] = {
-
-    { "view", NULL, N_("View") }
-};
+ {"view", NULL, N_("View")},
+ {"iface menu", NULL, N_("Interface")}};
 
 static GtkActionEntry action_entries_playlist_add[] = {
         { "playlist add url", GTK_STOCK_NETWORK, N_("Add Internet Address..."), "<Ctrl>H",
@@ -301,10 +297,6 @@ static GtkActionEntry action_entries_playlist_delete[] = {
 };
 
 static GtkActionEntry action_entries_playlist_sort[] = {
-    { "playlist randomize list", AUD_STOCK_RANDOMIZEPL , N_("Randomize List"), "<Ctrl><Shift>R",
-      N_("Randomizes the playlist."),
-      G_CALLBACK(action_playlist_randomize_list) },
-
     { "playlist reverse list", GTK_STOCK_GO_UP , N_("Reverse List"), NULL,
       N_("Reverses the playlist."),
       G_CALLBACK(action_playlist_reverse_list) },
@@ -678,6 +670,9 @@ ui_manager_create_menus ( void )
   }
 }
 
+static GtkWidget * menus[UI_MENUS] = {NULL, NULL, NULL, NULL, NULL, NULL,
+ NULL, NULL, NULL, NULL, NULL, NULL};
+
 static GtkWidget * create_menu (gint id)
 {
     const struct
@@ -710,9 +705,6 @@ static GtkWidget * create_menu (gint id)
         {"/equalizer-menus/preset-menu", NULL, 0},
     };
 
-    static GtkWidget * menus[UI_MENUS] = {NULL, NULL, NULL, NULL, NULL, NULL,
-     NULL, NULL, NULL, NULL, NULL, NULL};
-
     if (menus[id] == NULL)
     {
         menus[id] = ui_manager_get_popup_menu(ui_manager, templates[id].name);
@@ -724,10 +716,28 @@ static GtkWidget * create_menu (gint id)
             GtkWidget * sub = aud_get_plugin_menu (templates[id].plug_id);
 
             gtk_menu_item_set_submenu (GTK_MENU_ITEM(item), sub);
+            attached_menus = g_list_prepend (attached_menus, sub);
         }
+
+        if (id == UI_MENU_MAIN)
+            gtk_menu_item_set_submenu ((GtkMenuItem *) gtk_ui_manager_get_widget
+             (ui_manager, "/mainwin-menus/main-menu/view/iface menu"),
+             audgui_create_iface_menu ());
     }
 
     return menus[id];
+}
+
+static void destroy_menus (void)
+{
+    for (gint i = 0; i < G_N_ELEMENTS (menus); i ++)
+    {
+        if (menus[i] != NULL)
+        {
+            gtk_widget_destroy (menus[i]);
+            menus[i] = NULL;
+        }
+    }
 }
 
 GtkAccelGroup *
@@ -808,6 +818,12 @@ void ui_popup_menu_show(gint id, gint x, gint y, gboolean leftward, gboolean
 void
 ui_manager_destroy( void )
 {
+    g_list_foreach (attached_menus, (GFunc) gtk_menu_detach, NULL);
+    g_list_free (attached_menus);
+    attached_menus = NULL;
+
+    destroy_menus ();
+
     g_object_unref(G_OBJECT(toggleaction_group_others));
     g_object_unref(G_OBJECT(radioaction_group_anamode));
     g_object_unref(G_OBJECT(radioaction_group_anatype));

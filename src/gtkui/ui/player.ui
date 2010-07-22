@@ -38,9 +38,6 @@
 			<menuitem action="playlist new" />
 			<menuitem action="playlist delete" />
 			<separator />
-			<menuitem action="playlist select next" />
-			<menuitem action="playlist select previous" />
-			<separator />
 			<menuitem action="playlist load" />
 			<menuitem action="playlist save" />
 			<menuitem action="playlist save all" />
@@ -58,9 +55,12 @@
 		</menu>
 
 		<menu action="view">
+			<menuitem action="iface menu" />
+			<separator />
 			<menuitem action="view menu" />
 			<menuitem action="view playlists" />
 			<menuitem action="view infoarea" />
+            <menuitem action="view statusbar" />
 		</menu>
 
 		<menu action="help">

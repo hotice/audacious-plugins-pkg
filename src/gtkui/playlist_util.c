@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <audacious/playlist.h>
 #include <audacious/plugin.h>
 #include <libaudgui/libaudgui.h>
 
@@ -124,7 +125,8 @@ void playlist_scroll_to_row (GtkTreeView * tree, gint row)
     UiPlaylistModel * model = (UiPlaylistModel *) gtk_tree_view_get_model (tree);
 
     aud_playlist_select_all (model->playlist, FALSE);
-    aud_playlist_entry_set_selected (model->playlist, row, TRUE);
+    if (row >= 0)
+        aud_playlist_entry_set_selected (model->playlist, row, TRUE);
     treeview_set_focus (tree, row);
 }
 
@@ -254,7 +256,7 @@ void playlist_selected_to_indexes (gint list, struct index * * namesp,
         index_append (* namesp, g_strdup (aud_playlist_entry_get_filename (list,
          count)));
 
-        if ((tuple = aud_playlist_entry_get_tuple (list, count)))
+        if ((tuple = aud_playlist_entry_get_tuple (list, count, FALSE)))
             mowgli_object_ref ((Tuple *) tuple);
 
         index_append (* tuplesp, (Tuple *) tuple);
