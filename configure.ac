@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([audacious-plugins], [2.4-beta1], [bugs+audacious-plugins@atheme.org])
+AC_INIT([audacious-plugins], [2.4-beta2], [bugs+audacious-plugins@atheme.org])
 AC_PREREQ([2.59])
 
 AC_CANONICAL_HOST
@@ -515,8 +515,8 @@ AC_ARG_ENABLE(statusicon,
 )
 
 if test "x$enable_statusicon" = "xyes"; then
-    have_statusicon="yes"
-    PKG_CHECK_MODULES(GDKX11,[gdk-x11-2.0 >= 2.6.0],,[have_statusicon="no"])
+    PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.16.0], [have_statusicon=yes],
+     [have_statusicon=no])
 else
     AC_MSG_RESULT([*** X11 Status Icon plugin disabled per user request ***])
     have_statusicon="no"
@@ -1393,17 +1393,19 @@ AC_ARG_ENABLE(projectm-1.0,
 
 if test "$have_projectm1" = "yes"; then
 	PKG_CHECK_MODULES(LIBPROJECTM1, [libprojectM >= 1.1], [have_projectm1="yes"], [have_projectm1="no"])
+fi
+
+if test "$have_projectm1" = "yes"; then
 	PKG_CHECK_MODULES(GTKGLEXT, [gtkglext-1.0], [have_projectm1="yes"], [have_projectm1="no"])
-	if test "xhave_projectm1" = "xno"; then
-	        AC_MSG_WARN([*** libprojectM not found.
-	                        libprojectM is needed to build this package.
-	                        You can download libprojectM at http://projectm.sf.net/])
-	fi
+fi
+
+if test "$have_projectm1" = "yes"; then
 	LIBPROJECTM1_datadir=`pkg-config --variable=pkgdatadir libprojectM`;
 	LIBPROJECTM1_sysconfdir=`pkg-config --variable=sysconfdir libprojectM`;
         LIBPROJECTM1_prefix=`pkg-config --variable=prefix libprojectM`;
 	LIBPROJECTM1_CFLAGS="$LIBPROJECTM1_CFLAGS -DPROJECTM_DATADIR=\\\"$LIBPROJECTM1_datadir\\\" -DPROJECTM_SYSCONFDIR=\\\"$LIBPROJECTM1_sysconfdir\\\" -DPROJECTM_PREFIX=\\\"$LIBPROJECTM1_prefix\\\"";
 fi
+
 AC_SUBST(LIBPROJECTM1_LIBS)
 AC_SUBST(LIBPROJECTM1_CFLAGS)
 AC_SUBST(GTKGLEXT_LIBS)

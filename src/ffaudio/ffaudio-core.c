@@ -18,7 +18,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-//#define FFAUDIO_DEBUG       /* Enable generic debug output */
 #undef FFAUDIO_DOUBLECHECK  /* Doublecheck probing result for debugging purposes */
 #undef FFAUDIO_NO_BLACKLIST /* Don't blacklist any recognized codecs/formats */
 #define FFAUDIO_USE_AUDTAG  /* Use Audacious tagging library */
@@ -26,6 +25,7 @@
 #include "config.h"
 #include "ffaudio-stdinc.h"
 #include <audacious/i18n.h>
+#include <audacious/debug.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 #ifdef FFAUDIO_USE_AUDTAG
@@ -39,7 +39,6 @@
 static GMutex *ctrl_mutex = NULL;
 static GCond *ctrl_cond = NULL;
 static gint64 seek_value = -1;
-static gboolean pause_flag;
 
 static void
 ffaudio_init(void)
@@ -47,10 +46,10 @@ ffaudio_init(void)
     avcodec_init();
     av_register_all();
 
-    _DEBUG("registering audvfsptr protocol");
+    AUDDBG("registering audvfsptr protocol\n");
     av_register_protocol(&audvfsptr_protocol);
 
-    _DEBUG("creating seek mutex/cond");
+    AUDDBG("creating seek mutex/cond\n");
     ctrl_mutex = g_mutex_new();
     ctrl_cond = g_cond_new();
 
@@ -58,13 +57,13 @@ ffaudio_init(void)
     tag_init();
 #endif
 
-    _DEBUG("initialization completed");
+    AUDDBG("initialization completed\n");
 }
 
 static void
 ffaudio_cleanup(void)
 {
-    _DEBUG("cleaning up");
+    AUDDBG("cleaning up\n");
     g_mutex_free(ctrl_mutex);
     g_cond_free(ctrl_cond);
 }
@@ -79,7 +78,7 @@ ffaudio_codec_is_seekable(AVCodec *codec)
     switch (codec->id) {
 #ifndef FFAUDIO_NO_BLACKLIST
         case CODEC_ID_MUSEPACK8:
-            _DEBUG("codec is blacklisted from seeking");
+            AUDDBG("codec is blacklisted from seeking\n");
             return FALSE;
 #endif
         default:
@@ -96,15 +95,15 @@ ffaudio_probe(const gchar *filename, VFSFile *file)
     gint i, ret;
     gchar uribuf[64];
 
-    _DEBUG("probing for %s, filehandle %p", filename, file);
+    AUDDBG("probing for %s, filehandle %p\n", filename, file);
 
     g_snprintf(uribuf, sizeof(uribuf), "audvfsptr:%p", (void *) file);
     if ((ret = av_open_input_file(&ic, uribuf, NULL, 0, NULL)) < 0) {
-        _DEBUG("ic is NULL, ret %d/%s", ret, strerror(-ret));
+        AUDDBG("ic is NULL, ret %d/%s\n", ret, strerror(-ret));
         return 0;
     }
 
-    _DEBUG("file opened, %p", ic);
+    AUDDBG("file opened, %p\n", ic);
 
     for (i = 0; i < ic->nb_streams; i++)
     {
@@ -125,7 +124,7 @@ ffaudio_probe(const gchar *filename, VFSFile *file)
     }
 
 #ifdef FFAUDIO_DOUBLECHECK
-    _DEBUG("got codec %s, doublechecking", codec->name);
+    AUDDBG("got codec %s, doublechecking\n", codec->name);
 
     av_find_stream_info(ic);
 
@@ -138,7 +137,7 @@ ffaudio_probe(const gchar *filename, VFSFile *file)
     }
 #endif
 
-    _DEBUG("probe success for %s", codec->name);
+    AUDDBG("probe success for %s\n", codec->name);
     av_close_input_file(ic);
 
     return 1;
@@ -309,7 +308,7 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
 #ifndef FFAUDIO_USE_AUDTAG
     Tuple *tuple;
 #endif
-    gboolean paused = FALSE, seekable;
+    gboolean seekable;
 
     gchar uribuf[64];
     snprintf (uribuf, sizeof uribuf, "audvfsptr:%p", (void *) file);
@@ -333,7 +332,7 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
     if (codec == NULL)
         goto error_exit;
 
-    _DEBUG("got codec %s for stream index %d, opening", codec->name, stream_id);
+    AUDDBG("got codec %s for stream index %d, opening\n", codec->name, stream_id);
 
     if (avcodec_open(c, codec) < 0)
         goto error_exit;
@@ -358,7 +357,7 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
         /* Initialize resampling context */
         out_fmt = FMT_S16_NE;
 
-        _DEBUG("resampling needed chn=%d, rate=%d, fmt=%d -> chn=%d, rate=%d, fmt=S16NE",
+        AUDDBG("resampling needed chn=%d, rate=%d, fmt=%d -> chn=%d, rate=%d, fmt=S16NE\n",
             c->channels, c->sample_rate, c->sample_fmt,
             c->channels, c->sample_rate);
 
@@ -373,7 +372,7 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
     }
 
     /* Open audio output */
-    _DEBUG("opening audio output");
+    AUDDBG("opening audio output\n");
 
     if (playback->output->open_audio(out_fmt, c->sample_rate, c->channels) <= 0)
     {
@@ -387,19 +386,22 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
     outbuf = av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
     resbuf = av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
 
-    _DEBUG("setting parameters");
+    AUDDBG("setting parameters\n");
 #ifndef FFAUDIO_USE_AUDTAG
     tuple = tuple_new_from_filename(playback->filename);
     ffaudio_get_tuple_data(tuple, ic, c, codec);
     playback->set_tuple(playback, tuple);
 #endif
+
+    if (pause)
+        playback->output->pause(TRUE);
+
     playback->set_params(playback, NULL, 0, ic->bit_rate, c->sample_rate, c->channels);
 
     g_mutex_lock(ctrl_mutex);
 
     playback->playing = TRUE;
     seek_value = (start_time > 0) ? start_time : -1;
-    pause_flag = pause;
     playback->set_pb_ready(playback);
     errcount = 0;
     seekable = ffaudio_codec_is_seekable(codec);
@@ -420,26 +422,13 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
             if (av_seek_frame (ic, -1, (gint64) seek_value * AV_TIME_BASE /
              1000, AVSEEK_FLAG_ANY) < 0)
             {
-                _ERROR("error while seeking");
+                _ERROR("error while seeking\n");
             } else
                 errcount = 0;
         }
         seek_value = -1;
         g_cond_signal(ctrl_cond);
 
-        if (pause_flag != paused)
-        {
-            playback->output->pause(pause_flag);
-            paused = pause_flag;
-            g_cond_signal(ctrl_cond);
-        }
-
-        if (paused)
-        {
-            g_cond_wait(ctrl_cond, ctrl_mutex);
-            g_mutex_unlock(ctrl_mutex);
-            continue;
-        }
 
         g_mutex_unlock(ctrl_mutex);
 
@@ -448,14 +437,14 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
         {
             if (ret == AVERROR_EOF)
             {
-                _DEBUG("eof reached");
+                AUDDBG("eof reached\n");
                 break;
             }
             else
             {
                 if (++errcount > 4)
                 {
-                    _ERROR("av_read_frame error %d, giving up.", ret);
+                    _ERROR("av_read_frame error %d, giving up.\n", ret);
                     break;
                 } else
                     continue;
@@ -502,7 +491,7 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
 #endif
             if (len < 0)
             {
-                _DEBUG("codec failure, breaking out of loop");
+                AUDDBG("codec failure, breaking out of loop\n");
                 break;
             }
 
@@ -569,7 +558,7 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
 
 error_exit:
 
-    _DEBUG("decode loop finished, shutting down");
+    AUDDBG("decode loop finished, shutting down\n");
 
     playback->playing = FALSE;
 
@@ -584,30 +573,30 @@ error_exit:
     if (ic != NULL)
         av_close_input_file(ic);
 
-    _DEBUG("exiting thread");
+    AUDDBG("exiting thread\n");
     return ! playback->error;
 }
 
 static void ffaudio_stop(InputPlayback * playback)
 {
     g_mutex_lock(ctrl_mutex);
-    playback->playing = FALSE;
-    g_cond_signal(ctrl_cond);
-    g_mutex_unlock(ctrl_mutex);
-    g_thread_join(playback->thread);
-    playback->thread = NULL;
+
+    if (playback->playing)
+    {
+        playback->playing = FALSE;
+        playback->output->abort_write();
+        g_cond_signal(ctrl_cond);
+    }
+
+    g_mutex_unlock (ctrl_mutex);
 }
 
-static void ffaudio_pause(InputPlayback * playback, gshort p)
+static void ffaudio_pause(InputPlayback * playback, gshort pause)
 {
     g_mutex_lock(ctrl_mutex);
 
     if (playback->playing)
-    {
-        pause_flag = p;
-        g_cond_signal(ctrl_cond);
-        g_cond_wait(ctrl_cond, ctrl_mutex);
-    }
+        playback->output->pause(pause);
 
     g_mutex_unlock(ctrl_mutex);
 }
@@ -619,6 +608,7 @@ static void ffaudio_seek (InputPlayback * playback, gulong time)
     if (playback->playing)
     {
         seek_value = time;
+        playback->output->abort_write();
         g_cond_signal(ctrl_cond);
         g_cond_wait(ctrl_cond, ctrl_mutex);
     }
@@ -626,7 +616,7 @@ static void ffaudio_seek (InputPlayback * playback, gulong time)
     g_mutex_unlock(ctrl_mutex);
 }
 
-static gchar *ffaudio_fmts[] = {
+static const gchar *ffaudio_fmts[] = {
     /* musepack, SV7/SV8 */
     "mpc", "mp+", "mpp",
 
@@ -668,7 +658,6 @@ ffaudio_about(void)
 
     if (aboutbox == NULL)
     {
-        gchar *formats = g_strjoinv(", ", ffaudio_fmts);
         gchar *description = g_strdup_printf(
         _("Multi-format audio decoding plugin for Audacious based on\n"
         "FFmpeg multimedia framework (http://www.ffmpeg.org/)\n"
@@ -676,19 +665,15 @@ ffaudio_about(void)
         "\n"
         "FFmpeg libavformat %d.%d.%d, libavcodec %d.%d.%d\n"
         "\n"
-        "Supported formats: %s\n"
-        "\n"
         "Audacious plugin by:\n"
         "            William Pitcock <nenolod@nenolod.net>,\n"
         "            Matti Hämäläinen <ccr@tnsp.org>\n"),
         LIBAVFORMAT_VERSION_MAJOR, LIBAVFORMAT_VERSION_MINOR, LIBAVFORMAT_VERSION_MICRO,
-        LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, LIBAVCODEC_VERSION_MICRO,
-        formats);
+        LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, LIBAVCODEC_VERSION_MICRO);
 
         audgui_simple_message (& aboutbox, GTK_MESSAGE_INFO,
          _("About FFaudio Plugin"), description);
 
-        g_free(formats);
         g_free(description);
     }
 }

@@ -30,11 +30,12 @@
 
 static void        mp4_init(void);
 static void        mp4_about(void);
-static void        mp4_play(InputPlayback *);
+static gboolean    mp4_play(InputPlayback * playback, const gchar * filename,
+             VFSFile * file, gint start_time, gint stop_time, gboolean pause);
 static void        mp4_cleanup(void);
 static gint        mp4_is_our_fd(const char *, VFSFile *);
 
-static gchar *fmts[] = { "m4a", "mp4", "aac", NULL };
+static const gchar *fmts[] = { "m4a", "mp4", "aac", NULL };
 
 static void *   mp4_decode(void *);
 
@@ -80,14 +81,16 @@ static void mp4_init(void)
     seek_cond = g_cond_new ();
 }
 
-static void mp4_play(InputPlayback *playback)
+static gboolean mp4_play(InputPlayback * playback, const gchar * filename,
+VFSFile * file, gint start_time, gint stop_time, gboolean pause)
 {
-    seek_value = -1;
-    pause_flag = FALSE;
+    seek_value = (start_time > 0) ? start_time : -1;
+    pause_flag = pause;
     playback->playing = TRUE;
 
     playback->set_pb_ready(playback);
     mp4_decode(playback);
+    return ! playback->error;
 }
 
 static void mp4_stop (InputPlayback * playback)
@@ -120,7 +123,7 @@ static void mp4_pause (InputPlayback * playback, gshort p)
     g_mutex_unlock (seek_mutex);
 }
 
-static void mp4_seek (InputPlayback * playback, gint time)
+static void mp4_seek (InputPlayback * playback, gulong time)
 {
     g_mutex_lock (seek_mutex);
 
@@ -642,8 +645,8 @@ static int my_decode_mp4( InputPlayback *playback, char *filename, mp4ff_t *mp4f
 
         if (seek_value >= 0)
         {
-            sampleID = (gint64) seek_value * samplerate / (framesize - 1);
-            playback->output->flush (seek_value * 1000);
+            sampleID = (gint64) seek_value * samplerate / 1000 / (framesize - 1);
+            playback->output->flush (seek_value);
             seek_value = -1;
             g_cond_signal (seek_cond);
         }
@@ -943,10 +946,10 @@ InputPlugin mp4_ip =
     .description = "MP4 AAC decoder",
     .init = mp4_init,
     .about = mp4_about,
-    .play_file = mp4_play,
+    .play = mp4_play,
     .stop = mp4_stop,
     .pause = mp4_pause,
-    .seek = mp4_seek,
+    .mseek = mp4_seek,
     .cleanup = mp4_cleanup,
     .is_our_file_from_vfs = mp4_is_our_fd,
     .probe_for_tuple = mp4_get_tuple,
