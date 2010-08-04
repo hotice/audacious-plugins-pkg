@@ -1,15 +1,15 @@
-audacious-plugins (2.4~beta1-1) experimental; urgency=low
+audacious-plugins (2.4~beta2-1) experimental; urgency=low
 
   * New upstream release.
   * Drop all patches.
   * Drop override_dh_auto_clean.
   * Refer to versioned copyright file.
-  * Bump Standards-Version to 3.9.0 (no changes required).
+  * Bump Standards-Version to 3.9.1 (no changes required).
   * Convert versioned Conflicts into Breaks.
   * Bump build dependency on audacious-dev to >= 2.4~beta1.
   * Bump breaks & replaces of audacious to 2.4~beta1.
 
- -- Benjamin Drung <bdrung@ubuntu.com>  Thu, 22 Jul 2010 21:57:46 +0200
+ -- Benjamin Drung <bdrung@ubuntu.com>  Wed, 04 Aug 2010 02:01:05 +0200
 
 audacious-plugins (2.3-2) unstable; urgency=low
 
