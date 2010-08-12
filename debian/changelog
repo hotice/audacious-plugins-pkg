@@ -1,4 +1,4 @@
-audacious-plugins (2.4~beta2-1) experimental; urgency=low
+audacious-plugins (2.4~rc1-1) experimental; urgency=low
 
   * New upstream release.
   * Drop all patches.
@@ -9,7 +9,7 @@ audacious-plugins (2.4~beta2-1) experimental; urgency=low
   * Bump build dependency on audacious-dev to >= 2.4~beta1.
   * Bump breaks & replaces of audacious to 2.4~beta1.
 
- -- Benjamin Drung <bdrung@ubuntu.com>  Wed, 04 Aug 2010 02:01:05 +0200
+ -- Benjamin Drung <bdrung@ubuntu.com>  Thu, 12 Aug 2010 02:44:56 +0200
 
 audacious-plugins (2.3-2) unstable; urgency=low
 
