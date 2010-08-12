@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([audacious-plugins], [2.4-beta2], [bugs+audacious-plugins@atheme.org])
+AC_INIT([audacious-plugins], [2.4-rc1], [bugs+audacious-plugins@atheme.org])
 AC_PREREQ([2.59])
 
 AC_CANONICAL_HOST
@@ -166,8 +166,7 @@ AC_ARG_ENABLE(gio, [  --disable-gio           disable GIO support (default=enabl
  enable_gio=$enableval, enable_gio=yes)
 
 if test "x$enable_gio" = "xyes"; then
-    PKG_CHECK_MODULES(GIO, [gio-2.0 >= 2.0], [ADD_PC_REQUIRES([gio-2.0 >=
-     2.0])], [enable_gio=no])
+    PKG_CHECK_MODULES(GIO, [gio-2.0 >= 2.0], [ADD_PC_REQUIRES([gio-2.0 >= 2.0])], [enable_gio=no])
 fi
 
 if test "x$enable_gio" = "xyes"; then
@@ -1332,15 +1331,21 @@ if test "x$have_paranormal" = "xyes"; then
 	VISUALIZATION_PLUGINS="$VISUALIZATION_PLUGINS paranormal"
 fi
 
-AM_PATH_XML2(2.0.0, , [
-	AC_MSG_ERROR([*** libxml2 is not found! It is required for certain essential plugins. ***])
-])
 
+dnl XSPF
+dnl ----
 
-have_xspf="yes"
+PKG_CHECK_MODULES(XML, [libxml-2.0], [have_xml=yes], [have_xml=no])
+
+if test $have_xml = "no" ; then
+    AC_MSG_ERROR([Please install libxml-2.0.])
+fi
+
 CONTAINER_PLUGINS="$CONTAINER_PLUGINS xspf"
 
-dnl *** CUE
+
+dnl CUE
+dnl ---
 
 AC_ARG_ENABLE(cue,
 [  --disable-cue           disable cue support. (default=enabled)],
@@ -1692,6 +1697,6 @@ echo "  Container"
 echo "  ---------"
 echo "  Winamp PLS playlist format (pls):       yes"
 echo "  M3U playlist format (m3u):              yes"
-echo "  XML Sharable Playlist Format (xspf):    $have_xspf"
+echo "  XML Sharable Playlist Format (xspf):    yes"
 echo "  CUE playlist format (cue):              $have_cue"
 echo
