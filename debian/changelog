@@ -1,15 +1,21 @@
-audacious-plugins (2.4~rc2-1) experimental; urgency=low
+audacious-plugins (2.4.0-1) experimental; urgency=low
 
   * New upstream release.
+    - Fixes error with alsa-gapless and dmix (Closes: #585574).
+    - Remove "Audacious standard menu" from status icon (Closes: #485491).
+    - Allow updating FLAC tags (Closes: #586453, LP: #211946).
+    - Adds scrobbler plugin again (Closes: #552466, LP: #568651).
   * Drop all patches.
   * Drop override_dh_auto_clean.
   * Refer to versioned copyright file.
   * Bump Standards-Version to 3.9.1 (no changes required).
   * Convert versioned Conflicts into Breaks.
-  * Bump build dependency on audacious-dev to >= 2.4~beta1.
-  * Bump breaks & replaces of audacious to 2.4~beta1.
+  * Bump build dependency on audacious-dev to >= 2.4.0.
+  * Bump breaks & replaces of audacious to 2.4.0.
+  * Remove psf plugin from source because its license does not comply to the
+    DFSG and add a NEWS entry (Closes: #594519).
 
- -- Benjamin Drung <bdrung@ubuntu.com>  Thu, 19 Aug 2010 18:32:52 +0200
+ -- Benjamin Drung <bdrung@ubuntu.com>  Sat, 04 Sep 2010 23:00:35 +0200
 
 audacious-plugins (2.3-2) unstable; urgency=low
 
