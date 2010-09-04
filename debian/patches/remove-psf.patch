@@ -1,0 +1,46 @@
+Description: The PlayStation (psf/psf2) audio (psf) plug-in needs to be removed,
+because it does not comply to the Debian Free Software Guidelines (DFSG).
+Author: Benjamin Drung <bdrung@ubuntu.com>
+Bug-Debian: http://bugs.debian.org/594519
+Forwarded: not-needed
+
+--- audacious-plugins-2.4.0.orig/configure
++++ audacious-plugins-2.4.0/configure
+@@ -6977,7 +6977,7 @@ _ACEOF
+ 
+ 
+ 
+-INPUT_PLUGINS="tonegen console psf xsf metronom vtx"
++INPUT_PLUGINS="tonegen console xsf metronom vtx"
+ OUTPUT_PLUGINS="null"
+ EFFECT_PLUGINS="compressor crossfade crystalizer ladspa sndstretch stereo_plugin voice_removal echo_plugin"
+ GENERAL_PLUGINS="song_change alarm skins gtkui lyricwiki"
+@@ -14961,7 +14961,7 @@ echo "    -> libSIDPlay1 support:       
+ echo "    -> libSIDPlay2 support:               $xs_have_sidplay2"
+ echo "    -> distortion patched libSIDPlay2:    $xs_have_distortion"
+ echo "  Game music (spc, nsf & gbs):            yes"
+-echo "  PlayStation (psf/psf2) audio (psf):     yes"
++echo "  PlayStation (psf/psf2) audio (psf):     no"
+ echo "  Nintendo 64 audio (usf):                $enable_usf"
+ echo "  Nintendo DS audio (xsf):                yes experimental"
+ echo "  AdLib synthesizer (adplug):             $have_adplug"
+--- audacious-plugins-2.4.0.orig/configure.ac
++++ audacious-plugins-2.4.0/configure.ac
+@@ -127,7 +127,7 @@ AC_DEFINE_UNQUOTED(DEV_MIXER, "$dev_mixe
+ 
+ dnl These plugins are always built.
+ 
+-INPUT_PLUGINS="tonegen console psf xsf metronom vtx"
++INPUT_PLUGINS="tonegen console xsf metronom vtx"
+ OUTPUT_PLUGINS="null"
+ EFFECT_PLUGINS="compressor crossfade crystalizer ladspa sndstretch stereo_plugin voice_removal echo_plugin"
+ GENERAL_PLUGINS="song_change alarm skins gtkui lyricwiki"
+@@ -1636,7 +1636,7 @@ echo "    -> libSIDPlay1 support:       
+ echo "    -> libSIDPlay2 support:               $xs_have_sidplay2"
+ echo "    -> distortion patched libSIDPlay2:    $xs_have_distortion"
+ echo "  Game music (spc, nsf & gbs):            yes"
+-echo "  PlayStation (psf/psf2) audio (psf):     yes"
++echo "  PlayStation (psf/psf2) audio (psf):     no"
+ echo "  Nintendo 64 audio (usf):                $enable_usf"
+ echo "  Nintendo DS audio (xsf):                yes [experimental]"
+ echo "  AdLib synthesizer (adplug):             $have_adplug"
