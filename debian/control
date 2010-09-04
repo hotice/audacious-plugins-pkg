@@ -52,10 +52,10 @@ Package: audacious-plugins
 Architecture: any
 Depends: ${misc:Depends},
          ${shlibs:Depends}
-Recommends: audacious (>= 2.4~beta1)
-Breaks: audacious (<< 2.4~beta1),
+Recommends: audacious (>= 2.4.0)
+Breaks: audacious (<< 2.4.0),
         audacious-plugins-extra (<< 1.3.5-4)
-Replaces: audacious (<< 2.4~beta1),
+Replaces: audacious (<< 2.4.0),
           audacious-plugins-extra
 Description: Base plugins for audacious
  Audacious is a fork of beep-media-player which supports winamp skins
