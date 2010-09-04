@@ -4,7 +4,7 @@ audacious-plugins (2.4.0-1) experimental; urgency=low
     - Fixes error with alsa-gapless and dmix (Closes: #585574).
     - Remove "Audacious standard menu" from status icon (Closes: #485491).
     - Allow updating FLAC tags (Closes: #586453, LP: #211946).
-    - Adds scrobbler plugin again (Closes: #552466, LP: #568651).
+    - Adds scrobbler plugin again (Closes: #552466, #584962, LP: #568651).
   * Drop all patches.
   * Drop override_dh_auto_clean.
   * Refer to versioned copyright file.
