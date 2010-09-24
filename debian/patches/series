@@ -1,1 +1,2 @@
-remove-psf.patch
+bp-disable-psf.patch
+autoconf.patch
