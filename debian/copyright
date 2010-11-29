@@ -44,7 +44,7 @@ License:
 On Debian systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses/GPL-3'.
 
-All files except those listed below are distributed under the license above and 
+All files except those listed below are distributed under the license above and
 copyright above.
 
 "src/audiocompress/*" are distributed under terms of GNU Lesser
@@ -88,7 +88,7 @@ distributed under terms of GNU General Public License.
   "src/aac/libfaad2/hcr.c is 2004 G.C. Pascutto, Ahead Software AG and
   distributed under terms of GNU General Public License.
 
-  "src/aac/mp4ff/*" are © 2003-2005 M. Bakker, Nero AG and distributed 
+  "src/aac/mp4ff/*" are © 2003-2005 M. Bakker, Nero AG and distributed
   under terms of GNU General Public License.
 
   "src/aac/src/tagging_mp4.c" and "src/aac/src/tagging.h" are
@@ -135,21 +135,21 @@ under terms of GNU General Public License.
 "src/bluetooth/*" are © 2007-2008 Paula Stanciu and are distributed under the
  terms of the GPL.
 
-  Except these files: 
-  "src/bluetooth/agent.*" are © 2006-2007 Bastien Nocera, 2005-2008 Marcel 
+  Except these files:
+  "src/bluetooth/agent.*" are © 2006-2007 Bastien Nocera, 2005-2008 Marcel
    Holtmann, and are distributed under the terms of the GPL.
 
-"src/bs2b/plugin.c" is © 2009 Sebastian Pipping, 2009 Tony Vroon, 2010 
+"src/bs2b/plugin.c" is © 2009 Sebastian Pipping, 2009 Tony Vroon, 2010
  John Lindgren and is distributed under the terms of the GPL.
 
 "src/cdaudio-ng/*" are © 2007 Calin Crisan and are distributed under the terms
  of the GPL.
-    
+
   Except this file:
-  "src/cdaudio-ng/cdaudio-ng.c" is © 2007 Calin Crisan, 2009 John Lindgren, 
+  "src/cdaudio-ng/cdaudio-ng.c" is © 2007 Calin Crisan, 2009 John Lindgren,
    2009 Tomasz Mon and is distributed under the terms of the GPL.
 
-"src/cd-menu-items/*", "src/compressor/*' are © 2009-2010 John Lindgren and 
+"src/cd-menu-items/*", "src/compressor/*' are © 2009-2010 John Lindgren and
  are distributed under the terms of the GPL.
 
 
@@ -168,13 +168,13 @@ terms of GNU Lesser General Public License.
 
   "src/console/AUdacious_Driver.cxx" is © 2005-2009 Audacious Team, and is
   distributed under the terms of the GPL.
- 
+
 
 "src/CoreAudio/*" are © 1998-2001  Peter Alm, Mikael Alm, Olle Hallnas, Thomas
  Nilsson and 4Front Technologies and is distributed under the terms of the GPL.
 
   Except these files:
-  "src/CoreAudio/audio.c", "src/CoreAudio/configure.ac" is also © 1998-2001 
+  "src/CoreAudio/audio.c", "src/CoreAudio/configure.ac" is also © 1998-2001
   Haavard Kvaalen.
 
   "src/CoreAudio/convert.c" is © 2001 Haavar Kvaalen and is distributed under
@@ -202,7 +202,7 @@ terms of GNU Lesser General Public License.
 "src/dockalbumart/*" are © 2007 William Pitcock, and are distributed under the
  terms of the GPL.
 
-"src/esd/*" are © 2003-2004  BMP development team and are release under the 
+"src/esd/*" are © 2003-2004  BMP development team and are release under the
  terms of the GPL.
 
   Except these files:
@@ -212,15 +212,15 @@ terms of GNU Lesser General Public License.
 "src/evdev-plug/*" are © 2005-2007 Giacomo Lozito and are distributed under
  the terms of the GPL.
 
-"src/ffaudio/*" are © 2009 William Pitcock and are distributed under the terms 
+"src/ffaudio/*" are © 2009 William Pitcock and are distributed under the terms
  of the GPL.
 
   Except these files:
   "src/ffaudio/ffaudio-debug.h" is © 2005 Ralf Ertzinger.
- 
+
   "src/ffaudio/ffaudio-core.c" is also © 2009 Matti Hämäläinen.
 
-"src/filewriter/*" are © 2007 Michael Farber, 2002 Lars Siebold, and 2006-2007 
+"src/filewriter/*" are © 2007 Michael Farber, 2002 Lars Siebold, and 2006-2007
  Yoshiki Yazawa and are distributed under the terms of the GPL.
 
   Except these files:
@@ -237,7 +237,7 @@ terms of GNU Lesser General Public License.
 "src/gnomeshortcuts/*" are © 2007-2008 Sascha Hlusiak and are distributed
  under the terms of the GPL.
 
-"src/gntui/*" are © 2009 Tomasz Mon and are distributed under the terms 
+"src/gntui/*" are © 2009 Tomasz Mon and are distributed under the terms
  of the GPL.
 
 "src/gtkui/ui_playlist_model.*" are © 2009 Tomasz Mon and are distributed
@@ -257,7 +257,7 @@ terms of GNU Lesser General Public License.
 "src/kanashi/*" are © 2009 William Pitcock, portions are © 2001 Jamie Gennis
  and are distributed under the terms of the GPL.
 
-"src/m3u/m3u.c" is © 2006 William Pitcock, Tony Vroon, George Averill, 
+"src/m3u/m3u.c" is © 2006 William Pitcock, Tony Vroon, George Averill,
  Giacomo Lozito, Derek Pomery and Yoshiki Yazawa and is distributed under
  the terms of the GPL.
 
@@ -265,7 +265,7 @@ terms of GNU Lesser General Public License.
  2001-2002 Sam Clegg and are distributed under the terms of the GPL.
 
   Except these files:
-  "src/madplug/xing.c" is © 2005-2007 William Pitcock, Yoshiki Yazawa, and 
+  "src/madplug/xing.c" is © 2005-2007 William Pitcock, Yoshiki Yazawa, and
    2000-2001 Robert Leslie and is distributed under the terms of the GPL.
 
    "src/madplug/xing.h" is © 2000-2001 Robert Leslie and is distributed under
@@ -279,12 +279,12 @@ terms of GNU Lesser General Public License.
 "src/modplug/*" are public domain.
 
   Except these files:
-  "src/modplug/fastmix.cxx", "src/modplug/snd_eq.cxx" are © Olivier Lapicque 
+  "src/modplug/fastmix.cxx", "src/modplug/snd_eq.cxx" are © Olivier Lapicque
    and are under the terms of the GPL.
 
   "src/modplug/midi.h" is © 2003-2005 chisel, 2005-2006 Mrs. Brisby and is
    distributed under the terms of the GPL.
-  
+
 
 "src/mtp/mtp.c" is © 2007 Christian Macherusan and is distributed under the
  terms of the GPL.
@@ -329,7 +329,7 @@ terms of GNU Lesser General Public License.
 "src/rocklight/b43led.c" is © 2006 Tony Vroon, 2007 Michael Hanselmann, 2009
  William Pitcock and is distributed under the GPL.
 
-"src/rocklight/rocklight.c" is © 2004 Benedikt Heinz, 2006 Tony Vroon and is 
+"src/rocklight/rocklight.c" is © 2004 Benedikt Heinz, 2006 Tony Vroon and is
  distributed under the GPL.
 
 "src/rocklight/rocklight.h" is © 2004 Benedikt Heinz and is distributed under
@@ -345,12 +345,12 @@ terms of GNU Lesser General Public License.
  distributed under the GPL.
 
 "src/skins/plugin.*"i, "src/skins/skins_cfg.*", "src/skins/ui_skinned_*" are ©
- 2007-2008 Tomasz Mon, 2003-2004 BMP development team, 1998-2003 XMSS 
+ 2007-2008 Tomasz Mon, 2003-2004 BMP development team, 1998-2003 XMSS
  development team and are distributed under the GPL.
 
    Except the files below:
 
-   "src/skins/ui_skinned_playlist.c" is also © 2008 William Pitcock, 
+   "src/skins/ui_skinned_playlist.c" is also © 2008 William Pitcock,
     2009 John Lindgren.
 
    "src/skins/ui_skinned_playlist.h" is also © 2009 John Lindgren.
@@ -358,14 +358,14 @@ terms of GNU Lesser General Public License.
    "src/skins/ui_skinned_window.*" are © 2007 William Pitcock and are
     distributed under the terms of the GPL version 3.
 
-"src/skins/platform/smartinclude.h" is © 2006-2007 WIlliam Pitcock and is 
+"src/skins/platform/smartinclude.h" is © 2006-2007 WIlliam Pitcock and is
  distributed under the terms of the GPL.
 
 "src/skins/ui_main.h"," "src/skins/ui_playlist.h", "src/skins/ui_skinselector.*"
   are © 2003-2004 BMP development team, 1998-2003 XMMS
  development team and are distributed under the GPL.
 
-"src/smb/*' are © 2007 Daniel Bradshaw and are distributed under the GPL. 
+"src/smb/*' are © 2007 Daniel Bradshaw and are distributed under the GPL.
 
 "src/sndstretch/*" are © 2000-2001 Florian Berger and are distributed under
  the GPL.
@@ -397,14 +397,14 @@ distributed under terms of GNU General Public License.
 
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
- 
+
   1. Redistributions of source code must retain the above copyright notice,
      this list of conditions, and the following disclaimer.
- 
+
   2. Redistributions in binary form must reproduce the above copyright notice,
      this list of conditions, and the following disclaimer in the documentation
      provided with the distribution.
- 
+
   This software is provided "as is" and without any warranty, express or
   implied. In no event shall the authors be liable for any damages arising from
   the use of this software.
@@ -640,19 +640,19 @@ dsitributed under terms of the GNU Lesser General Public License.
 "src/sndstretch/*" are © 2000, Florian Berger and dsitributed under terms
 of the GNU General Public License.
 
-"src/xsf/corlett.c", "src/xsr/plugin.c" are © 2007-2008 R. Belmont and Richard 
+"src/xsf/corlett.c", "src/xsr/plugin.c" are © 2007-2008 R. Belmont and Richard
  Bannister and are distributed under the following license.
 
        All rights reserved.
 
-        Redistribution and use in source and binary forms, with or without 
-        modification, are permitted provided that the following conditions 
+        Redistribution and use in source and binary forms, with or without
+        modification, are permitted provided that the following conditions
         are met:
 
         * Redistributions of source code must retain the above copyright notice,
           this list of conditions and the following disclaimer.
-        * Redistributions in binary form must reproduce the above copyright 
-          notice, this list of conditions and the following disclaimer in the 
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
           documentation and/or other materials provided with the distribution.
         * Neither the names of R. Belmont and Richard Bannister nor the names
           of its contributors may be used to endorse or promote products derived
