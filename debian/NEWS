@@ -1,8 +1,8 @@
 audacious-plugins (2.3+dfsg-1) unstable; urgency=low
 
-  The PlayStation (psf/psf2) audio (psf) plug-in was removed from
-  the Debian source package, because this plug-in does not comply to
-  the Debian Free Software Guidelines (DFSG).
+  The PlayStation (psf/psf2) audio (psf) and Nintendo 64 audio (usf) plug-ins
+  were removed from the Debian source package, because these plug-ins do not
+  comply to the Debian Free Software Guidelines (DFSG).
 
  -- Benjamin Drung <bdrung@ubuntu.com>  Sat, 04 Sep 2010 23:00:35 +0200
 
