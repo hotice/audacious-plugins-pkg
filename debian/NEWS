@@ -4,5 +4,5 @@ audacious-plugins (2.3+dfsg-1) unstable; urgency=low
   were removed from the Debian source package, because these plug-ins do not
   comply to the Debian Free Software Guidelines (DFSG).
 
- -- Benjamin Drung <bdrung@ubuntu.com>  Sat, 04 Sep 2010 23:00:35 +0200
+ -- Benjamin Drung <bdrung@ubuntu.com>  Sun, 12 Dec 2010 18:36:24 +0100
 
