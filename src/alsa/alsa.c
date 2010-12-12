@@ -153,9 +153,13 @@ static void * pump (void * unused)
     pthread_mutex_lock (& alsa_mutex);
     pthread_cond_broadcast (& alsa_cond); /* signal thread started */
 
+    gboolean workaround = FALSE;
+    gint slept = 0;
+
     while (! pump_quit)
     {
-        if (alsa_prebuffer || alsa_paused || ! alsa_buffer_data_length)
+        if (alsa_prebuffer || alsa_paused || ! snd_pcm_bytes_to_frames
+         (alsa_handle, alsa_buffer_data_length))
         {
             pthread_cond_wait (& alsa_cond, & alsa_mutex);
             continue;
@@ -166,6 +170,8 @@ static void * pump (void * unused)
 
         if (! length)
             goto WAIT;
+
+        slept = 0;
 
         length = snd_pcm_frames_to_bytes (alsa_handle, length);
         length = MIN (length, alsa_buffer_data_length);
@@ -190,7 +196,33 @@ static void * pump (void * unused)
 
     WAIT:
         pthread_mutex_unlock (& alsa_mutex);
-        poll_sleep ();
+
+        if (slept > 4)
+        {
+            static gboolean warned = FALSE;
+            if (! warned)
+            {
+                fprintf (stderr, "\n** WARNING **\nAudacious has detected that "
+                 "your ALSA device has a broken timer.  A workaround\nis being "
+                 "used to prevent CPU overload.  Please report this problem to "
+                 "your\nLinux distributor or to the ALSA developers.\n\n");
+                warned = TRUE;
+            }
+
+            workaround = TRUE;
+        }
+
+        if (workaround && slept)
+        {
+            const struct timespec delay = {.tv_sec = 00, .tv_nsec = 100000000};
+            nanosleep (& delay, NULL);
+        }
+        else
+        {
+            poll_sleep ();
+            slept ++;
+        }
+
         pthread_mutex_lock (& alsa_mutex);
     }
 
@@ -347,9 +379,7 @@ int alsa_open_audio (int aud_format, int rate, int channels)
     direction = 0;
     CHECK_NOISY (snd_pcm_hw_params_set_period_time_near, alsa_handle, params,
      & useconds, & direction);
-#ifdef DEBUG
     int period = useconds / 1000;
-#endif
 
     CHECK_NOISY (snd_pcm_hw_params, alsa_handle, params);
 
@@ -470,7 +500,7 @@ void alsa_drain (void)
     if (alsa_prebuffer)
         start_playback ();
 
-    while (alsa_buffer_data_length > 0)
+    while (snd_pcm_bytes_to_frames (alsa_handle, alsa_buffer_data_length))
         pthread_cond_wait (& alsa_cond, & alsa_mutex);
 
     pump_stop ();

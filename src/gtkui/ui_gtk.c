@@ -377,13 +377,17 @@ static gboolean time_counter_cb (void)
         return TRUE;
 
     gint time = aud_drct_get_playing () ? aud_drct_get_time () : 0;
+    gint len = aud_drct_get_playing () ? aud_drct_get_length () : 0;
 
     if (!g_signal_handler_is_connected(slider, slider_change_handler_id))
         return TRUE;
 
-    g_signal_handler_block(slider, slider_change_handler_id);
-    gtk_range_set_value(GTK_RANGE(slider), (gdouble) time);
-    g_signal_handler_unblock(slider, slider_change_handler_id);
+    if (len)
+    {
+        g_signal_handler_block(slider, slider_change_handler_id);
+        gtk_range_set_value(GTK_RANGE(slider), (gdouble) time);
+        g_signal_handler_unblock(slider, slider_change_handler_id);
+    }
 
     set_time_label (time);
 

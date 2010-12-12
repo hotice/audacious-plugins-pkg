@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([audacious-plugins], [2.4.0], [bugs+audacious-plugins@atheme.org])
+AC_INIT([audacious-plugins], [2.4.2], [bugs+audacious-plugins@atheme.org])
 AC_PREREQ([2.59])
 
 AC_CANONICAL_HOST
@@ -39,16 +39,6 @@ fi
 dnl Large file support
 dnl ==================
 CPPFLAGS="$CPPFLAGS -D_FILE_OFFSET_BITS=64"
-
-dnl Debug support
-
-AC_SUBST(DEBUG)
-AUD_ARG_ENABLE([debug], [no],
-[additional debugging output],
-[
-    AC_DEFINE([DEBUG], 1, [Define if debugging output is required])
-])
-AUD_CONDITIONAL([DEBUG], [enable_debug])
 
 dnl Locate a program and check that its version is acceptable.
 dnl AC_PROG_CHECK_VER(var, namelist, version-switch,
@@ -127,7 +117,7 @@ AC_DEFINE_UNQUOTED(DEV_MIXER, "$dev_mixer",
 
 dnl These plugins are always built.
 
-INPUT_PLUGINS="tonegen console psf xsf metronom vtx"
+INPUT_PLUGINS="tonegen console xsf metronom vtx"
 OUTPUT_PLUGINS="null"
 EFFECT_PLUGINS="compressor crossfade crystalizer ladspa sndstretch stereo_plugin voice_removal echo_plugin"
 GENERAL_PLUGINS="song_change alarm skins gtkui lyricwiki"
@@ -355,6 +345,20 @@ if test "x$enable_sse2" = "xyes"; then
 fi
 AC_SUBST(SIMD_CFLAGS)
 CFLAGS="$ac_save_CFLAGS"
+
+
+dnl PSF
+dnl ===
+
+AC_ARG_ENABLE(psf,
+ [  --disable-psf            disable PlayStation (psf/psf2) audio decoder],
+ [enable_psf=$enableval],
+ [enable_psf=yes])
+
+if test "$enable_psf" = "yes"; then
+    INPUT_PLUGINS="$INPUT_PLUGINS psf"
+fi
+
 
 dnl *** USF
 
@@ -1599,7 +1603,6 @@ echo
 echo "Configuration:"
 echo
 echo "  Install path:                           ${audacious_plugin_root}"
-echo "  Additional debugging output:            $enable_debug"
 echo
 echo "  Output Plugins"
 echo "  --------------"
@@ -1636,7 +1639,7 @@ echo "    -> libSIDPlay1 support:               $xs_have_sidplay1"
 echo "    -> libSIDPlay2 support:               $xs_have_sidplay2"
 echo "    -> distortion patched libSIDPlay2:    $xs_have_distortion"
 echo "  Game music (spc, nsf & gbs):            yes"
-echo "  PlayStation (psf/psf2) audio (psf):     yes"
+echo "  PlayStation (psf/psf2) audio:           $enable_psf"
 echo "  Nintendo 64 audio (usf):                $enable_usf"
 echo "  Nintendo DS audio (xsf):                yes [experimental]"
 echo "  AdLib synthesizer (adplug):             $have_adplug"
