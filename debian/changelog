@@ -1,4 +1,4 @@
-audacious-plugins (2.4.0-1) experimental; urgency=low
+audacious-plugins (2.4.2-1) experimental; urgency=low
 
   * New upstream release.
     - Fixes error with alsa-gapless and dmix (Closes: #585574).
@@ -7,12 +7,10 @@ audacious-plugins (2.4.0-1) experimental; urgency=low
     - Adds scrobbler plugin again (Closes: #552466, #584962, LP: #568651).
   * Drop all patches.
   * Drop override_dh_auto_clean.
-  * Refer to versioned copyright file.
-  * Bump Standards-Version to 3.9.1 (no changes required).
   * Bump build dependency on audacious-dev to >= 2.4.0.
   * Bump breaks & replaces of audacious to 2.4.0.
 
- -- Benjamin Drung <bdrung@ubuntu.com>  Sat, 04 Sep 2010 23:00:35 +0200
+ -- Benjamin Drung <bdrung@ubuntu.com>  Sun, 12 Dec 2010 20:24:40 +0100
 
 audacious-plugins (2.3+dfsg-1) unstable; urgency=low
 
