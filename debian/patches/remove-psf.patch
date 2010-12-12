@@ -1,0 +1,46 @@
+Description: The PlayStation (psf/psf2) audio (psf) plug-in needs to be removed,
+because it does not comply to the Debian Free Software Guidelines (DFSG).
+Author: Benjamin Drung <bdrung@ubuntu.com>
+Bug-Debian: http://bugs.debian.org/594519
+Forwarded: not-needed
+
+--- a/configure
++++ b/configure
+@@ -6992,7 +6992,7 @@
+ 
+ 
+ 
+-INPUT_PLUGINS="tonegen console psf xsf metronom vtx"
++INPUT_PLUGINS="tonegen console xsf metronom vtx"
+ OUTPUT_PLUGINS="crossfade null"
+ EFFECT_PLUGINS="compressor crystalizer ladspa voice_removal sndstretch stereo_plugin echo_plugin"
+ GENERAL_PLUGINS="song_change alarm skins vfstrace gtkui"
+@@ -15299,7 +15299,7 @@
+ echo "    -> libSIDPlay2 support:               $xs_have_sidplay2"
+ echo "    -> distortion patched libSIDPlay2:    $xs_have_distortion"
+ echo "  Game music (spc, nsf & gbs):            yes"
+-echo "  PlayStation (psf/psf2) audio (psf):     yes"
++echo "  PlayStation (psf/psf2) audio (psf):     no"
+ echo "  Nintendo 64 audio (usf):                $enable_usf"
+ echo "  Nintendo DS audio (xsf):                yes experimental"
+ echo "  AdLib synthesizer (adplug):             $have_adplug"
+--- a/configure.ac
++++ b/configure.ac
+@@ -133,7 +133,7 @@
+ 
+ dnl These plugins are always built.
+ 
+-INPUT_PLUGINS="tonegen console psf xsf metronom vtx"
++INPUT_PLUGINS="tonegen console xsf metronom vtx"
+ OUTPUT_PLUGINS="crossfade null"
+ EFFECT_PLUGINS="compressor crystalizer ladspa voice_removal sndstretch stereo_plugin echo_plugin"
+ GENERAL_PLUGINS="song_change alarm skins vfstrace gtkui"
+@@ -1639,7 +1639,7 @@
+ echo "    -> libSIDPlay2 support:               $xs_have_sidplay2"
+ echo "    -> distortion patched libSIDPlay2:    $xs_have_distortion"
+ echo "  Game music (spc, nsf & gbs):            yes"
+-echo "  PlayStation (psf/psf2) audio (psf):     yes"
++echo "  PlayStation (psf/psf2) audio (psf):     no"
+ echo "  Nintendo 64 audio (usf):                $enable_usf"
+ echo "  Nintendo DS audio (xsf):                yes [experimental]"
+ echo "  AdLib synthesizer (adplug):             $have_adplug"
