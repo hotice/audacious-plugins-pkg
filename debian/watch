@@ -1,2 +1,3 @@
 version=3
-http://distfiles.atheme.org/audacious-plugins-([^-]*)\.tgz
+opts=dversionmangle=s/\+dfsg\d*$// \
+ http://distfiles.atheme.org/audacious-plugins-([^-]*)\.tgz
