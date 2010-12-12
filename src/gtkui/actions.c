@@ -417,81 +417,6 @@ void action_queue_toggle(void)
         aud_playlist_queue_delete (playlist, at, 1);
 }
 
-void action_playlist_sort_by_track_number(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_TRACK);
-}
-
-void action_playlist_sort_by_title(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_TITLE);
-}
-
-void action_playlist_sort_by_album(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_ALBUM);
-}
-
-void action_playlist_sort_by_artist(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_ARTIST);
-}
-
-void action_playlist_sort_by_full_path(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_PATH);
-}
-
-void action_playlist_sort_by_date(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_DATE);
-}
-
-void action_playlist_sort_by_filename(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_FILENAME);
-}
-
-void action_playlist_sort_selected_by_track_number(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_TRACK);
-}
-
-void action_playlist_sort_selected_by_title(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_TITLE);
-}
-
-void action_playlist_sort_selected_by_album(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_ALBUM);
-}
-
-void action_playlist_sort_selected_by_artist(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_ARTIST);
-}
-
-void action_playlist_sort_selected_by_full_path(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_PATH);
-}
-
-void action_playlist_sort_selected_by_date(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_DATE);
-}
-
-void action_playlist_sort_selected_by_filename(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_FILENAME);
-}
-
-void action_playlist_reverse_list(void)
-{
-    aud_playlist_reverse(aud_playlist_get_active());
-}
-
 void action_playlist_clear_queue(void)
 {
     gint playlist = aud_playlist_get_active();
@@ -838,5 +763,12 @@ void playlist_reverse (void)
 {
     gint list = aud_playlist_get_active ();
     aud_playlist_reverse (list);
+    treeview_refresh_selection (playlist_get_treeview (list));
+}
+
+void playlist_randomize (void)
+{
+    gint list = aud_playlist_get_active ();
+    aud_playlist_randomize (list);
     treeview_refresh_selection (playlist_get_treeview (list));
 }

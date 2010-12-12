@@ -20,51 +20,75 @@
 #include <glib.h>
 
 #include <audacious/drct.h>
+#include <audacious/i18n.h>
 #include <audacious/plugin.h>
+#include <audacious/playlist.h>
+#include <audacious/debug.h>
 #include <libaudcore/audstrings.h>
 #include <libaudcore/hook.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
+#include "config.h"
 #include "libnotify-aosd_common.h"
 
 void event_init() {
-	DEBUG_PRINT("[%s] event_init: started!\n", __FILE__);
+	AUDDBG("started!\n");
 	hook_associate("playback begin", event_playback_begin, NULL);
 	hook_associate("playback pause", event_playback_pause, NULL);
 	hook_associate("playback unpause", event_playback_begin, NULL);
-	DEBUG_PRINT("[%s] event_init: done!\n", __FILE__);
+	AUDDBG("done!");
 }
 
 void event_uninit() {
-	DEBUG_PRINT("[%s] event_uninit: started!\n", __FILE__);
+	AUDDBG("started!\n");
 	hook_dissociate("playback begin", event_playback_begin);
 	hook_dissociate("playback pause", event_playback_pause);
 	hook_dissociate("playback unpause", event_playback_begin);
-	DEBUG_PRINT("[%s] event_uninit: done!\n", __FILE__);
+	AUDDBG("done!\n");
 }
 
 void event_playback_begin(gpointer p1, gpointer p2) {
-	gchar *aud_title = NULL, *title = NULL;
-	DEBUG_PRINT("[%s] event_playback_begin: started!\n", __FILE__);
+	gint playlist, position;
+	const gchar *title, *artist, *album;
+	const gchar *filename;
+	const Tuple *tuple;
+	gchar *message;
+	GdkPixbuf *pb;
 
-	aud_title = aud_drct_pl_get_title(aud_drct_pl_get_pos());
+	AUDDBG("started!\n");
 
-	if(aud_title != NULL) {
-		title = str_to_utf8(aud_title);
-		if(g_utf8_validate(title, -1, NULL)) {
-			osd_show(title, "notification-audio-play");
-		} else {
-			DEBUG_PRINT("[%s] event_playback_begin: unvalid utf8 title!\n", __FILE__);
-		}
-		g_free(title);
-	} else {
-		DEBUG_PRINT("[%s] event_playback_begin: no aud title!\n", __FILE__);
-	}
+	playlist = aud_playlist_get_playing();
+	position = aud_playlist_get_position(playlist);
 
-	DEBUG_PRINT("[%s] event_playback_begin: done!\n", __FILE__);
+	filename = aud_playlist_entry_get_filename(playlist, position);
+	tuple = aud_playlist_entry_get_tuple(playlist, position, FALSE);
+
+	title = tuple_get_string(tuple, FIELD_TITLE, NULL);
+	if (title == NULL)
+		title = aud_playlist_entry_get_title(playlist, position, FALSE);
+
+	artist = tuple_get_string(tuple, FIELD_ARTIST, NULL);
+	album = tuple_get_string(tuple, FIELD_ALBUM, NULL);
+
+	pb = audgui_pixbuf_for_file(filename);
+	if (pb != NULL)
+		audgui_pixbuf_scale_within(&pb, 128);
+
+	message = g_strdup_printf("%s\n%s", (artist != NULL && artist[0]) ? artist :
+	 _("Unknown artist"), (album != NULL && album[0]) ? album : _("Unknown album"));
+
+	osd_show(title, message, "notification-audio-play", pb);
+	g_free(message);
+
+	if (pb != NULL)
+		g_object_unref(pb);
+
+	AUDDBG("done!\n");
 }
 
 void event_playback_pause(gpointer p1, gpointer p2) {
-	DEBUG_PRINT("[%s] event_playback_pause: started!\n", __FILE__);
-	osd_show("Playback paused", "notification-audio-pause");
-	DEBUG_PRINT("[%s] event_playback_pause: done!\n", __FILE__);
+	AUDDBG("started!\n");
+	osd_show("Playback paused", NULL, "notification-audio-pause", NULL);
+	AUDDBG("done!\n");
 }

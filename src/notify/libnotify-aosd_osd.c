@@ -18,6 +18,7 @@
  ************************************************************************/
 
 #include <glib.h>
+#include <audacious/debug.h>
 #include <libnotify/notify.h>
 #include "libnotify-aosd_common.h"
 
@@ -28,34 +29,48 @@ gboolean osd_init() {
 	return notify_init(PLUGIN_NAME);
 }
 
-void osd_uninit() {
+void osd_uninit (void)
+{
+	if (notification)
+	{
+		g_object_unref (notification);
+		notification = NULL;
+	}
+
 	notify_uninit();
 }
 
 void osd_closed_handler(NotifyNotification *notification2, gpointer data) {
 	if(notification != NULL) {
-		g_object_unref(G_OBJECT(notification));
+		g_object_unref(notification);
 		notification = NULL;
-		DEBUG_PRINT("[%s] osd_closed_handler: notification unrefed!\n", __FILE__);
+		AUDDBG("notification unrefed!\n");
 	}
 }
 
-void osd_show(gchar *text, gchar *icon) {
+void osd_show (const gchar * title, const gchar * _message, const gchar * icon,
+ GdkPixbuf * pb)
+{
+	gchar * message = g_markup_escape_text (_message, -1);
 	GError *error = NULL;
 
 	if(notification == NULL) {
-		notification = notify_notification_new(text, NULL, icon, NULL);
-		g_signal_connect(G_OBJECT(notification), "closed", G_CALLBACK(osd_closed_handler), NULL);
-		DEBUG_PRINT("[%s] osd_show: new osd created! (notification=%p)\n", __FILE__, notification);
+		notification = notify_notification_new(title, message, pb == NULL ? icon : NULL, NULL);
+		g_signal_connect(notification, "closed", G_CALLBACK(osd_closed_handler), NULL);
+		AUDDBG("new osd created! (notification=%p)\n", notification);
 	} else {
-		if(notify_notification_update(notification, text, NULL, icon)) {
-			DEBUG_PRINT("[%s] osd_show: old osd updated! (notification=%p)\n", __FILE__, notification);
+		if(notify_notification_update(notification, title, message, pb == NULL ? icon : NULL)) {
+			AUDDBG("old osd updated! (notification=%p)\n", notification);
 		} else {
-			DEBUG_PRINT("[%s] osd_show: could not update old osd! (notification=%p)\n", __FILE__, notification);
+			AUDDBG("could not update old osd! (notification=%p)\n", notification);
 		}
 	}
-	
-	if(!notify_notification_show(notification, &error))
-		DEBUG_PRINT("[%s] osd_show: %s!\n", __FILE__, error->message);
 
+	if(pb != NULL)
+		notify_notification_set_icon_from_pixbuf(notification, pb);
+
+	if(!notify_notification_show(notification, &error))
+		AUDDBG("%s!\n", error->message);
+
+	g_free (message);
 }

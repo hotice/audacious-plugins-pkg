@@ -38,7 +38,6 @@ static VFSFile * unix_fopen (const gchar * uri, const gchar * mode)
     VFSFile * file = NULL;
     gboolean update;
     mode_t mode_flag;
-    gchar * filename;
     gint handle;
 
     AUDDBG ("fopen %s, mode = %s\n", uri, mode);
@@ -60,10 +59,15 @@ static VFSFile * unix_fopen (const gchar * uri, const gchar * mode)
         return NULL;
     }
 
-    filename = g_filename_from_uri (uri, NULL, NULL);
-
-    if (filename == NULL)
+    gchar * utf8 = g_filename_from_uri (uri, NULL, NULL);
+    if (! utf8)
         return NULL;
+
+    gchar * filename = g_locale_from_utf8 (utf8, -1, NULL, NULL, NULL);
+    if (! filename)
+        filename = g_strdup (utf8);
+
+    g_free (utf8);
 
     if (mode_flag & O_CREAT)
         handle = open (filename, mode_flag, S_IRUSR | S_IWUSR | S_IRGRP |
@@ -115,7 +119,7 @@ static gint64 unix_fread (void * ptr, gint64 size, gint64 nitems, VFSFile * file
     gint64 goal = size * nitems;
     gint64 total = 0;
 
-    AUDDBG ("fread %d x %d\n", size, nitems);
+/*    AUDDBG ("fread %d x %d\n", (gint) size, (gint) nitems); */
 
     while (total < goal)
     {
@@ -133,7 +137,7 @@ static gint64 unix_fread (void * ptr, gint64 size, gint64 nitems, VFSFile * file
         total += readed;
     }
 
-    AUDDBG (" = %d\n", total);
+/*    AUDDBG (" = %d\n", total); */
 
     return (size > 0) ? total / size : 0;
 }
@@ -145,7 +149,7 @@ static gint64 unix_fwrite (const void * ptr, gint64 size, gint64 nitems,
     gint goal = size * nitems;
     gint total = 0;
 
-    AUDDBG ("fwrite %d x %d\n", size, nitems);
+    AUDDBG ("fwrite %d x %d\n", (gint) size, (gint) nitems);
 
     while (total < goal)
     {
@@ -169,7 +173,7 @@ static gint unix_fseek (VFSFile * file, gint64 offset, gint whence)
 {
     gint handle = GPOINTER_TO_INT (file->handle);
 
-    AUDDBG ("fseek %ld, whence = %d\n", offset, whence);
+    AUDDBG ("fseek %d, whence = %d\n", (gint) offset, whence);
 
     if (lseek (handle, offset, whence) < 0)
     {

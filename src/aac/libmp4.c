@@ -7,6 +7,7 @@
 #include "mp4ff.h"
 #include "tagging.h"
 
+#include <audacious/debug.h>
 #include <audacious/plugin.h>
 #include <audacious/i18n.h>
 #include <libaudcore/audstrings.h>
@@ -23,10 +24,7 @@
  */
 #define BUFFER_SIZE (FAAD_MIN_STREAMSIZE * 16)
 
-/*
- * AAC_MAGIC is the pattern that marks the beginning of an MP4 container.
- */
-#define AAC_MAGIC     (unsigned char [4]) { 0xFF, 0xF9, 0x5C, 0x80 }
+#define M4A_MAGIC     (unsigned char [11]) { 0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x4D, 0x34, 0x41 }
 
 static void        mp4_init(void);
 static void        mp4_about(void);
@@ -68,7 +66,7 @@ static guint32 mp4_read_callback(void *data, void *buffer, guint32 len)
 static guint32 mp4_seek_callback (void * data, guint64 pos)
 {
     g_return_val_if_fail (data != NULL, -1);
-    g_return_val_if_fail (pos <= G_MAXLONG, -1);
+    g_return_val_if_fail (pos <= G_MAXINT64, -1);
 
     return vfs_fseek((VFSFile *) data, pos, SEEK_SET);
 }
@@ -268,11 +266,12 @@ static gboolean is_mp4_aac_file (VFSFile * handle)
 
 static gint mp4_is_our_fd(const gchar *filename, VFSFile* file)
 {
-  gchar* extension;
-  gchar magic[8];
+  gchar magic[sizeof(M4A_MAGIC)];
 
-  extension = strrchr(filename, '.');
-  vfs_fread(magic, 1, 8, file);
+  vfs_fread(magic, 1, sizeof(M4A_MAGIC), file);
+  if (!memcmp(magic, M4A_MAGIC, 11))
+    return 1;
+
   vfs_rewind(file);
   if (parse_aac_stream(file) == TRUE)
     return 1;
@@ -577,15 +576,13 @@ static int my_decode_mp4( InputPlayback *playback, char *filename, mp4ff_t *mp4f
     // We are reading an MP4 file
     gint mp4track= getAACTrack(mp4file);
     NeAACDecHandle   decoder;
-    mp4AudioSpecificConfig mp4ASC;
     guchar      *buffer = NULL;
     guint       bufferSize = 0;
     gulong      samplerate = 0;
     guchar      channels = 0;
-    gulong      msDuration;
     guint       numSamples;
     gulong      sampleID = 1;
-    guint       framesize = 1024;
+    guint       framesize = 0;
     gboolean paused = FALSE;
 
     if (mp4track < 0)
@@ -607,12 +604,6 @@ static int my_decode_mp4( InputPlayback *playback, char *filename, mp4ff_t *mp4f
         return FALSE;
     }
 
-    /* Add some hacks for SBR profile */
-    if (AudioSpecificConfig(buffer, bufferSize, &mp4ASC) >= 0) {
-        if (mp4ASC.frameLengthFlag == 1) framesize = 960;
-        if (mp4ASC.sbr_present_flag == 1) framesize *= 2;
-    }
-
     g_free(buffer);
     if( !channels ) {
         NeAACDecClose(decoder);
@@ -620,7 +611,6 @@ static int my_decode_mp4( InputPlayback *playback, char *filename, mp4ff_t *mp4f
         return FALSE;
     }
     numSamples = mp4ff_num_samples(mp4file, mp4track);
-    msDuration = ((float)numSamples * (float)(framesize - 1.0)/(float)samplerate) * 1000;
 
     if (! playback->output->open_audio (FMT_S16_NE, samplerate, channels))
     {
@@ -640,32 +630,6 @@ static int my_decode_mp4( InputPlayback *playback, char *filename, mp4ff_t *mp4f
         void*           sampleBuffer;
         NeAACDecFrameInfo    frameInfo;
         gint            rc;
-
-        g_mutex_lock (seek_mutex);
-
-        if (seek_value >= 0)
-        {
-            sampleID = (gint64) seek_value * samplerate / 1000 / (framesize - 1);
-            playback->output->flush (seek_value);
-            seek_value = -1;
-            g_cond_signal (seek_cond);
-        }
-
-        if (pause_flag != paused)
-        {
-            playback->output->pause (pause_flag);
-            paused = pause_flag;
-            g_cond_signal (seek_cond);
-        }
-
-        if (paused)
-        {
-            g_cond_wait (seek_cond, seek_mutex);
-            g_mutex_unlock (seek_mutex);
-            continue;
-        }
-
-        g_mutex_unlock (seek_mutex);
 
         buffer=NULL;
         bufferSize=0;
@@ -722,6 +686,44 @@ static int my_decode_mp4( InputPlayback *playback, char *filename, mp4ff_t *mp4f
             bufferSize=0;
         }
 
+        /* Calculate frame size from the first (non-blank) frame.  This needs to
+         * be done before we try to seek. */
+        if (! framesize)
+        {
+            framesize = frameInfo.samples / frameInfo.channels;
+
+            if (! framesize)
+                continue;
+        }
+
+        /* Respond to seek/pause requests.  This needs to be done after we
+         * calculate frame size but of course before we write any audio. */
+        g_mutex_lock (seek_mutex);
+
+        if (seek_value >= 0)
+        {
+            sampleID = (gint64) seek_value * samplerate / 1000 / framesize;
+            playback->output->flush (seek_value);
+            seek_value = -1;
+            g_cond_signal (seek_cond);
+        }
+
+        if (pause_flag != paused)
+        {
+            playback->output->pause (pause_flag);
+            paused = pause_flag;
+            g_cond_signal (seek_cond);
+        }
+
+        if (paused)
+        {
+            g_cond_wait (seek_cond, seek_mutex);
+            g_mutex_unlock (seek_mutex);
+            continue;
+        }
+
+        g_mutex_unlock (seek_mutex);
+
         playback->output->write_audio (sampleBuffer, 2 * frameInfo.samples);
     }
 
@@ -731,14 +733,53 @@ static int my_decode_mp4( InputPlayback *playback, char *filename, mp4ff_t *mp4f
     return TRUE;
 }
 
+static void aac_seek (VFSFile * file, NeAACDecHandle dec, gint time, gint len,
+ void * buf, gint size, gint * fill, gint * used)
+{
+    AUDDBG ("Seeking to millisecond %d of %d.\n", time, len);
+
+    gint64 total = vfs_fsize (file);
+    if (total < 0)
+    {
+        fprintf (stderr, "aac: File size unknown; cannot seek.\n");
+        return;
+    }
+
+    AUDDBG ("That means byte %d of %d.\n", (gint) (total * time / len), (gint)
+     total);
+
+    if (vfs_fseek (file, total * time / len, SEEK_SET) < 0)
+    {
+        fprintf (stderr, "aac: Error seeking in file.\n");
+        return;
+    }
+
+    * fill = vfs_fread (buf, 1, size, file);
+    * used = aac_probe (buf, * fill);
+
+    AUDDBG ("Used %d of %d bytes probing.\n", * used, * fill);
+
+    if (* used == * fill)
+    {
+        AUDDBG ("No data left!\n");
+        return;
+    }
+
+    guchar chan;
+    gulong rate;
+    * used += NeAACDecInit (dec, buf + * used, * fill - * used, & rate, & chan);
+
+    AUDDBG ("After init, used %d of %d bytes.\n", * used, * fill);
+}
+
 void my_decode_aac( InputPlayback *playback, char *filename, VFSFile *file )
 {
     NeAACDecHandle   decoder = 0;
     guchar      streambuffer[BUFFER_SIZE];
-    gulong      bufferconsumed = 0;
+    gint bufferconsumed = 0;
     gulong      samplerate = 0;
     guchar      channels = 0;
-    gulong      buffervalid = 0;
+    gint buffervalid = 0;
     gulong	ret = 0;
     gboolean    remote = str_has_prefix_nocase(filename, "http:") ||
 			 str_has_prefix_nocase(filename, "https:");
@@ -820,6 +861,16 @@ void my_decode_aac( InputPlayback *playback, char *filename, VFSFile *file )
 
         if (seek_value >= 0)
         {
+            gint length = (tuple != NULL) ? tuple_get_int (tuple, FIELD_LENGTH,
+             NULL) : 0;
+
+            if (length > 0)
+            {
+                aac_seek (file, decoder, seek_value, length, streambuffer,
+                 sizeof streambuffer, & buffervalid, & bufferconsumed);
+                playback->output->flush (seek_value);
+            }
+
             seek_value = -1;
             g_cond_signal (seek_cond);
         }

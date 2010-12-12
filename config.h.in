@@ -9,9 +9,6 @@
 /* Config dir to use */
 #undef BMP_RCPATH
 
-/* Define if debugging output is required */
-#undef DEBUG
-
 /* Path to OSS DSP, really just a data pipe, default is /dev/dsp. */
 #undef DEV_DSP
 

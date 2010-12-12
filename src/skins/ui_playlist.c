@@ -1407,6 +1407,11 @@ void action_playlist_sort_selected_by_filename (void)
     aud_playlist_sort_selected_by_scheme (active_playlist, PLAYLIST_SORT_FILENAME);
 }
 
+void action_playlist_randomize_list (void)
+{
+    aud_playlist_randomize (active_playlist);
+}
+
 void action_playlist_reverse_list (void)
 {
     aud_playlist_reverse (active_playlist);
