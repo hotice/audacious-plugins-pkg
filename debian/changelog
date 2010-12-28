@@ -7,8 +7,8 @@ audacious-plugins (2.4.2-1) experimental; urgency=low
     - Adds scrobbler plugin again (Closes: #552466, #584962, LP: #568651).
   * Drop all patches.
   * Drop override_dh_auto_clean.
-  * Bump build dependency on audacious-dev to >= 2.4.0.
-  * Bump breaks & replaces of audacious to 2.4.0.
+  * Bump build dependency on audacious-dev to >= 2.4.2.
+  * Bump breaks & replaces of audacious to 2.4.2.
 
  -- Benjamin Drung <bdrung@ubuntu.com>  Sun, 12 Dec 2010 20:24:40 +0100
 
