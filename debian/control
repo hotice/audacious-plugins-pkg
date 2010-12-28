@@ -44,8 +44,8 @@ Build-Depends: audacious-dev (>= 2.4.2),
                libxcomposite-dev
 Homepage: http://www.audacious-media-player.org/
 Standards-Version: 3.9.1
-VCS-Browser: http://git.debian.org/?p=pkg-audacious/audacious-plugins.git;a=summary
-VCS-Git: git://git.debian.org/pkg-audacious/audacious-plugins.git
+VCS-Browser: http://git.debian.org/?p=pkg-multimedia/audacious-plugins.git;a=summary
+VCS-Git: git://git.debian.org/pkg-multimedia/audacious-plugins.git
 
 Package: audacious-plugins
 Architecture: any
