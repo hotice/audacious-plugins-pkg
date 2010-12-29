@@ -15,8 +15,9 @@ audacious-plugins (2.4.2-1) experimental; urgency=low
   * Drop override_dh_auto_clean.
   * Bump build dependency on audacious-dev to >= 2.4.2.
   * Bump breaks & replaces of audacious to 2.4.2.
+  * Update my email address.
 
- -- Benjamin Drung <bdrung@ubuntu.com>  Tue, 28 Dec 2010 18:36:44 +0100
+ -- Benjamin Drung <bdrung@debian.org>  Wed, 29 Dec 2010 23:35:46 +0100
 
 audacious-plugins (2.3+dfsg-1) unstable; urgency=low
 
