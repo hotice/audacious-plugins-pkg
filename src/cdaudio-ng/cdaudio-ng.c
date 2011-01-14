@@ -88,9 +88,9 @@ static trackinfo_t *trackinfo = NULL;
 static volatile gboolean pause_flag = FALSE;
 static gint playing_track = -1;
 static dae_params_t *pdae_params = NULL;
+static gint monitor_source = 0;
 
 /* read / set these variables in main thread only */
-static int monitor_source;
 
 static void cdaudio_init (void);
 static void cdaudio_about (void);
@@ -107,7 +107,7 @@ static void cdaudio_cleanup (void);
 static Tuple *create_tuple_from_trackinfo_and_filename (const gchar * filename);
 static void dae_play_loop (dae_params_t * pdae_params);
 static void scan_cd (void);
-static void refresh_trackinfo (void);
+static void refresh_trackinfo (gboolean warning);
 static gint calculate_track_length (gint startlsn, gint endlsn);
 static gint find_trackno_from_filename (const gchar * filename);
 
@@ -183,19 +183,32 @@ static gboolean monitor (gpointer unused)
     g_mutex_lock (mutex);
 
     if (trackinfo != NULL)
-    {
-        refresh_trackinfo ();
+        refresh_trackinfo (FALSE);
 
-        if (trackinfo == NULL)
-        {
-            g_mutex_unlock (mutex);
-            purge_all_playlists ();
-            return TRUE;
-        }
+    if (trackinfo != NULL)
+    {
+        g_mutex_unlock (mutex);
+        return TRUE;
     }
 
+    monitor_source = 0;
     g_mutex_unlock (mutex);
-    return TRUE;
+
+    purge_all_playlists ();
+    return FALSE;
+}
+
+/* mutex must be locked */
+static void trigger_monitor (void)
+{
+    if (monitor_source)
+        return;
+
+#if GLIB_CHECK_VERSION (2, 14, 0)
+    monitor_source = g_timeout_add_seconds (1, monitor, NULL);
+#else
+    monitor_source = g_timeout_add (1000, monitor, NULL);
+#endif
 }
 
 /* main thread only */
@@ -264,9 +277,6 @@ static void cdaudio_init ()
     libcddb_init ();
 
     aud_uri_set_plugin ("cdda://", &inputplugin);
-
-    trackinfo = NULL;
-    monitor_source = g_timeout_add (1000, monitor, NULL);
 }
 
 /* main thread only */
@@ -326,11 +336,10 @@ static void cdaudio_play_file (InputPlayback * pinputplayback)
 
     if (trackinfo == NULL)
     {
-        refresh_trackinfo ();
+        refresh_trackinfo (TRUE);
 
         if (trackinfo == NULL)
         {
-            cdaudio_error ("No audio CD found.");
             pinputplayback->error = TRUE;
             goto UNLOCK;
         }
@@ -577,7 +586,11 @@ static void cdaudio_cleanup (void)
 {
     g_mutex_lock (mutex);
 
-    g_source_remove (monitor_source);
+    if (monitor_source)
+    {
+        g_source_remove (monitor_source);
+        monitor_source = 0;
+    }
 
     if (pcdio != NULL)
     {
@@ -627,13 +640,9 @@ static Tuple *create_tuple_from_trackinfo_and_filename (const gchar * filename)
     g_mutex_lock (mutex);
 
     if (trackinfo == NULL)
-        refresh_trackinfo ();
-
+        refresh_trackinfo (TRUE);
     if (trackinfo == NULL)
-    {
-        warn ("No audio CD found.\n");
         goto DONE;
-    }
 
     if (!strcmp (filename, "cdda://"))
     {
@@ -828,7 +837,10 @@ static void open_cd (void)
                    *ppcd_drives);
         }
         else
+        {
+            cdaudio_error ("No audio capable CD drive found.\n");
             return;
+        }
 
         if (ppcd_drives != NULL && *ppcd_drives != NULL)
             cdio_free_device_list (ppcd_drives);
@@ -1089,8 +1101,10 @@ static void scan_cd (void)
 }
 
 /* mutex must be locked */
-static void refresh_trackinfo (void)
+static void refresh_trackinfo (gboolean warning)
 {
+    trigger_monitor ();
+
     if (pcdio == NULL)
     {
         open_cd ();
@@ -1101,6 +1115,14 @@ static void refresh_trackinfo (void)
     int mode = cdio_get_discmode (pcdio);
     if (mode != CDIO_DISC_MODE_CD_DA && mode != CDIO_DISC_MODE_CD_MIXED)
     {
+        if (warning)
+        {
+            if (mode == CDIO_DISC_MODE_NO_INFO)
+                cdaudio_error (_("Drive is empty."));
+            else
+                cdaudio_error (_("Unsupported disk type."));
+        }
+
         g_free (trackinfo);
         trackinfo = NULL;
         return;
