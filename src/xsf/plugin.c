@@ -248,7 +248,8 @@ void xsf_pause(InputPlayback *playback, short p)
 gint xsf_is_our_fd(const gchar *filename, VFSFile *file)
 {
 	gchar magic[4];
-	vfs_fread(magic, 1, 4, file);
+	if (vfs_fread(magic, 1, 4, file) < 4)
+		return FALSE;
 
 	if (!memcmp(magic, "PSF$", 4))
 		return 1;

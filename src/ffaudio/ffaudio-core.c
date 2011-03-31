@@ -47,7 +47,11 @@ ffaudio_init(void)
     av_register_all();
 
     AUDDBG("registering audvfsptr protocol\n");
-    av_register_protocol(&audvfsptr_protocol);
+#if CHECK_LIBAVFORMAT_VERSION (52, 69, 0)
+    av_register_protocol2 (& audvfsptr_protocol, sizeof audvfsptr_protocol);
+#else
+    av_register_protocol (& audvfsptr_protocol);
+#endif
 
     AUDDBG("creating seek mutex/cond\n");
     ctrl_mutex = g_mutex_new();
@@ -267,8 +271,8 @@ ffaudio_probe_for_tuple(const gchar *filename, VFSFile *fd)
     if (t == NULL)
         return NULL;
 
-    vfs_fseek(fd, 0, SEEK_SET);
-    tag_tuple_read(t, fd);
+    if (! vfs_fseek (fd, 0, SEEK_SET))
+        tag_tuple_read (t, fd);
 
     return t;
 }
@@ -340,8 +344,14 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
     codec_opened = TRUE;
 
     /* Determine if audio conversion or resampling is needed */
-    in_sample_size = av_get_bits_per_sample_format(c->sample_fmt) / 8;
-    out_sample_size = av_get_bits_per_sample_format(SAMPLE_FMT_S16) / 8;
+#if CHECK_LIBAVCODEC_VERSION (52, 94, 3)
+    in_sample_size = av_get_bits_per_sample_fmt (c->sample_fmt) / 8;
+    out_sample_size = av_get_bits_per_sample_fmt (SAMPLE_FMT_S16) / 8;
+#else
+    in_sample_size = av_get_bits_per_sample_format (c->sample_fmt) / 8;
+    out_sample_size = av_get_bits_per_sample_format (SAMPLE_FMT_S16) / 8;
+#endif
+
     chunk_size = out_sample_size * c->channels * (c->sample_rate / 50);
 
     switch (c->sample_fmt) {

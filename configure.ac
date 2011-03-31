@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT([audacious-plugins], [2.4.3], [bugs+audacious-plugins@atheme.org])
+AC_INIT([audacious-plugins], [2.4.4], [bugs+audacious-plugins@atheme.org])
 AC_PREREQ([2.59])
 
 AC_CANONICAL_HOST
@@ -35,6 +35,9 @@ if test "x$GCC" = "xyes"; then
 	CFLAGS="$CFLAGS -pipe -Wall"
 	CXXFLAGS="$CXXFLAGS -pipe -Wall"
 fi
+
+dnl Chainsaw says this is broken.
+dnl LDFLAGS="$LDFLAGS -z defs"
 
 dnl Large file support
 dnl ==================
@@ -120,7 +123,7 @@ dnl These plugins are always built.
 INPUT_PLUGINS="tonegen console xsf metronom vtx"
 OUTPUT_PLUGINS="null"
 EFFECT_PLUGINS="compressor crossfade crystalizer ladspa sndstretch stereo_plugin voice_removal echo_plugin"
-GENERAL_PLUGINS="song_change alarm skins gtkui lyricwiki"
+GENERAL_PLUGINS="song_change alarm skins gtkui"
 VISUALIZATION_PLUGINS="blur_scope spectrum"
 CONTAINER_PLUGINS="m3u pls"
 TRANSPORT_PLUGINS="unix-io"
@@ -232,7 +235,7 @@ AC_ARG_ENABLE( pulse,
 )
 
 if test "x$enable_pulse" = "xyes"; then
-    PKG_CHECK_MODULES(PULSE, [libpulse >= 0.9.9],
+    PKG_CHECK_MODULES(PULSE, [libpulse >= 0.9.5],
          [have_pulse=yes
           OUTPUT_PLUGINS="$OUTPUT_PLUGINS pulse_audio"],
          [have_pulse=no]
@@ -545,9 +548,9 @@ if test "x$enable_aosd" = "xguess"; then
         [have_aosd="no"
         AC_MSG_RESULT([*** pango >= 1.14.7 is required for Audacious OSD plugin ***])]
     )
-    PKG_CHECK_MODULES(CAIRO,[cairo >= 1.2.6],,
+    PKG_CHECK_MODULES(CAIRO,[cairo >= 1.2.4],,
         [have_aosd="no"
-        AC_MSG_RESULT([*** cairo >= 1.2.6 is required for Audacious OSD plugin ***])]
+        AC_MSG_RESULT([*** cairo >= 1.2.4 is required for Audacious OSD plugin ***])]
     )
     PKG_CHECK_MODULES(PANGOCAIRO,[pangocairo >= 1.14.7],,
         [have_aosd="no"
@@ -778,9 +781,22 @@ AC_ARG_ENABLE(ffaudio,
     [enable_ffaudio="yes"]
 )
 
-if test "x$enable_ffaudio" = "xyes"; then
-    PKG_CHECK_MODULES(FFMPEG, [libavformat >= 52.31.0  libavcodec >= 52.20.0  libavutil >= 49.15.0],
-                      [have_ffaudio="yes"], [have_ffaudio="no"])
+dnl In 2010, some libavcodec functions were moved into a new library called
+dnl libavcore, making our checks here a bit complex.
+
+if test $enable_ffaudio = yes ; then
+    PKG_CHECK_MODULES([NEED_AVCORE], [libavcodec >= 52.94.3],
+     [have_new_ffmpeg=yes], [have_new_ffmpeg=no])
+
+    if test $have_new_ffmpeg = yes ; then
+        PKG_CHECK_MODULES([FFMPEG],
+         [libavcodec >= 52.20.0 libavcore >= 0.12.0 libavformat >= 52.31.0 libavutil >= 49.15.0],
+         [have_ffaudio=yes], [have_ffaudio=no])
+    else
+        PKG_CHECK_MODULES([FFMPEG],
+         [libavcodec >= 52.20.0 libavformat >= 52.31.0 libavutil >= 49.15.0],
+         [have_ffaudio=yes], [have_ffaudio=no])
+    fi
 fi
 
 if test "x$have_ffaudio" = "xyes"; then
@@ -968,6 +984,8 @@ AC_ARG_ENABLE(alsa,
 
 if test "x$enable_alsa" = "xyes"; then
     PKG_CHECK_MODULES([ALSA], [alsa >= 1.0], [have_alsa=yes], [have_alsa=no])
+    AC_CHECK_LIB([asound], [snd_device_name_hint],
+     AC_DEFINE(HAVE_SND_DEVICE_NAME_HINT, 1, Define if you have snd_device_name_hint))
 else
     AC_MSG_RESULT([*** ALSA output plugin disabled per user request ***])
     have_alsa=no
@@ -1469,7 +1487,7 @@ AC_ARG_ENABLE(filewriter_flac,
 )
 
 if test "x$enable_filewriter_flac" = "xyes"; then
-   PKG_CHECK_MODULES(FLAC, [flac >= 1.1.2],
+   PKG_CHECK_MODULES(FLAC, [flac >= 1.1.3],
       [have_writer_flac=yes], [have_writer_flac=no]
    )
    if test "x$have_writer_flac" = "xyes"; then
@@ -1522,6 +1540,21 @@ fi
 
 if test "x$enable_resample" = "xyes"; then
 	EFFECT_PLUGINS="$EFFECT_PLUGINS resample"
+fi
+
+dnl LyricWiki
+dnl =========
+
+AC_ARG_ENABLE(lyricwiki,
+ [  --disable-lyricwiki     disable LyricWiki plugin (default=enabled)],
+ [enable_lyricwiki=$enableval], [enable_lyricwiki=yes])
+
+if test "x$enable_lyricwiki" = "xyes"; then
+    PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.14], [enable_lyricwiki=yes], [enable_lyricwiki=no])
+fi
+
+if test "x$enable_lyricwiki" = "xyes"; then
+    GENERAL_PLUGINS="$GENERAL_PLUGINS lyricwiki"
 fi
 
 dnl *** End of all plugin checks ***
@@ -1664,7 +1697,7 @@ echo "  Upload to MTP device:                   $have_mtp_up"
 echo "  Bluetooth audio support:                $have_bluetooth"
 echo "  MacOS Dock Album Art plugin:            $have_dockalbumart"
 echo "  Streambrowser:                          $enable_streambrowser"
-echo "  LyricWiki viewer:                       yes"
+echo "  LyricWiki viewer:                       $enable_lyricwiki"
 echo
 echo "  Effect"
 echo "  ------"

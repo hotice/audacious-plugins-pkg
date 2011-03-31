@@ -123,6 +123,9 @@
    */
 #undef HAVE_SIDPLAY2_DISTORTION
 
+/* Define if you have snd_device_name_hint */
+#undef HAVE_SND_DEVICE_NAME_HINT
+
 /* Define to 1 if you have the <soundcard.h> header file. */
 #undef HAVE_SOUNDCARD_H
 

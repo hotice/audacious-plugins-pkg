@@ -19,6 +19,10 @@
 
 #include "plugin.h"
 
+#if ! GLIB_CHECK_VERSION (2, 14, 0)
+#define g_timeout_add_seconds(s, f, d) g_timeout_add (1000 * (s), (f), (d))
+#endif
+
 GtkWidget *entry1, *entry2, *entry3, *cfgdlg;
 static GdkColor disabled_color;
 guint apply_timeout = 0; /* ID of timeout to save new config */

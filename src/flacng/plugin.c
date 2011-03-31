@@ -131,23 +131,11 @@ gboolean flac_is_our_fd(const gchar *filename, VFSFile *fd)
 {
     AUDDBG("Probe for FLAC.\n");
 
-    gchar *buf = g_new0(gchar, 4);
-    gboolean flac;
-
-    if (vfs_fseek(fd, 0, SEEK_SET))
-    {
-        g_free(buf);
+    gchar buf[4];
+    if (vfs_fread (buf, 1, sizeof buf, fd) != sizeof buf)
         return FALSE;
-    }
 
-    vfs_fread(buf, 4, 1, fd);
-    flac = strncmp(buf, "fLaC", 4);
-    g_free(buf);
-
-    if (!flac)
-        return TRUE;
-    else
-        return FALSE;
+    return ! strncmp (buf, "fLaC", sizeof buf);
 }
 
 static void squeeze_audio(gint32* src, void* dst, guint count, guint res)
@@ -563,6 +551,7 @@ gboolean flac_update_song_tuple (const Tuple * tuple, VFSFile * fd)
         return TRUE;
 }
 
+#ifdef FLAC__METADATA_TYPE_PICTURE
 static gboolean flac_get_image(const gchar *filename, VFSFile *fd, void **data, gint *length)
 {
     AUDDBG("Probe for song image.\n");
@@ -614,6 +603,7 @@ CLEANUP:
 
     return has_image;
 }
+#endif
 
 static const gchar *flac_fmts[] = { "flac", "fla", NULL };
 
@@ -630,7 +620,9 @@ InputPlugin flac_ip = {
     .is_our_file_from_vfs = flac_is_our_fd,
     .vfs_extensions = flac_fmts,
     .update_song_tuple = flac_update_song_tuple,
+#ifdef FLAC__METADATA_TYPE_PICTURE
     .get_song_image = flac_get_image,
+#endif
     .priority = 1
 };
 

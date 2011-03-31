@@ -31,6 +31,7 @@
 /* TODO: enforce default sizes! */
 
 #include <glib.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1469,17 +1470,18 @@ skin_set_gtk_theme(GtkSettings * settings, Skin * skin)
 
     /* the way GTK does things can be very broken. --nenolod */
 
-    gchar *tmp = g_strdup_printf("%s/.themes/aud-%s", g_get_home_dir(),
-                                 basename(skin->path));
+    gchar path[PATH_MAX];
 
-    gchar *troot = g_strdup_printf("%s/.themes", g_get_home_dir());
-    g_mkdir_with_parents(troot, 0755);
-    g_free(troot);
+    snprintf (path, sizeof path, "%s/.themes", g_get_home_dir ());
+    g_mkdir_with_parents (path, 0755);
 
-    symlink(skin->path, tmp);
-    gtk_settings_set_string_property(settings, "gtk-theme-name",
-                                     basename(tmp), "audacious");
-    g_free(tmp);
+    snprintf (path, sizeof path, "%s/.themes/aud-%s", g_get_home_dir (), basename
+     (skin->path));
+    if (! g_file_test (path, G_FILE_TEST_EXISTS) && symlink (skin->path, path))
+        fprintf (stderr, "Failed to create symlink %s.\n", path);
+
+    gtk_settings_set_string_property (settings, "gtk-theme-name", basename
+     (path), "audacious");
 }
 
 /**

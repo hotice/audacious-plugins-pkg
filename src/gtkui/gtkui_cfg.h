@@ -28,13 +28,13 @@
 #define MAINWIN_DEFAULT_POS_X     100
 #define MAINWIN_DEFAULT_POS_Y     100
 
-typedef enum {
+enum {
     VIS_IN_TABS = 0,
     VIS_ON_LEFT,
     VIS_ON_RIGHT,
     VIS_ON_TOP,
     VIS_ON_BOTTOM
-} VisPosition;
+};
 
 typedef struct
 {
@@ -44,7 +44,7 @@ typedef struct
     gboolean save_window_position;
     gboolean player_visible;
     gboolean playlist_visible;
-    VisPosition vis_position;
+    gint vis_position;
     gboolean multi_column_view;
     gboolean infoarea_visible;
     gboolean menu_visible;

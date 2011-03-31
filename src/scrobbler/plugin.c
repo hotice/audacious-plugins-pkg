@@ -31,6 +31,10 @@
 #include "scrobbler.h"
 #include "fmt.h"
 
+#if ! GLIB_CHECK_VERSION (2, 14, 0)
+#define g_timeout_add_seconds(s, f, d) g_timeout_add (1000 * (s), (f), (d))
+#endif
+
 typedef struct submit_t
 {
 	int dosubmit, pos_c, len;

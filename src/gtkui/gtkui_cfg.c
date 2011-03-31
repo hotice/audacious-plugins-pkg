@@ -72,7 +72,7 @@ static gtkui_cfg_nument gtkui_numents[] = {
     {"player_y", &config.player_y, TRUE},
     {"player_width", &config.player_width, TRUE},
     {"player_height", &config.player_height, TRUE},
-    {"vis_position", (gint *)&config.vis_position, TRUE},
+    {"vis_position", & config.vis_position, TRUE},
     {"playlist_width", &config.playlist_width, TRUE},
     {"playlist_height", &config.playlist_height, TRUE},
 };

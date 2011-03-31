@@ -93,6 +93,7 @@ static void tab_changed(GtkNotebook * notebook, GtkNotebookPage * notebook_page,
     }
 }
 
+#if GTK_CHECK_VERSION (2, 10, 0)
 static void tab_reordered(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer user_data)
 {
     GtkTreeView *treeview = playlist_get_treeview_from_page(child);
@@ -108,6 +109,7 @@ static void tab_reordered(GtkNotebook *notebook, GtkWidget *child, guint page_nu
 
     aud_playlist_reorder(model->playlist, page_num, 1);
 }
+#endif
 
 static GtkLabel *get_tab_label(gint playlist)
 {
@@ -201,7 +203,10 @@ void ui_playlist_notebook_create_tab(gint playlist)
 
     gtk_notebook_append_page(UI_PLAYLIST_NOTEBOOK, scrollwin, ebox);
     gtk_notebook_set_show_tabs(UI_PLAYLIST_NOTEBOOK, index_count(pages) > 1 ? TRUE : FALSE);
+
+#if GTK_CHECK_VERSION (2, 10, 0)
     gtk_notebook_set_tab_reorderable(UI_PLAYLIST_NOTEBOOK, scrollwin, TRUE);
+#endif
 
     if (position >= 0)
     {
@@ -238,8 +243,11 @@ void ui_playlist_notebook_populate(void)
 
     g_signal_connect (UI_PLAYLIST_NOTEBOOK, "switch-page", (GCallback)
      tab_changed, NULL);
+
+#if GTK_CHECK_VERSION (2, 10, 0)
     g_signal_connect (UI_PLAYLIST_NOTEBOOK, "page-reordered", (GCallback)
      tab_reordered, NULL);
+#endif
 }
 
 void ui_playlist_notebook_update(gpointer hook_data, gpointer user_data)
