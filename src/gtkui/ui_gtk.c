@@ -50,7 +50,15 @@ gboolean multi_column_view;
 
 static GtkWidget *label_time;
 static GtkWidget *slider;
+
+#if GTK_CHECK_VERSION (2, 12, 0)
+#define HAVE_VOLUME
 static GtkWidget *volume;
+static gboolean volume_slider_is_moving = FALSE;
+static guint update_volume_timeout_source = 0;
+static gulong volume_change_handler_id;
+#endif
+
 static GtkWidget *visualizer = NULL;
 GtkWidget *playlist_box;
 GtkWidget *window;       /* the main window */
@@ -63,11 +71,8 @@ static GtkWidget * error_win = NULL;
 
 static gulong slider_change_handler_id;
 static gboolean slider_is_moving = FALSE;
-static gboolean volume_slider_is_moving = FALSE;
 static gint slider_position;
 static guint update_song_timeout_source = 0;
-static guint update_volume_timeout_source = 0;
-static gulong volume_change_handler_id;
 
 extern GtkWidget *ui_playlist_notebook_tab_title_editing;
 
@@ -423,6 +428,7 @@ static gboolean ui_slider_button_release_cb(GtkWidget * widget, GdkEventButton *
     return FALSE;
 }
 
+#ifdef HAVE_VOLUME
 static gboolean ui_volume_value_changed_cb(GtkButton * button, gdouble volume, gpointer user_data)
 {
     aud_drct_set_volume((gint) volume, (gint) volume);
@@ -464,6 +470,13 @@ static gboolean ui_volume_slider_update(gpointer data)
 
     return TRUE;
 }
+
+void set_volume_diff(gint diff)
+{
+    gint vol = gtk_scale_button_get_value(GTK_SCALE_BUTTON(volume));
+    gtk_scale_button_set_value(GTK_SCALE_BUTTON(volume), CLAMP(vol + diff, 0, 100));
+}
+#endif
 
 static void set_slider_length (gint length)
 {
@@ -533,12 +546,6 @@ static GtkWidget *gtk_markup_label_new(const gchar * str)
     return label;
 }
 
-void set_volume_diff(gint diff)
-{
-    gint vol = gtk_scale_button_get_value(GTK_SCALE_BUTTON(volume));
-    gtk_scale_button_set_value(GTK_SCALE_BUTTON(volume), CLAMP(vol + diff, 0, 100));
-}
-
 static gboolean ui_key_press_cb(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
     if (ui_playlist_notebook_tab_title_editing != NULL &&
@@ -558,6 +565,7 @@ static gboolean ui_key_press_cb(GtkWidget *widget, GdkEventKey *event, gpointer 
                     ui_playlist_notebook_edit_tab_title(NULL);
                     break;
 
+#ifdef HAVE_VOLUME
                 case GDK_minus: //FIXME
                     set_volume_diff(-5);
                     break;
@@ -565,6 +573,7 @@ static gboolean ui_key_press_cb(GtkWidget *widget, GdkEventKey *event, gpointer 
                 case GDK_plus: //FIXME
                     set_volume_diff(5);
                     break;
+#endif
 
                 case GDK_Left:
                 case GDK_KP_Left:
@@ -681,8 +690,6 @@ static gboolean _ui_initialize(InterfaceCbs * cbs)
     GtkWidget *evbox;
     GtkAccelGroup *accel;
 
-    gint lvol = 0, rvol = 0;    /* Left and Right for the volume control */
-
     gtkui_cfg_load();
 
     multi_column_view = config.multi_column_view;
@@ -748,15 +755,18 @@ static gboolean _ui_initialize(InterfaceCbs * cbs)
     label_time = gtk_markup_label_new(NULL);
     gtk_box_pack_start(GTK_BOX(shbox), label_time, FALSE, FALSE, 5);
 
+#ifdef HAVE_VOLUME
     volume = gtk_volume_button_new();
     gtk_button_set_relief(GTK_BUTTON(volume), GTK_RELIEF_NONE);
     gtk_scale_button_set_adjustment(GTK_SCALE_BUTTON(volume), GTK_ADJUSTMENT(gtk_adjustment_new(0, 0, 100, 1, 5, 0)));
     gtk_widget_set_can_focus(volume, FALSE);
     /* Set the default volume to the balance average.
        (I'll add balance control later) -Ryan */
+    gint lvol = 0, rvol = 0;
     aud_drct_get_volume(&lvol, &rvol);
     gtk_scale_button_set_value(GTK_SCALE_BUTTON(volume), (lvol + rvol) / 2);
     gtk_box_pack_start(GTK_BOX(shbox), volume, FALSE, FALSE, 0);
+#endif
 
     playlist_box = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(vbox), playlist_box, TRUE, TRUE, 0);
@@ -798,10 +808,12 @@ static gboolean _ui_initialize(InterfaceCbs * cbs)
     g_signal_connect(slider, "button-press-event", G_CALLBACK(ui_slider_button_press_cb), NULL);
     g_signal_connect(slider, "button-release-event", G_CALLBACK(ui_slider_button_release_cb), NULL);
 
+#ifdef HAVE_VOLUME
     volume_change_handler_id = g_signal_connect(volume, "value-changed", G_CALLBACK(ui_volume_value_changed_cb), NULL);
     g_signal_connect(volume, "pressed", G_CALLBACK(ui_volume_pressed_cb), NULL);
     g_signal_connect(volume, "released", G_CALLBACK(ui_volume_released_cb), NULL);
     update_volume_timeout_source = g_timeout_add(250, (GSourceFunc) ui_volume_slider_update, volume);
+#endif
 
     g_signal_connect(window, "key-press-event", G_CALLBACK(ui_key_press_cb), NULL);
 
@@ -859,11 +871,13 @@ static gboolean _ui_finalize(void)
         update_song_timeout_source = 0;
     }
 
+#ifdef HAVE_VOLUME
     if (update_volume_timeout_source)
     {
         g_source_remove(update_volume_timeout_source);
         update_volume_timeout_source = 0;
     }
+#endif
 
     save_window_size ();
     gtkui_cfg_save();

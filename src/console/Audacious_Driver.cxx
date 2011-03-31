@@ -283,7 +283,7 @@ extern "C" void console_play_file(InputPlayback *playback)
         {
             length = tuple_get_int(ti, FIELD_LENGTH, NULL);
             tuple_free(ti);
-            playback->set_params(playback, NULL, NULL, fh.m_emu->voice_count() * 1000, sample_rate, 2);
+            playback->set_params(playback, NULL, 0, fh.m_emu->voice_count() * 1000, sample_rate, 2);
         }
     }
 

@@ -196,8 +196,8 @@ static Tuple * mpg123_probe_for_tuple (const gchar * filename, VFSFile * file)
 
 	if (! vfs_is_streaming (file))
 	{
-		vfs_fseek (file, 0, SEEK_SET);
-		tag_tuple_read (tuple, file);
+		if (! vfs_fseek (file, 0, SEEK_SET))
+			tag_tuple_read (tuple, file);
 	}
 
 	return tuple;
@@ -454,8 +454,13 @@ static gboolean mpg123_playback_worker (InputPlayback * data, const gchar *
 			}
 
 			AUDDBG ("seeking to %d (byte %d)\n", (gint) ctx.seek, (gint) byteoff);
+			if (vfs_fseek (ctx.fd, byteoff, SEEK_SET))
+			{
+				g_mutex_unlock (ctrl_mutex);
+				goto decode_cleanup;
+			}
+
 			data->output->flush (ctx.seek);
-			vfs_fseek(ctx.fd, byteoff, SEEK_SET);
 			ctx.seek = -1;
 
 			g_cond_signal(ctrl_cond);

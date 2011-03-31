@@ -33,6 +33,17 @@
 #include "ui_playlist_model.h"
 #include "playlist_util.h"
 
+#if ! GTK_CHECK_VERSION (2, 12, 0)
+static void gtk_tree_view_convert_widget_to_bin_window_coords
+ (GtkTreeView * tree, gint wx, gint wy, gint * bx, gint * by)
+{
+    gint bx0, by0;
+    gdk_window_get_position (gtk_tree_view_get_bin_window (tree), & bx0, & by0);
+    * bx = wx - bx0;
+    * by = wy - by0;
+}
+#endif
+
 typedef struct
 {
     GtkTreeView * source;
@@ -65,9 +76,8 @@ static void _ui_playlist_widget_drag_begin(GtkWidget *widget, GdkDragContext * c
 static void _ui_playlist_widget_drag_motion(GtkTreeView * widget, GdkDragContext * context, gint x, gint y, guint time, gpointer user_data)
 {
     GdkRectangle win;
-    GtkAdjustment *vadj;
     GdkRectangle rect;
-    gint tx, ty, end_pos, dest_playlist;
+    gint end_pos, dest_playlist;
 
     if (t == NULL)
     {
@@ -91,9 +101,9 @@ static void _ui_playlist_widget_drag_motion(GtkTreeView * widget, GdkDragContext
     end_pos = aud_playlist_entry_count(dest_playlist) - 1;
 
     gdk_window_get_geometry(gtk_tree_view_get_bin_window(widget), NULL, NULL, NULL, &win.height, NULL);
-    gtk_tree_view_convert_widget_to_bin_window_coords(widget, x, y, &tx, &ty);
 
-    gtk_tree_view_get_path_at_pos (widget, tx, ty, & t->dest_path, NULL, NULL,
+    gtk_tree_view_convert_widget_to_bin_window_coords (widget, x, y, & x, & y);
+    gtk_tree_view_get_path_at_pos (widget, x, y, & t->dest_path, NULL, NULL,
      NULL);
 
     if (! t->dest_path && end_pos != -1)
@@ -103,7 +113,7 @@ static void _ui_playlist_widget_drag_motion(GtkTreeView * widget, GdkDragContext
     {
         gtk_tree_view_get_background_area (widget, t->dest_path, NULL, & rect);
 
-        if (ty - rect.y < rect.height / 2)
+        if (y - rect.y < rect.height / 2)
             gtk_tree_view_set_drag_dest_row (widget, t->dest_path,
              GTK_TREE_VIEW_DROP_BEFORE);
         else
@@ -114,11 +124,12 @@ static void _ui_playlist_widget_drag_motion(GtkTreeView * widget, GdkDragContext
         }
 
         gtk_tree_view_get_background_area (widget, t->dest_path, NULL, & rect);
-        vadj = gtk_tree_view_get_vadjustment(widget);
+        GtkAdjustment * vadj = gtk_tree_view_get_vadjustment (widget);
 
-        if (ty >= 0 && ty < rect.height * 2 && vadj->value > 0)
+        if (y >= 0 && y < rect.height * 2 && vadj->value > 0)
             gtk_adjustment_set_value(vadj, MAX(0, vadj->value - rect.height));
-        else if (win.height - ty <= rect.height * 2 && vadj->value < vadj->upper - vadj->page_size)
+        else if (win.height - y <= rect.height * 2 && vadj->value < vadj->upper
+         - vadj->page_size)
             gtk_adjustment_set_value(vadj, MIN(vadj->upper - vadj->page_size, vadj->value + rect.height));
     }
 }
@@ -422,9 +433,7 @@ GtkWidget *ui_playlist_widget_new(gint playlist)
     treeview = gtk_tree_view_new_with_model(GTK_TREE_MODEL(model));
     g_object_unref(model);
 
-    gtk_tree_view_set_reorderable(GTK_TREE_VIEW(treeview), TRUE);
     gtk_tree_view_set_rules_hint(GTK_TREE_VIEW(treeview), TRUE);
-    gtk_drag_dest_set_track_motion(treeview, TRUE);
 
     if (multi_column_view)
     {
@@ -485,7 +494,6 @@ GtkWidget *ui_playlist_widget_new(gint playlist)
 
     selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
     gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
-    gtk_tree_view_set_rubber_banding(GTK_TREE_VIEW(treeview), FALSE);
     g_signal_connect (selection, "changed", (GCallback)
      _ui_playlist_widget_selection_changed, treeview);
 

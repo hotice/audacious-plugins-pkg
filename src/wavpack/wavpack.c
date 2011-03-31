@@ -345,10 +345,10 @@ wv_probe_for_tuple(const gchar * filename, VFSFile * fd)
 
 	AUDDBG("starting probe of %p\n", fd);
 
-	vfs_fseek(fd, 0, SEEK_SET);
-	tu = tuple_new_from_filename(filename);
+	if (vfs_fseek (fd, 0, SEEK_SET))
+		return NULL;
 
-	vfs_fseek(fd, 0, SEEK_SET);
+	tu = tuple_new_from_filename(filename);
 	tag_tuple_read(tu, fd);
 
 	tuple_associate_int(tu, FIELD_LENGTH, NULL,

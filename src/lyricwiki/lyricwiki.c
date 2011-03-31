@@ -120,10 +120,14 @@ give_up:
 					g_free(ret);
 					ret = NULL;
 				}
+
+				g_regex_unref(reg);
 			}
 
 			xmlFree(lyric);
 		}
+
+		xmlFreeDoc(doc);
 	}
 
 	return ret;
@@ -169,6 +173,8 @@ scrape_uri_from_lyricwiki_search_result(const gchar *buf, gsize len)
 				xmlFree(lyric);
 			}
 		}
+
+		xmlFreeDoc(doc);
 	}
 
 	return uri;
@@ -202,6 +208,13 @@ get_lyrics_step_2(gchar *buf, gint64 len, Tuple *tu)
 	gchar *uri;
 
 	uri = scrape_uri_from_lyricwiki_search_result(buf, len);
+	if (uri == NULL)
+	{
+		update_lyrics_window(tu, NULL);
+		mowgli_object_unref(tu);
+
+		return FALSE;
+	}
 
 	vfs_async_file_get_contents(uri, (VFSConsumer) get_lyrics_step_3, tu);
 
