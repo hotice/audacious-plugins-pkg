@@ -24,9 +24,10 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+#include <audacious/drct.h>
 #include <audacious/i18n.h>
+#include <audacious/misc.h>
 #include <audacious/plugin.h>
-#include <audacious/ui_plugin_menu.h>
 
 #define N_ITEMS 2
 #define N_MENUS 3
@@ -39,12 +40,12 @@ static GtkWidget * items[N_ITEMS * N_MENUS];
 
 static void cd_play (void)
 {
-    audacious_drct_pl_open ("cdda://");
+    aud_drct_pl_open ("cdda://");
 }
 
 static void cd_add (void)
 {
-    audacious_drct_pl_add_url_string ("cdda://");
+    aud_drct_pl_add ("cdda://", -1);
 }
 
 static void (* funcs[N_ITEMS]) (void) = {cd_play, cd_add};

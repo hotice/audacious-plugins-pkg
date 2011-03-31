@@ -18,6 +18,9 @@
 *
 */
 
+#include <audacious/drct.h>
+#include <audacious/misc.h>
+#include <audacious/plugin.h>
 
 #include "i_configure.h"
 #include "i_configure_private.h"
@@ -27,10 +30,6 @@
 #include "i_configure-alsa.h"
 #include "i_configure-fluidsynth.h"
 #include "i_utils.h"
-#include <audacious/plugin.h>
-#include <audacious/auddrct.h>
-#include <audacious/plugin.h>
-
 
 amidiplug_cfg_backend_t * amidiplug_cfg_backend;
 
@@ -91,8 +90,8 @@ void i_configure_ev_browse_for_entry( GtkWidget * target_entry )
 
 static void commit_cb (GtkWidget * button, void * unused)
 {
-    if (audacious_drct_get_playing ())
-        audacious_drct_stop ();
+    if (aud_drct_get_playing ())
+        aud_drct_stop ();
 
     g_signal_emit_by_name (button, "ap-commit");
 }
@@ -381,7 +380,7 @@ void i_configure_cfg_ap_save( void )
 
 gchar * i_configure_cfg_get_file( void )
 {
-  gchar * config_datadir = (gchar*)audacious_get_localdir();
+  gchar * config_datadir = (gchar*)aud_util_get_localdir();
   gchar * config_pathfilename = g_build_filename( config_datadir , "amidi-plug.conf" , NULL );
   g_free( config_datadir );
   return config_pathfilename;

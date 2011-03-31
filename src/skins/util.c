@@ -42,8 +42,10 @@
 #  include <fts.h>
 #endif
 
+#include <audacious/debug.h>
 #include <audacious/i18n.h>
 #include <libaudcore/audstrings.h>
+#include <libaudcore/hook.h>
 
 #include "plugin.h"
 
@@ -122,20 +124,20 @@ gchar * load_text_file (const gchar * filename)
     gint size;
     gchar * buffer;
 
-    file = aud_vfs_fopen (filename, "r");
+    file = vfs_fopen (filename, "r");
 
     if (file == NULL)
         return NULL;
 
-    size = aud_vfs_fsize (file);
+    size = vfs_fsize (file);
     size = MAX (0, size);
     buffer = g_malloc (size + 1);
 
-    size = aud_vfs_fread (buffer, 1, size, file);
+    size = vfs_fread (buffer, 1, size, file);
     size = MAX (0, size);
     buffer[size] = 0;
 
-    aud_vfs_fclose (file);
+    vfs_fclose (file);
 
     return buffer;
 }
@@ -445,14 +447,14 @@ INIFile *open_ini_file(const gchar *filename)
     GHashTable *section = NULL;
     GString *section_name, *key_name, *value;
     gpointer section_hash, key_hash;
-    gchar *buffer = NULL;
+    guchar * buffer = NULL;
     gsize off = 0;
-    gsize filesize = 0;
+    gint64 filesize = 0;
 
     unsigned char x[] = { 0xff, 0xfe, 0x00 };
 
     g_return_val_if_fail(filename, NULL);
-    aud_vfs_file_get_contents(filename, &buffer, &filesize);
+    vfs_file_get_contents(filename, (void * *) &buffer, &filesize);
     if (buffer == NULL)
         return NULL;
 
@@ -463,7 +465,7 @@ INIFile *open_ini_file(const gchar *filename)
      */
     if (filesize > 2 && !memcmp(&buffer[0], &x, 2))
     {
-        gchar *outbuf = g_malloc(filesize);     /* it's safe to waste memory. */
+        guchar *outbuf = g_malloc (filesize); /* it's safe to waste memory. */
         guint counter;
 
         for (counter = 2; counter < filesize; counter += 2)
@@ -659,7 +661,6 @@ gchar *read_ini_string(INIFile *inifile, const gchar *section, const gchar *key)
     g_string_free(section_string, TRUE);
     g_string_free(key_string, TRUE);
 
-    g_return_val_if_fail(value, NULL);
     return value;
 }
 
@@ -835,73 +836,6 @@ static void make_directory(const gchar *path, mode_t mode)
 }
 #endif
 
-void insert_drag_list(gint playlist, gint position, const gchar *list)
-{
-    struct index *add = index_new();
-    const gchar * end, * next;
-    gchar * filename;
-
-    while (list[0])
-    {
-        if ((end = strstr (list, "\r\n")) != NULL)
-            next = end + 2;
-        else if ((end = strchr (list, '\n')) != NULL)
-            next = end + 1;
-        else
-            next = end = strchr (list, 0);
-
-        filename = g_strndup (list, end - list);
-
-        if (vfs_file_test (filename, G_FILE_TEST_IS_DIR))
-        {
-            aud_playlist_insert_folder (playlist, position, filename);
-            g_free (filename);
-        }
-        else if (aud_filename_is_playlist (filename))
-        {
-            gint entries = aud_playlist_entry_count (playlist);
-
-            aud_playlist_insert_playlist (playlist, position, filename);
-            position += aud_playlist_entry_count (playlist) - entries;
-        }
-        else
-            index_append (add, filename);
-
-        list = next;
-    }
-
-    aud_playlist_entry_insert_batch(playlist, position, add, NULL);
-}
-
-void open_drag_list (const gchar * list)
-{
-    GList * glist = NULL;
-    const gchar * end, * next;
-
-    while (list[0])
-    {
-        if ((end = strstr (list, "\r\n")) != NULL)
-            next = end + 2;
-        else if ((end = strchr (list, '\n')) != NULL)
-            next = end + 1;
-        else
-            next = end = strchr (list, 0);
-
-        glist = g_list_prepend (glist, g_strndup (list, end - list));
-        list = next;
-    }
-
-    glist = g_list_reverse (glist);
-
-    audacious_drct_pl_open_list (glist);
-
-    while (glist != NULL)
-    {
-        g_free (glist->data);
-        glist = g_list_delete_link (glist, glist);
-    }
-}
-
 void resize_window(GtkWidget *window, gint width, gint height)
 {
     /* As of GTK+ 2.16, gtk_window_resize is broken on fixed size windows and
@@ -927,23 +861,6 @@ gboolean widget_really_drawable (GtkWidget * widget)
      widget->allocation.y >= 0;
 }
 
-static gboolean escape_cb (GtkWidget * widget, GdkEventKey * event, void * data)
-{
-    if (event->keyval == GDK_Escape)
-    {
-        gtk_widget_destroy (widget);
-        return TRUE;
-    }
-
-    return FALSE;
-}
-
-void widget_destroy_on_escape (GtkWidget * widget)
-{
-    g_signal_connect ((GObject *) widget, "key-press-event", (GCallback)
-     escape_cb, NULL);
-}
-
 void check_set (GtkActionGroup * action_group, const gchar * action_name,
  gboolean is_on)
 {
@@ -952,10 +869,5 @@ void check_set (GtkActionGroup * action_group, const gchar * action_name,
     g_return_if_fail (action != NULL);
 
     gtk_toggle_action_set_active ((GtkToggleAction *) action, is_on);
-    aud_hook_call (action_name, GINT_TO_POINTER (is_on));
-}
-
-void check_button_toggled (GtkToggleButton * button, void * data)
-{
-    * (gboolean *) data = gtk_toggle_button_get_active (button);
+    hook_call (action_name, GINT_TO_POINTER (is_on));
 }

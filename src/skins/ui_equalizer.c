@@ -43,9 +43,12 @@
 #include "ui_main.h"
 #include "ui_playlist.h"
 
+#include <audacious/audconfig.h>
+#include <audacious/drct.h>
 #include <audacious/i18n.h>
-#include <audacious/plugin.h>
-#include <audacious/equalizer_preset.h>
+#include <audacious/misc.h>
+#include <audacious/playlist.h>
+#include <libaudcore/hook.h>
 #include <libaudgui/libaudgui-gtk.h>
 
 #include "images/audacious_eq.xpm"
@@ -193,8 +196,7 @@ equalizerwin_eq_changed(void)
     for (i = 0; i < AUD_EQUALIZER_NBANDS; i++)
         aud_cfg->equalizer_bands[i] = equalizerwin_get_band(i);
 
-    ui_skinned_equalizer_graph_update (equalizerwin_graph);
-    aud_hook_call("equalizer changed", NULL);
+    hook_call("equalizer changed", NULL);
 }
 
 static void
@@ -214,6 +216,18 @@ static void
 equalizerwin_on_pushed(void)
 {
     equalizerwin_activate(!aud_cfg->equalizer_active);
+}
+
+static void
+update_from_config(void *unused1, void *unused2)
+{
+    gint i;
+
+    ui_skinned_button_set_inside(equalizerwin_on, aud_cfg->equalizer_active);
+    ui_skinned_equalizer_slider_set_position(equalizerwin_preamp, aud_cfg->equalizer_preamp);
+    for (i = 0; i < AUD_EQUALIZER_NBANDS; i++)
+        ui_skinned_equalizer_slider_set_position(equalizerwin_bands[i], aud_cfg->equalizer_bands[i]);
+    ui_skinned_equalizer_graph_update(equalizerwin_graph);
 }
 
 static void
@@ -276,7 +290,7 @@ static gboolean equalizerwin_delete(GtkWidget *widget, void *data)
     if (config.show_wm_decorations)
         equalizerwin_show(FALSE);
     else
-        audacious_drct_quit();
+        aud_drct_quit();
 
     return TRUE;
 }
@@ -488,6 +502,8 @@ equalizerwin_create(void)
 
     equalizerwin_create_widgets();
 
+    hook_associate("equalizer changed", (HookFunction) update_from_config, NULL);
+
     gtk_widget_show_all (((SkinnedWindow *) equalizerwin)->normal);
     gtk_widget_show_all (((SkinnedWindow *) equalizerwin)->shaded);
 }
@@ -683,7 +699,7 @@ equalizerwin_read_winamp_eqf(VFSFile * file)
 
 static gboolean equalizerwin_read_aud_preset (const gchar * file)
 {
-    EqualizerPreset * preset = aud_equalizer_read_aud_preset (file);
+    EqualizerPreset * preset = aud_load_preset_file (file);
 
     if (preset == NULL)
         return FALSE;
@@ -842,7 +858,7 @@ open_vfs_file(const gchar *filename, const gchar *mode)
     VFSFile *file;
     GtkWidget *dialog;
 
-    if (!(file = aud_vfs_fopen(filename, mode))) {
+    if (!(file = vfs_fopen(filename, mode))) {
         dialog = gtk_message_dialog_new (GTK_WINDOW (mainwin),
                                          GTK_DIALOG_DESTROY_WITH_PARENT,
                                          GTK_MESSAGE_ERROR,
@@ -865,7 +881,7 @@ load_winamp_file(const gchar * filename)
         return;
 
     equalizerwin_read_winamp_eqf(file);
-    aud_vfs_fclose(file);
+    vfs_fclose(file);
 }
 
 static void
@@ -881,7 +897,7 @@ import_winamp_file(const gchar * filename)
     equalizer_presets = g_list_concat(equalizer_presets, list);
     aud_equalizer_write_preset_file(equalizer_presets, "eq.preset");
 
-    aud_vfs_fclose(file);
+    vfs_fclose(file);
 }
 
 static void
@@ -896,19 +912,19 @@ save_winamp_file(const gchar * filename)
     if (!(file = open_vfs_file(filename, "wb")))
         return;
 
-    aud_vfs_fwrite("Winamp EQ library file v1.1\x1a!--", 1, 31, file);
+    vfs_fwrite("Winamp EQ library file v1.1\x1a!--", 1, 31, file);
 
     memset(name, 0, 257);
     g_strlcpy(name, "Entry1", 257);
-    aud_vfs_fwrite(name, 1, 257, file);
+    vfs_fwrite(name, 1, 257, file);
 
     for (i = 0; i < AUD_EQUALIZER_NBANDS; i++)
         bands[i] = 63 - (((equalizerwin_get_band(i) + EQUALIZER_MAX_GAIN) * 63) / EQUALIZER_MAX_GAIN / 2);
 
     bands[AUD_EQUALIZER_NBANDS] = 63 - (((equalizerwin_get_preamp() + EQUALIZER_MAX_GAIN) * 63) / EQUALIZER_MAX_GAIN / 2);
 
-    aud_vfs_fwrite(bands, 1, 11, file);
-    aud_vfs_fclose(file);
+    vfs_fwrite(bands, 1, 11, file);
+    vfs_fclose(file);
 }
 
 static GtkWidget *
@@ -1184,7 +1200,7 @@ action_equ_save_auto_preset(void)
                                         G_CALLBACK(equalizerwin_save_auto_ok),
                                         G_CALLBACK(equalizerwin_save_auto_select));
 
-    name = audacious_drct_pl_get_file (audacious_drct_pl_get_pos ());
+    name = aud_drct_pl_get_file (aud_drct_pl_get_pos ());
 
     if (name != NULL)
     {
@@ -1223,7 +1239,7 @@ action_equ_save_preset_file(void)
         g_free(file_uri);
     }
 
-    songname = audacious_drct_pl_get_file (audacious_drct_pl_get_pos ());
+    songname = aud_drct_pl_get_file (aud_drct_pl_get_pos ());
 
     if (songname != NULL)
     {
@@ -1351,14 +1367,18 @@ static void position_cb (void * data, void * user_data)
 
 void eq_init_hooks (void)
 {
+    gint playlist = aud_playlist_get_playing ();
+
     /* Load preset for the first song. FIXME: Doing this at interface load is
      really too late as the song may already be started. Really, this stuff
      shouldn't be in the interface plugin at all but in core. -jlindgren */
-    position_cb (GINT_TO_POINTER (aud_playlist_get_playing ()), NULL);
-    aud_hook_associate ("playlist position", position_cb, NULL);
+    if (playlist != -1)
+        position_cb (GINT_TO_POINTER (playlist), NULL);
+
+    hook_associate ("playlist position", position_cb, NULL);
 }
 
 void eq_end_hooks (void)
 {
-    aud_hook_dissociate ("playlist position", position_cb);
+    hook_dissociate ("playlist position", position_cb);
 }

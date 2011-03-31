@@ -11,16 +11,21 @@ LOCALES = ca.po \
 	  cs.po \
 	  cy.po \
 	  de.po \
+	  es.po \
 	  et.po \
 	  eu.po \
 	  fr.po \
+	  hu.po \
 	  ja.po \
 	  lv.po \
+	  pl.po \
 	  ro.po \
 	  ru.po \
 	  sk.po \
-	  tr.po
+	  tr.po \
+	  zh_CN.po
 
+include ../extra.mk
 include ../buildsys.mk
 
 POTTEMPLATE=$(PACKAGE).pot
@@ -29,6 +34,7 @@ update-pot:
 	@echo Updating $(POTTEMPLATE) ...
 	xgettext --default-domain=$(PACKAGE) --language=C \
 	--keyword=_ --keyword=N_ --from-code="utf-8" \
+	--msgid-bugs-address="http://jira.atheme.org/" \
 	--directory=.. --files-from=POTFILES.in -o $(POTTEMPLATE)
 
 update-po: update-pot

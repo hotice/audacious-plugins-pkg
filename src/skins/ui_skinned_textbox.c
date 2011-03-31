@@ -24,11 +24,13 @@
  * Audacious or using our public API to be a derived work.
  */
 
+#include <string.h>
+
+#include <libaudcore/audstrings.h>
+
 #include "ui_skinned_textbox.h"
 #include "skins_cfg.h"
 #include "plugin.h"
-#include <string.h>
-
 #include "util.h"
 
 #define UI_SKINNED_TEXTBOX_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), ui_skinned_textbox_get_type(), UiSkinnedTextboxPrivate))
@@ -206,6 +208,13 @@ static void ui_skinned_textbox_destroy(GtkObject *object) {
         g_source_remove(priv->scroll_timeout);
         priv->scroll_timeout = 0;
     }
+
+    g_free (textbox->text);
+    textbox->text = NULL;
+    g_free (priv->pixbuf_text);
+    priv->pixbuf_text = NULL;
+    g_free (priv->fontname);
+    priv->fontname = NULL;
 
     if (GTK_OBJECT_CLASS (parent_class)->destroy)
         (* GTK_OBJECT_CLASS (parent_class)->destroy) (object);
@@ -508,6 +517,7 @@ void ui_skinned_textbox_set_xfont(GtkWidget *widget, gboolean use_xfont, const g
         return;
 
     priv->font = pango_font_description_from_string(fontname);
+    g_free (priv->fontname);
     priv->fontname = g_strdup(fontname);
 
     text_get_extents(fontname,
@@ -531,7 +541,7 @@ void ui_skinned_textbox_set_text(GtkWidget *widget, const gchar *text) {
     if (textbox->text)
         g_free(textbox->text);
 
-    textbox->text = aud_str_to_utf8(text);
+    textbox->text = str_to_utf8(text);
     priv->scroll_back = FALSE;
 
     if (widget_really_drawable (widget))

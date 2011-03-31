@@ -23,6 +23,7 @@
 void action_playlist_load_list(void);
 void action_playlist_save_list(void);
 void action_playlist_save_default_list(void);
+void action_playlist_save_all_playlists(void);
 void action_playlist_refresh_list(void);
 void action_open_list_manager(void);
 
@@ -45,30 +46,22 @@ void action_playlist_remove_all(void);
 void action_playlist_remove_selected(void);
 void action_playlist_remove_unselected(void);
 
-/* void action_playlist_add_cd(void); - this is no longer needed, as the respective menu entry is added from within the cdaudio plugin */
+void action_playlist_copy(void);
+void action_playlist_cut(void);
+void action_playlist_paste(void);
+
 void action_playlist_add_url(void);
 void action_playlist_add_files(void);
 
-void action_playlist_randomize_list(void);
-void action_playlist_reverse_list(void);
-
-void action_playlist_sort_by_title(void);
-void action_playlist_sort_by_album(void);
-void action_playlist_sort_by_artist(void);
-void action_playlist_sort_by_filename(void);
-void action_playlist_sort_by_full_path(void);
-void action_playlist_sort_by_date(void);
-void action_playlist_sort_by_track_number(void);
-
-void action_playlist_sort_selected_by_title(void);
-void action_playlist_sort_selected_by_album(void);
-void action_playlist_sort_selected_by_artist(void);
-void action_playlist_sort_selected_by_filename(void);
-void action_playlist_sort_selected_by_full_path(void);
-void action_playlist_sort_selected_by_date(void);
-void action_playlist_sort_selected_by_track_number(void);
-
 void action_playlist_track_info(void);
 void action_queue_toggle(void);
+
+void playlist_sort_track (void);
+void playlist_sort_title (void);
+void playlist_sort_artist (void);
+void playlist_sort_album (void);
+void playlist_sort_path (void);
+void playlist_reverse (void);
+void playlist_randomize (void);
 
 #endif /* AUDACIOUS_ACTIONS_PLAYLIST_H */

@@ -1,5 +1,5 @@
 /*  Audacious - Cross-platform multimedia player
- *  Copyright (C) 2005-2009  Audacious development team.
+ *  Copyright (C) 2005-2010  Audacious development team.
  *
  *  BMP - Cross-platform multimedia player
  *  Copyright (C) 2003-2004  BMP development team.
@@ -47,11 +47,21 @@
 #include <regex.h>
 #endif
 
-#include <audacious/plugin.h>
+#include <audacious/audconfig.h>
+#include <audacious/drct.h>
+#include <audacious/misc.h>
+#include <audacious/playlist.h>
+#include <libaudcore/audstrings.h>
+#include <libaudcore/hook.h>
 #include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
+
 #include "ui_gtk.h"
-#include "../skins/ui_playlist_manager.h"
 #include "util.h"
+#include "playlist_util.h"
+#include "gtkui_cfg.h"
+#include "ui_infoarea.h"
+#include "ui_statusbar.h"
 
 static GtkWidget *mainwin_jtt = NULL;
 
@@ -73,12 +83,81 @@ void action_playback_repeat(GtkToggleAction * action)
 void action_playback_shuffle(GtkToggleAction * action)
 {
     aud_cfg->shuffle = gtk_toggle_action_get_active(action);
-    aud_playlist_set_shuffle(aud_cfg->shuffle);
 }
 
-void action_stop_after_current_song(GtkToggleAction * action)
+void action_stop_after_current_song (GtkToggleAction * action)
 {
-    aud_cfg->stopaftersong = gtk_toggle_action_get_active(action);
+    gboolean active = gtk_toggle_action_get_active (action);
+
+    if (active != aud_cfg->stopaftersong)
+    {
+        aud_cfg->stopaftersong = active;
+        hook_call ("toggle stop after song", NULL);
+    }
+}
+
+void action_view_playlist(GtkToggleAction *action)
+{
+    config.playlist_visible = gtk_toggle_action_get_active (action);
+    setup_panes ();
+}
+
+void action_view_infoarea(GtkToggleAction *action)
+{
+    config.infoarea_visible = gtk_toggle_action_get_active (action);
+
+    if (config.infoarea_visible && ! infoarea)
+    {
+        infoarea = ui_infoarea_new ();
+        gtk_box_pack_end ((GtkBox *) vbox, infoarea, FALSE, FALSE, 0);
+        gtk_box_reorder_child(GTK_BOX(vbox), infoarea, -1);
+
+        gtk_widget_show (infoarea);
+    }
+
+    if (! config.infoarea_visible && infoarea)
+    {
+        gtk_widget_destroy (infoarea);
+        infoarea = NULL;
+    }
+
+    setup_panes ();
+}
+
+void action_view_menu(GtkToggleAction *action)
+{
+    config.menu_visible = gtk_toggle_action_get_active (action);
+
+    if (config.menu_visible)
+        gtk_widget_show (menu);
+    else
+        gtk_widget_hide (menu);
+
+    setup_panes ();
+}
+
+void action_view_statusbar(GtkToggleAction *action)
+{
+    config.statusbar_visible = gtk_toggle_action_get_active(action);
+
+    if (config.statusbar_visible && !statusbar)
+    {
+        statusbar = ui_statusbar_new();
+        gtk_box_pack_end(GTK_BOX(vbox), statusbar, FALSE, FALSE, 3);
+
+        if (infoarea != NULL)
+            gtk_box_reorder_child(GTK_BOX(vbox), infoarea, -1);
+
+        gtk_widget_show_all(statusbar);
+    }
+
+    if (!config.statusbar_visible && statusbar)
+    {
+        gtk_widget_destroy(statusbar);
+        statusbar = NULL;
+    }
+
+    setup_panes();
 }
 
 /* actionentries actions */
@@ -95,29 +174,29 @@ void action_play_file(void)
 
 void action_play_location(void)
 {
-    audgui_show_add_url_window();
+    audgui_show_add_url_window (TRUE);
 }
 
 void action_ab_set(void)
 {
-    if (audacious_drct_get_length() > 0)
+    if (aud_drct_get_length() > 0)
     {
         if (ab_position_a == -1)
         {
-            ab_position_a = audacious_drct_get_time();
+            ab_position_a = aud_drct_get_time();
             ab_position_b = -1;
             /* info-text: Loop-Point A position set */
         }
         else if (ab_position_b == -1)
         {
-            int time = audacious_drct_get_time();
+            int time = aud_drct_get_time();
             if (time > ab_position_a)
                 ab_position_b = time;
             /* release info text */
         }
         else
         {
-            ab_position_a = audacious_drct_get_time();
+            ab_position_a = aud_drct_get_time();
             ab_position_b = -1;
             /* info-text: Loop-Point A position reset */
         }
@@ -133,7 +212,7 @@ void action_ab_clear(void)
 
 void action_current_track_info(void)
 {
-    aud_fileinfo_show_current();
+    audgui_infowin_show_current();
 }
 
 void action_jump_to_file(void)
@@ -143,7 +222,7 @@ void action_jump_to_file(void)
 
 void action_jump_to_playlist_start(void)
 {
-    audacious_drct_pl_set_pos(0);
+    aud_drct_pl_set_pos(0);
 }
 
 static void mainwin_jump_to_time_cb(GtkWidget * widget, GtkWidget * entry)
@@ -152,6 +231,7 @@ static void mainwin_jump_to_time_cb(GtkWidget * widget, GtkWidget * entry)
     gint time;
 
     params = sscanf(gtk_entry_get_text(GTK_ENTRY(entry)), "%u:%u", &min, &sec);
+
     if (params == 2)
         time = (min * 60) + sec;
     else if (params == 1)
@@ -159,7 +239,7 @@ static void mainwin_jump_to_time_cb(GtkWidget * widget, GtkWidget * entry)
     else
         return;
 
-    audacious_drct_seek(time);
+    aud_drct_seek (1000 * time);
     gtk_widget_destroy(mainwin_jtt);
 }
 
@@ -172,7 +252,7 @@ void mainwin_jump_to_time(void)
     guint tindex;
     gchar time_str[10];
 
-    if (!audacious_drct_get_playing())
+    if (!aud_drct_get_playing())
     {
         dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, _("Can't jump to time when no track is being played.\n"));
         gtk_dialog_run(GTK_DIALOG(dialog));
@@ -241,7 +321,7 @@ void mainwin_jump_to_time(void)
     gtk_container_add(GTK_CONTAINER(bbox), jump);
     g_signal_connect(jump, "clicked", G_CALLBACK(mainwin_jump_to_time_cb), time_entry);
 
-    tindex = audacious_drct_get_time() / 1000;
+    tindex = aud_drct_get_time() / 1000;
     g_snprintf(time_str, sizeof(time_str), "%u:%2.2u", tindex / 60, tindex % 60);
     gtk_entry_set_text(GTK_ENTRY(time_entry), time_str);
 
@@ -260,32 +340,35 @@ void action_jump_to_time(void)
 
 void action_playback_next(void)
 {
-    audacious_drct_pl_next();
+    aud_drct_pl_next();
 }
 
 void action_playback_previous(void)
 {
-    audacious_drct_pl_prev();
+    aud_drct_pl_prev();
 }
 
 void action_playback_play(void)
 {
     if (ab_position_a != -1)
-        audacious_drct_seek(ab_position_a);
-    else if (audacious_drct_get_paused())
-        audacious_drct_pause();
+        aud_drct_seek(ab_position_a);
+    else if (aud_drct_get_playing () && aud_drct_get_paused ())
+        aud_drct_pause();
     else
-        audacious_drct_play();
+    {
+        aud_playlist_set_playing (aud_playlist_get_active ());
+        aud_drct_play();
+    }
 }
 
 void action_playback_pause(void)
 {
-    audacious_drct_pause();
+    aud_drct_pause();
 }
 
 void action_playback_stop(void)
 {
-    audacious_drct_stop();
+    aud_drct_stop();
 }
 
 void action_preferences(void)
@@ -295,7 +378,7 @@ void action_preferences(void)
 
 void action_quit(void)
 {
-    audacious_drct_quit();
+    aud_drct_quit();
 }
 
 void action_playlist_track_info(void)
@@ -303,7 +386,7 @@ void action_playlist_track_info(void)
     gint playlist = aud_playlist_get_active();
 
     if (aud_playlist_selected_count(playlist) == 0)
-        aud_fileinfo_show_current();
+        audgui_infowin_show_current ();
     else
     {
         gint entries = aud_playlist_entry_count(playlist);
@@ -315,99 +398,23 @@ void action_playlist_track_info(void)
                 break;
         }
 
-        aud_fileinfo_show(playlist, count);
+        audgui_infowin_show (playlist, count);
     }
 }
 
 void action_queue_toggle(void)
 {
-    gint playlist = aud_playlist_get_active();
-    gint queued = aud_playlist_queue_count(playlist);
+    gint playlist = aud_playlist_get_active ();
+    gint focus = treeview_get_focus (playlist_get_treeview (playlist));
+    gint at;
 
-    if (queued == 0)
-        aud_playlist_queue_insert_selected(playlist, 0);
+    if (focus < 0)
+        return;
+
+    if ((at = aud_playlist_queue_find_entry (playlist, focus)) < 0)
+        aud_playlist_queue_insert (playlist, -1, focus);
     else
-        aud_playlist_queue_delete(playlist, 0, queued);
-}
-
-void action_playlist_sort_by_track_number(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_TRACK);
-}
-
-void action_playlist_sort_by_title(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_TITLE);
-}
-
-void action_playlist_sort_by_album(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_ALBUM);
-}
-
-void action_playlist_sort_by_artist(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_ARTIST);
-}
-
-void action_playlist_sort_by_full_path(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_PATH);
-}
-
-void action_playlist_sort_by_date(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_DATE);
-}
-
-void action_playlist_sort_by_filename(void)
-{
-    aud_playlist_sort_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_FILENAME);
-}
-
-void action_playlist_sort_selected_by_track_number(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_TRACK);
-}
-
-void action_playlist_sort_selected_by_title(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_TITLE);
-}
-
-void action_playlist_sort_selected_by_album(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_ALBUM);
-}
-
-void action_playlist_sort_selected_by_artist(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_ARTIST);
-}
-
-void action_playlist_sort_selected_by_full_path(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_PATH);
-}
-
-void action_playlist_sort_selected_by_date(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_DATE);
-}
-
-void action_playlist_sort_selected_by_filename(void)
-{
-    aud_playlist_sort_selected_by_scheme(aud_playlist_get_active(), PLAYLIST_SORT_FILENAME);
-}
-
-void action_playlist_randomize_list(void)
-{
-    aud_playlist_randomize(aud_playlist_get_active());
-}
-
-void action_playlist_reverse_list(void)
-{
-    aud_playlist_reverse(aud_playlist_get_active());
+        aud_playlist_queue_delete (playlist, at, 1);
 }
 
 void action_playlist_clear_queue(void)
@@ -443,9 +450,9 @@ void action_playlist_remove_all(void)
     aud_playlist_entry_delete(playlist, 0, aud_playlist_entry_count(playlist));
 }
 
-void action_playlist_remove_selected(void)
+void action_playlist_remove_selected (GtkAction * act)
 {
-    aud_playlist_delete_selected(aud_playlist_get_active());
+    treeview_remove_selected (playlist_get_treeview (aud_playlist_get_active ()));
 }
 
 void action_playlist_remove_unselected(void)
@@ -468,7 +475,7 @@ void action_playlist_add_files(void)
 
 void action_playlist_add_url(void)
 {
-    audgui_show_add_url_window();
+    audgui_show_add_url_window (FALSE);
 }
 
 void action_playlist_new(void)
@@ -479,70 +486,35 @@ void action_playlist_new(void)
     aud_playlist_set_active(playlist);
 }
 
-void action_playlist_prev(void)
+void action_playlist_prev (void)
 {
-    aud_playlist_set_active(aud_playlist_get_active() - 1);
+    if (aud_playlist_get_active ())
+        aud_playlist_set_active (aud_playlist_get_active () - 1);
+    else
+        aud_playlist_set_active (aud_playlist_count () - 1);
 }
 
-void action_playlist_next(void)
+void action_playlist_next (void)
 {
-    aud_playlist_set_active(aud_playlist_get_active() + 1);
+    aud_playlist_set_active ((aud_playlist_get_active () + 1) %
+     aud_playlist_count ());
 }
 
 void action_playlist_delete(void)
 {
-    aud_playlist_delete(aud_playlist_get_active());
+    audgui_confirm_playlist_delete (aud_playlist_get_active ());
 }
-
-#if 0
-static void on_static_toggle(GtkToggleButton * button, gpointer data)
-{
-    Playlist *playlist = aud_playlist_get_active();
-
-    playlist->attribute = gtk_toggle_button_get_active(button) ? playlist->attribute | PLAYLIST_STATIC : playlist->attribute & ~PLAYLIST_STATIC;
-}
-
-static void on_relative_toggle(GtkToggleButton * button, gpointer data)
-{
-    Playlist *playlist = aud_playlist_get_active();
-
-    playlist->attribute = gtk_toggle_button_get_active(button) ? playlist->attribute | PLAYLIST_USE_RELATIVE : playlist->attribute & ~PLAYLIST_USE_RELATIVE;
-}
-#endif
 
 static gchar *playlist_file_selection_save(const gchar * title, const gchar * default_filename)
 {
     GtkWidget *dialog;
     gchar *filename;
-#if 0
-    GtkWidget *hbox;
-    GtkWidget *toggle, *toggle2;
-#endif
 
     g_return_val_if_fail(title != NULL, NULL);
 
     dialog = make_filebrowser(title, TRUE);
     gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), aud_cfg->playlist_path);
     gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(dialog), default_filename);
-
-#if 0
-    hbox = gtk_hbox_new(FALSE, 5);
-
-    /* static playlist */
-    toggle = gtk_check_button_new_with_label(_("Save as Static Playlist"));
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle), (aud_playlist_get_active()->attribute & PLAYLIST_STATIC) ? TRUE : FALSE);
-    g_signal_connect(G_OBJECT(toggle), "toggled", G_CALLBACK(on_static_toggle), dialog);
-    gtk_box_pack_start(GTK_BOX(hbox), toggle, FALSE, FALSE, 0);
-
-    /* use relative path */
-    toggle2 = gtk_check_button_new_with_label(_("Use Relative Path"));
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(toggle2), (aud_playlist_get_active()->attribute & PLAYLIST_USE_RELATIVE) ? TRUE : FALSE);
-    g_signal_connect(G_OBJECT(toggle2), "toggled", G_CALLBACK(on_relative_toggle), dialog);
-    gtk_box_pack_start(GTK_BOX(hbox), toggle2, FALSE, FALSE, 0);
-
-    gtk_widget_show_all(hbox);
-    gtk_file_chooser_set_extra_widget(GTK_FILE_CHOOSER(dialog), hbox);
-#endif
 
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT)
         filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
@@ -584,35 +556,9 @@ static gboolean show_playlist_overwrite_prompt(GtkWindow * parent, const gchar *
     return (result == GTK_RESPONSE_YES);
 }
 
-static void show_playlist_save_format_error(GtkWindow * parent, const gchar * filename)
-{
-    const gchar *markup = N_("<b><big>Unable to save playlist.</big></b>\n\n" "Unknown file type for '%s'.\n");
-
-    GtkWidget *dialog;
-
-    g_return_if_fail(GTK_IS_WINDOW(parent));
-    g_return_if_fail(filename != NULL);
-
-    dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(parent), GTK_DIALOG_DESTROY_WITH_PARENT, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, _(markup), filename);
-
-    gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);    /* centering */
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
-}
-
 static void playlistwin_save_playlist(const gchar * filename)
 {
-    PlaylistContainer *plc;
-    gchar *ext = strrchr(filename, '.') + 1;
-
-    plc = aud_playlist_container_find(ext);
-    if (plc == NULL)
-    {
-        show_playlist_save_format_error(NULL, filename);
-        return;
-    }
-
-    aud_str_replace_in(&aud_cfg->playlist_path, g_path_get_dirname(filename));
+    str_replace_in(&aud_cfg->playlist_path, g_path_get_dirname(filename));
 
     if (g_file_test(filename, G_FILE_TEST_IS_REGULAR))
         if (!show_playlist_overwrite_prompt(NULL, filename))
@@ -627,7 +573,8 @@ void action_playlist_save_list(void)
     const gchar *default_filename = aud_playlist_get_filename(aud_playlist_get_active());
 
     gchar *dot = NULL, *basename = NULL;
-    gchar *filename = playlist_file_selection_save(_("Save Playlist"), default_filename);
+    gchar * filename = playlist_file_selection_save (_("Export Playlist"),
+     default_filename);
 
     if (filename)
     {
@@ -637,11 +584,8 @@ void action_playlist_save_list(void)
         if (dot == NULL || dot == basename)
         {
             gchar *oldname = filename;
-#ifdef HAVE_XSPF_PLAYLIST
             filename = g_strconcat(oldname, ".xspf", NULL);
-#else
-            filename = g_strconcat(oldname, ".m3u", NULL);
-#endif
+
             g_free(oldname);
         }
         g_free(basename);
@@ -666,7 +610,7 @@ static void playlistwin_load_playlist(const gchar * filename)
 
     g_return_if_fail(filename != NULL);
 
-    aud_str_replace_in(&aud_cfg->playlist_path, g_path_get_dirname(filename));
+    str_replace_in(&aud_cfg->playlist_path, g_path_get_dirname(filename));
 
     aud_playlist_entry_delete(playlist, 0, aud_playlist_entry_count(playlist));
     aud_playlist_insert_playlist(playlist, 0, filename);
@@ -701,7 +645,8 @@ static gchar *playlist_file_selection_load(const gchar * title, const gchar * de
 void action_playlist_load_list(void)
 {
     const gchar *default_filename = aud_playlist_get_filename(aud_playlist_get_active());
-    gchar *filename = playlist_file_selection_load(_("Load Playlist"), default_filename);
+    gchar * filename = playlist_file_selection_load (_("Import Playlist"),
+     default_filename);
 
     if (filename)
     {
@@ -717,7 +662,7 @@ void action_playlist_refresh_list(void)
 
 void action_open_list_manager(void)
 {
-    playlist_manager_ui_show();
+    audgui_playlist_manager_ui_show(window);
 }
 
 void action_playlist_search_and_select(void)
@@ -732,10 +677,98 @@ void action_playlist_invert_selection(void)
 
 void action_playlist_select_none(void)
 {
-    g_message("implement me");
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(playlist_get_active_treeview());
+
+    gtk_widget_grab_focus(GTK_WIDGET(playlist_get_active_treeview()));
+    gtk_tree_selection_unselect_all(selection);
 }
 
 void action_playlist_select_all(void)
 {
-    g_message("implement me");
+    GtkTreeSelection *selection = gtk_tree_view_get_selection(playlist_get_active_treeview());
+
+    gtk_widget_grab_focus(GTK_WIDGET(playlist_get_active_treeview()));
+    gtk_tree_selection_select_all(selection);
+}
+
+void action_playlist_save_all_playlists(void)
+{
+    aud_save_playlists();
+}
+
+void action_playlist_copy(void)
+{
+    GtkClipboard *clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    gchar *list = audgui_urilist_create_from_selected (aud_playlist_get_active());
+
+    if (list == NULL)
+        return;
+
+    gtk_clipboard_set_text(clip, list, -1);
+    g_free(list);
+}
+
+void action_playlist_cut(void)
+{
+    action_playlist_copy();
+    action_playlist_remove_selected(NULL);
+}
+
+void action_playlist_paste(void)
+{
+    GtkClipboard *clip = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+    gchar *list = gtk_clipboard_wait_for_text(clip);
+    GtkTreeView * tree = playlist_get_treeview (aud_playlist_get_active ());
+
+    if (list == NULL)
+        return;
+
+    treeview_add_urilist (tree, treeview_get_focus (tree), list);
+    g_free (list);
+}
+
+static void playlist_sort_scheme (gint scheme)
+{
+    gint list = aud_playlist_get_active ();
+    aud_playlist_sort_by_scheme (list, scheme);
+    treeview_refresh_selection (playlist_get_treeview (list));
+}
+
+void playlist_sort_track (void)
+{
+    playlist_sort_scheme (PLAYLIST_SORT_TRACK);
+}
+
+void playlist_sort_title (void)
+{
+    playlist_sort_scheme (PLAYLIST_SORT_TITLE);
+}
+
+void playlist_sort_artist (void)
+{
+    playlist_sort_scheme (PLAYLIST_SORT_ARTIST);
+}
+
+void playlist_sort_album (void)
+{
+    playlist_sort_scheme (PLAYLIST_SORT_ALBUM);
+}
+
+void playlist_sort_path (void)
+{
+    playlist_sort_scheme (PLAYLIST_SORT_PATH);
+}
+
+void playlist_reverse (void)
+{
+    gint list = aud_playlist_get_active ();
+    aud_playlist_reverse (list);
+    treeview_refresh_selection (playlist_get_treeview (list));
+}
+
+void playlist_randomize (void)
+{
+    gint list = aud_playlist_get_active ();
+    aud_playlist_randomize (list);
+    treeview_refresh_selection (playlist_get_treeview (list));
 }

@@ -21,36 +21,18 @@
 
 #include <libavutil/avstring.h>
 
-static int audvfs_open(URLContext *h, const char *filename, int flags)
-{
-    VFSFile *file;
-
-    av_strstart(filename, "audvfs:", &filename);
-
-    if (flags & URL_WRONLY) {
-	file = aud_vfs_fopen(filename, "wb");
-    } else {
-	file = aud_vfs_fopen(filename, "rb");
-    }
-
-    if (file == NULL)
-        return -ENOENT;
-    h->priv_data = file;
-    return 0;
-}
-
 static int audvfs_read(URLContext *h, unsigned char *buf, int size)
 {
     VFSFile *file;
     file = h->priv_data;
-    return aud_vfs_fread(buf, 1, size, file);
+    return vfs_fread(buf, 1, size, file);
 }
 
-static int audvfs_write(URLContext *h, unsigned char *buf, int size)
+static int audvfs_write(URLContext *h, const unsigned char *buf, int size)
 {
     VFSFile *file;
     file = h->priv_data;
-    return aud_vfs_fwrite(buf, 1, size, file);
+    return vfs_fwrite(buf, 1, size, file);
 }
 
 /* XXX: use llseek */
@@ -59,7 +41,7 @@ static int64_t audvfs_seek(URLContext *h, int64_t pos, int whence)
     int64_t res, siz;
     VFSFile *file;
     file = h->priv_data;
-    siz = aud_vfs_fsize(file);
+    siz = vfs_fsize(file);
 
     if (whence == AVSEEK_SIZE)
         return siz;
@@ -67,12 +49,12 @@ static int64_t audvfs_seek(URLContext *h, int64_t pos, int whence)
     if (whence == SEEK_SET && pos > siz)
         return AVERROR(EPIPE);
 
-    if (aud_vfs_fseek(file, pos, whence) == 0)
+    if (vfs_fseek(file, pos, whence) == 0)
     {
         if (whence == SEEK_SET)
             res = pos;
         else
-            res = aud_vfs_ftell(file);
+            res = vfs_ftell(file);
     } else
         res = AVERROR(EPIPE);
 
@@ -83,17 +65,8 @@ static int audvfs_close(URLContext *h)
 {
     VFSFile *file;
     file = h->priv_data;
-    return aud_vfs_fclose(file);
+    return vfs_fclose(file);
 }
-
-URLProtocol audvfs_protocol = {
-    .name = "audvfs",
-    .url_open = audvfs_open,
-    .url_read = audvfs_read,
-    .url_write = audvfs_write,
-    .url_seek = audvfs_seek,
-    .url_close = audvfs_close,
-};
 
 static int audvfsptr_open(URLContext *h, const char *filename, int flags)
 {
@@ -102,8 +75,8 @@ static int audvfsptr_open(URLContext *h, const char *filename, int flags)
     av_strstart(filename, "audvfsptr:", &filename);
 
     p = (VFSFile *) strtoul(filename, NULL, 16);
-    h->priv_data = aud_vfs_dup(p);
-    aud_vfs_rewind(p);
+    h->priv_data = vfs_dup(p);
+    vfs_rewind(p);
 
     return 0;
 }

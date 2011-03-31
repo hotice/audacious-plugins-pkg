@@ -18,7 +18,6 @@
 
 #include <glib.h>
 
-#include <audacious/plugin.h>
 #include <stdio.h>
 
 #include <unistd.h>
@@ -29,21 +28,23 @@
 #include <errno.h>
 
 #include <libmms/mms.h>
+#include <libmms/mmsh.h>
 
-/*
- * TODO:
- *   - mmsh:// support
- */
+#include <audacious/debug.h>
+#include <audacious/plugin.h>
 
 typedef struct {
     mms_t *mms;
+    mmsh_t *mmsh;
     GSList *charstack;
 } MMSHandle;
 
 VFSFile *
-mms_aud_vfs_fopen_impl(const gchar * path,
+mms_vfs_fopen_impl(const gchar * path,
           const gchar * mode)
 {
+    AUDDBG("Opening %s.\n", path);
+
     VFSFile *file;
     MMSHandle *handle;
 
@@ -63,6 +64,13 @@ mms_aud_vfs_fopen_impl(const gchar * path,
     handle->mms = mms_connect(NULL, NULL, path, 128 * 1024);
 
     if (handle->mms == NULL) {
+        AUDDBG("Failed to connect with MMS protocol; trying MMSH.\n");
+        handle->mmsh = mmsh_connect(NULL, NULL, path, 128 * 1024);
+    }
+
+    if (handle->mms == NULL && handle->mmsh == NULL)
+    {
+        fprintf(stderr, "mms: Failed to open %s.\n", path);
         g_free(handle);
         g_free(file);
         file = NULL;
@@ -72,7 +80,7 @@ mms_aud_vfs_fopen_impl(const gchar * path,
 }
 
 gint
-mms_aud_vfs_fclose_impl(VFSFile * file)
+mms_vfs_fclose_impl(VFSFile * file)
 {
     gint ret = 0;
 
@@ -83,7 +91,11 @@ mms_aud_vfs_fclose_impl(VFSFile * file)
     {
         MMSHandle *handle = (MMSHandle *) file->handle;
 
-        mms_close(handle->mms);
+        if (handle->mms != NULL)
+            mms_close(handle->mms);
+        else /* if (handle->mmsh != NULL) */
+            mmsh_close(handle->mmsh);
+
         g_free(handle);
         file->handle = NULL;
     }
@@ -91,21 +103,18 @@ mms_aud_vfs_fclose_impl(VFSFile * file)
     return ret;
 }
 
-size_t
-mms_aud_vfs_fread_impl(gpointer ptr,
-          size_t size,
-          size_t nmemb,
-          VFSFile * file)
+gint64 mms_vfs_fread_impl (void * ptr, gint64 size, gint64 nmemb, VFSFile *
+ file)
 {
     MMSHandle *handle;
     gint ret;
 
-    if (file == NULL)
-        return 0;
-
     handle = (MMSHandle *) file->handle;
 
-    ret = mms_read(NULL, handle->mms, ptr, size * nmemb);
+    if (handle->mms != NULL)
+        ret = mms_read(NULL, handle->mms, ptr, size * nmemb);
+    else /* if (handle->mmsh != NULL) */
+        ret = mmsh_read(NULL, handle->mmsh, ptr, size * nmemb);
 
     if (ret < 0)
     {
@@ -116,17 +125,14 @@ mms_aud_vfs_fread_impl(gpointer ptr,
     return ret;
 }
 
-size_t
-mms_aud_vfs_fwrite_impl(gconstpointer ptr,
-           size_t size,
-           size_t nmemb,
-           VFSFile * file)
+gint64 mms_vfs_fwrite_impl (const void * ptr, gint64 size, gint64 nmemb,
+ VFSFile * file)
 {
-    return -1;
+    return 0;
 }
 
 gint
-mms_aud_vfs_getc_impl(VFSFile *stream)
+mms_vfs_getc_impl(VFSFile *stream)
 {
     MMSHandle *handle = (MMSHandle *) stream->handle;
     guchar c;
@@ -139,7 +145,11 @@ mms_aud_vfs_getc_impl(VFSFile *stream)
     }
     else
     {
-        mms_read(NULL, handle->mms, (char *)&c, 1);
+        if (handle->mms != NULL)
+            mms_read(NULL, handle->mms, (char *)&c, 1);
+        else /* if (handle->mmsh != NULL) */
+            mmsh_read(NULL, handle->mmsh, (char *)&c, 1);
+
         return c;
     }
 
@@ -147,7 +157,7 @@ mms_aud_vfs_getc_impl(VFSFile *stream)
 }
 
 gint
-mms_aud_vfs_ungetc_impl(gint c, VFSFile *stream)
+mms_vfs_ungetc_impl(gint c, VFSFile *stream)
 {
     MMSHandle *handle = (MMSHandle *) stream->handle;
 
@@ -160,7 +170,7 @@ mms_aud_vfs_ungetc_impl(gint c, VFSFile *stream)
 }
 
 gint
-mms_aud_vfs_fseek_impl(VFSFile * file,
+mms_vfs_fseek_impl(VFSFile * file,
           glong offset,
           gint whence)
 {
@@ -168,65 +178,72 @@ mms_aud_vfs_fseek_impl(VFSFile * file,
 }
 
 void
-mms_aud_vfs_rewind_impl(VFSFile * file)
+mms_vfs_rewind_impl(VFSFile * file)
 {
     return;
 }
 
 glong
-mms_aud_vfs_ftell_impl(VFSFile * file)
+mms_vfs_ftell_impl(VFSFile * file)
 {
     MMSHandle *handle = (MMSHandle *) file->handle;
 
-    return mms_get_current_pos(handle->mms);
+    if (handle->mms != NULL)
+        return mms_get_current_pos(handle->mms);
+    else /* if (handle->mmsh != NULL) */
+        return mmsh_get_current_pos(handle->mmsh);
 }
 
 gboolean
-mms_aud_vfs_feof_impl(VFSFile * file)
+mms_vfs_feof_impl(VFSFile * file)
 {
     MMSHandle *handle = (MMSHandle *) file->handle;
 
-    return (gboolean) (mms_get_current_pos(handle->mms) ==
-		       mms_get_length(handle->mms));
+    if (handle->mms != NULL)
+        return (gboolean) (mms_get_current_pos(handle->mms) ==
+         mms_get_length(handle->mms));
+    else /* if (handle->mmsh != NULL) */
+        return (gboolean) (mmsh_get_current_pos(handle->mmsh) ==
+         mmsh_get_length(handle->mmsh));
 }
 
 gint
-mms_aud_vfs_truncate_impl(VFSFile * file, glong size)
+mms_vfs_truncate_impl(VFSFile * file, glong size)
 {
     return -1;
 }
 
 off_t
-mms_aud_vfs_fsize_impl(VFSFile * file)
+mms_vfs_fsize_impl(VFSFile * file)
 {
     return -1;
 }
 
 VFSConstructor mms_const = {
 	"mms://",
-	mms_aud_vfs_fopen_impl,
-	mms_aud_vfs_fclose_impl,
-	mms_aud_vfs_fread_impl,
-	mms_aud_vfs_fwrite_impl,
-	mms_aud_vfs_getc_impl,
-	mms_aud_vfs_ungetc_impl,
-	mms_aud_vfs_fseek_impl,
-	mms_aud_vfs_rewind_impl,
-	mms_aud_vfs_ftell_impl,
-	mms_aud_vfs_feof_impl,
-	mms_aud_vfs_truncate_impl,
-	mms_aud_vfs_fsize_impl
+	mms_vfs_fopen_impl,
+	mms_vfs_fclose_impl,
+	mms_vfs_fread_impl,
+	mms_vfs_fwrite_impl,
+	mms_vfs_getc_impl,
+	mms_vfs_ungetc_impl,
+	mms_vfs_fseek_impl,
+	mms_vfs_rewind_impl,
+	mms_vfs_ftell_impl,
+	mms_vfs_feof_impl,
+	mms_vfs_truncate_impl,
+	mms_vfs_fsize_impl
 };
 
 static void init(void)
 {
-	aud_vfs_register_transport(&mms_const);
+	vfs_register_transport(&mms_const);
 }
 
 static void cleanup(void)
 {
 #if 0
-	aud_vfs_unregister_transport(&mms_const);
+	vfs_unregister_transport(&mms_const);
 #endif
 }
 

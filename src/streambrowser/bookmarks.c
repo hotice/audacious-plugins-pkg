@@ -19,6 +19,8 @@
 
 #include <string.h>
 #include <glib.h>
+
+#include <audacious/debug.h>
 #include <audacious/plugin.h>
 
 #include "streambrowser.h"
@@ -50,7 +52,7 @@ gboolean bookmarks_category_fetch (streamdir_t * streamdir,
     for (i = 0; i < *bookmarks_count; i++)
         if (strcmp ((*bookmarks)[i].streamdir_name, category->name) == 0)
         {
-            AUDDBG("bookmarks: adding stream info for '%s/%d'\n",
+            AUDDBG("bookmarks: adding stream info for '%s/%s'\n",
                    streamdir->name, category->name);
 
             streaminfo_t *streaminfo = streaminfo_new ((*bookmarks)[i].name,

@@ -22,8 +22,12 @@
 #include "config.h"
 #include <glib.h>
 #include <gtk/gtk.h>
+
+#include <audacious/configdb.h>
 #include <audacious/plugin.h>
 #include <audacious/i18n.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
 static GTimer *timer;
 static gulong offset_time, written;
@@ -32,7 +36,7 @@ static gboolean real_time = TRUE;
 static gboolean paused, started;
 static GtkWidget *configurewin;
 static struct {
-	AFormat format;
+	gint format;
 	gint frequency;
 	gint channels;
 } input_format;
@@ -60,12 +64,9 @@ static void null_about(void)
 			           _(" by Christian Birchinger <joker@netswarm.net>\n"
 			             "based on the XMMS plugin by Håvard Kvål <havardk@xmms.org>"), NULL);
 
-	about = audacious_info_dialog(_("About Null Output"),
-				  about_text,
-				  _("Ok"), FALSE, NULL, NULL);
+	audgui_simple_message (& about, GTK_MESSAGE_INFO, _("About Null Output"),
+     about_text);
 
-	g_signal_connect(G_OBJECT(about), "destroy",
-			 G_CALLBACK(gtk_widget_destroyed), &about);
 	g_free(about_text);
 }
 
@@ -121,7 +122,7 @@ static void null_configure(void)
 	gtk_widget_show_all(configurewin);
 }
 
-static int null_open(AFormat fmt, int rate, int nch)
+static int null_open(gint fmt, int rate, int nch)
 {
 	offset_time = 0;
 	written = 0;

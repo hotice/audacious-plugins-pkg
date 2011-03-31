@@ -18,15 +18,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-//#define FFAUDIO_DEBUG       /* Enable generic debug output */
 #undef FFAUDIO_DOUBLECHECK  /* Doublecheck probing result for debugging purposes */
 #undef FFAUDIO_NO_BLACKLIST /* Don't blacklist any recognized codecs/formats */
-//#define FFAUDIO_USE_AUDTAG  /* Use Audacious tagging library */
+#define FFAUDIO_USE_AUDTAG  /* Use Audacious tagging library */
 
 #include "config.h"
 #include "ffaudio-stdinc.h"
 #include <audacious/i18n.h>
-#include <libaudtag/audtag.h>
+#include <audacious/debug.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
+#ifdef FFAUDIO_USE_AUDTAG
+#include <audacious/audtag.h>
+#endif
+
 /***********************************************************************************
  * Plugin glue.                                                                    *
  ***********************************************************************************/
@@ -34,7 +39,6 @@
 static GMutex *ctrl_mutex = NULL;
 static GCond *ctrl_cond = NULL;
 static gint64 seek_value = -1;
-static gboolean pause_flag;
 
 static void
 ffaudio_init(void)
@@ -42,13 +46,10 @@ ffaudio_init(void)
     avcodec_init();
     av_register_all();
 
-    _DEBUG("registering audvfs protocol");
-    av_register_protocol(&audvfs_protocol);
-
-    _DEBUG("registering audvfsptr protocol");
+    AUDDBG("registering audvfsptr protocol\n");
     av_register_protocol(&audvfsptr_protocol);
 
-    _DEBUG("creating seek mutex/cond");
+    AUDDBG("creating seek mutex/cond\n");
     ctrl_mutex = g_mutex_new();
     ctrl_cond = g_cond_new();
 
@@ -56,13 +57,13 @@ ffaudio_init(void)
     tag_init();
 #endif
 
-    _DEBUG("initialization completed");
+    AUDDBG("initialization completed\n");
 }
 
 static void
 ffaudio_cleanup(void)
 {
-    _DEBUG("cleaning up");
+    AUDDBG("cleaning up\n");
     g_mutex_free(ctrl_mutex);
     g_cond_free(ctrl_cond);
 }
@@ -77,7 +78,7 @@ ffaudio_codec_is_seekable(AVCodec *codec)
     switch (codec->id) {
 #ifndef FFAUDIO_NO_BLACKLIST
         case CODEC_ID_MUSEPACK8:
-            _DEBUG("codec is blacklisted from seeking");
+            AUDDBG("codec is blacklisted from seeking\n");
             return FALSE;
 #endif
         default:
@@ -94,15 +95,15 @@ ffaudio_probe(const gchar *filename, VFSFile *file)
     gint i, ret;
     gchar uribuf[64];
 
-    _DEBUG("probing for %s, filehandle %p", filename, file);
+    AUDDBG("probing for %s, filehandle %p\n", filename, file);
 
     g_snprintf(uribuf, sizeof(uribuf), "audvfsptr:%p", (void *) file);
     if ((ret = av_open_input_file(&ic, uribuf, NULL, 0, NULL)) < 0) {
-        _DEBUG("ic is NULL, ret %d/%s", ret, strerror(-ret));
+        AUDDBG("ic is NULL, ret %d/%s\n", ret, strerror(-ret));
         return 0;
     }
 
-    _DEBUG("file opened, %p", ic);
+    AUDDBG("file opened, %p\n", ic);
 
     for (i = 0; i < ic->nb_streams; i++)
     {
@@ -123,7 +124,7 @@ ffaudio_probe(const gchar *filename, VFSFile *file)
     }
 
 #ifdef FFAUDIO_DOUBLECHECK
-    _DEBUG("got codec %s, doublechecking", codec->name);
+    AUDDBG("got codec %s, doublechecking\n", codec->name);
 
     av_find_stream_info(ic);
 
@@ -136,7 +137,7 @@ ffaudio_probe(const gchar *filename, VFSFile *file)
     }
 #endif
 
-    _DEBUG("probe success for %s", codec->name);
+    AUDDBG("probe success for %s\n", codec->name);
     av_close_input_file(ic);
 
     return 1;
@@ -164,6 +165,7 @@ static const ffaudio_meta_t metaentries[] = {
 
 static const gint n_metaentries = sizeof(metaentries) / sizeof(metaentries[0]);
 
+#ifndef FFAUDIO_USE_AUDTAG
 static void
 ffaudio_get_meta(Tuple *tuple, AVFormatContext *ic, const ffaudio_meta_t *m)
 {
@@ -186,13 +188,13 @@ ffaudio_get_meta(Tuple *tuple, AVFormatContext *ic, const ffaudio_meta_t *m)
 
         switch (m->ttype) {
         case TUPLE_STRING:
-            tmp = aud_str_to_utf8(tag->value);
-            aud_tuple_associate_string(tuple, m->field, key_name, tmp);
+            tmp = str_to_utf8(tag->value);
+            tuple_associate_string(tuple, m->field, key_name, tmp);
             g_free(tmp);
             break;
 
         case TUPLE_INT:
-            aud_tuple_associate_int(tuple, m->field, key_name, atoi(tag->value));
+            tuple_associate_int(tuple, m->field, key_name, atoi(tag->value));
             break;
 
         default:
@@ -200,6 +202,7 @@ ffaudio_get_meta(Tuple *tuple, AVFormatContext *ic, const ffaudio_meta_t *m)
         }
     }
 }
+#endif
 
 static void
 ffaudio_get_tuple_data(Tuple *tuple, AVFormatContext *ic, AVCodecContext *c, AVCodec *codec)
@@ -212,40 +215,29 @@ ffaudio_get_tuple_data(Tuple *tuple, AVFormatContext *ic, AVCodecContext *c, AVC
             ffaudio_get_meta(tuple, ic, &metaentries[i]);
 #endif
 
-        aud_tuple_associate_int(tuple, FIELD_LENGTH, NULL, ic->duration / 1000);
-    }
-
-    if (c != NULL)
-    {
-        aud_tuple_associate_int(tuple, FIELD_BITRATE, NULL, c->bit_rate / 1000);
+        tuple_associate_int(tuple, FIELD_LENGTH, NULL, ic->duration / 1000);
+        tuple_associate_int(tuple, FIELD_BITRATE, NULL, ic->bit_rate / 1000);
     }
 
     if (codec != NULL && codec->long_name != NULL)
     {
-        aud_tuple_associate_string(tuple, FIELD_CODEC, NULL, codec->long_name);
+        tuple_associate_string(tuple, FIELD_CODEC, NULL, codec->long_name);
     }
 }
 
-static Tuple *
-ffaudio_get_song_tuple(const gchar *filename)
+static Tuple * read_tuple (const gchar * filename, VFSFile * file)
 {
-    Tuple *tuple = aud_tuple_new_from_filename(filename);
     AVCodec *codec = NULL;
     AVCodecContext *c = NULL;
     AVFormatContext *ic = NULL;
     AVStream *s = NULL;
-    gchar *uribuf;
     gint i;
 
-    if (tuple == NULL) return NULL;
+    gchar uribuf[64];
+    snprintf (uribuf, sizeof uribuf, "audvfsptr:%p", (void *) file);
 
-    uribuf = g_alloca(strlen(filename) + 8);
-    sprintf(uribuf, "audvfs:%s", filename);
     if (av_open_input_file(&ic, uribuf, NULL, 0, NULL) < 0)
-    {
-        tuple_free(tuple);
         return NULL;
-    }
 
     for (i = 0; i < ic->nb_streams; i++)
     {
@@ -260,31 +252,48 @@ ffaudio_get_song_tuple(const gchar *filename)
         }
     }
 
+    Tuple *tuple = tuple_new_from_filename(filename);
     ffaudio_get_tuple_data(tuple, ic, c, codec);
     av_close_input_file (ic);
-
-#ifdef FFAUDIO_USE_AUDTAG
-    VFSFile * fd = vfs_fopen(filename, "rb");
-    tuple = tag_tuple_read(tuple, fd);
-    vfs_fclose(fd);
-#endif
 
     return tuple;
 }
 
 #ifdef FFAUDIO_USE_AUDTAG
-gboolean
-ffaudio_update_song_tuple(Tuple *tuple, VFSFile *fd)
+static Tuple *
+ffaudio_probe_for_tuple(const gchar *filename, VFSFile *fd)
 {
-    tag_tuple_write_to_file(tuple, fd);
+    Tuple * t = read_tuple (filename, fd);
+    if (t == NULL)
+        return NULL;
 
-    return TRUE;
+    vfs_fseek(fd, 0, SEEK_SET);
+    tag_tuple_read(t, fd);
+
+    return t;
+}
+
+static gboolean ffaudio_write_tag (const Tuple * tuple, VFSFile * file)
+{
+    gchar *file_uri = g_ascii_strdown(file->uri, -4);
+
+    if (g_str_has_suffix(file_uri, ".ape"))
+    {
+        g_free(file_uri);
+        return tag_tuple_write(tuple, file, TAG_TYPE_APE);
+    }
+    g_free(file_uri);
+
+    return tag_tuple_write(tuple, file, TAG_TYPE_NONE);
 }
 #endif
 
-static void
-ffaudio_play_file(InputPlayback *playback)
+static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
+ VFSFile * file, gint start_time, gint stop_time, gboolean pause)
 {
+    if (file == NULL)
+        return FALSE;
+
     AVCodec *codec = NULL;
     AVCodecContext *c = NULL;
     AVFormatContext *ic = NULL;
@@ -295,18 +304,16 @@ ffaudio_play_file(InputPlayback *playback)
     gint in_sample_size, out_sample_size, chunk_size;
     ReSampleContext *resctx = NULL;
     gboolean codec_opened = FALSE, do_resampling = FALSE;
-    AFormat out_fmt;
-    gchar *uribuf;
+    gint out_fmt;
+#ifndef FFAUDIO_USE_AUDTAG
     Tuple *tuple;
-    gboolean paused = FALSE, seekable;
+#endif
+    gboolean seekable;
 
-    uribuf = g_alloca(strlen(playback->filename) + 8);
-    sprintf(uribuf, "audvfs:%s", playback->filename);
-
-    _DEBUG("opening %s", uribuf);
-
+    gchar uribuf[64];
+    snprintf (uribuf, sizeof uribuf, "audvfsptr:%p", (void *) file);
     if (av_open_input_file(&ic, uribuf, NULL, 0, NULL) < 0)
-       return;
+       return FALSE;
 
     for (i = 0; i < ic->nb_streams; i++)
     {
@@ -325,7 +332,7 @@ ffaudio_play_file(InputPlayback *playback)
     if (codec == NULL)
         goto error_exit;
 
-    _DEBUG("got codec %s for stream index %d, opening", codec->name, stream_id);
+    AUDDBG("got codec %s for stream index %d, opening\n", codec->name, stream_id);
 
     if (avcodec_open(c, codec) < 0)
         goto error_exit;
@@ -350,7 +357,7 @@ ffaudio_play_file(InputPlayback *playback)
         /* Initialize resampling context */
         out_fmt = FMT_S16_NE;
 
-        _DEBUG("resampling needed chn=%d, rate=%d, fmt=%d -> chn=%d, rate=%d, fmt=S16NE",
+        AUDDBG("resampling needed chn=%d, rate=%d, fmt=%d -> chn=%d, rate=%d, fmt=S16NE\n",
             c->channels, c->sample_rate, c->sample_fmt,
             c->channels, c->sample_rate);
 
@@ -365,7 +372,7 @@ ffaudio_play_file(InputPlayback *playback)
     }
 
     /* Open audio output */
-    _DEBUG("opening audio output");
+    AUDDBG("opening audio output\n");
 
     if (playback->output->open_audio(out_fmt, c->sample_rate, c->channels) <= 0)
     {
@@ -373,35 +380,36 @@ ffaudio_play_file(InputPlayback *playback)
         goto error_exit;
     }
 
+    playback->set_gain_from_playlist(playback);
+
     /* Allocate output buffer aligned to 16 byte boundary */
     outbuf = av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
     resbuf = av_malloc(AVCODEC_MAX_AUDIO_FRAME_SIZE);
 
-    _DEBUG("setting parameters");
-    tuple = aud_tuple_new_from_filename(playback->filename);
+    AUDDBG("setting parameters\n");
+#ifndef FFAUDIO_USE_AUDTAG
+    tuple = tuple_new_from_filename(playback->filename);
     ffaudio_get_tuple_data(tuple, ic, c, codec);
-#ifdef FFAUDIO_USE_AUDTAG
-    VFSFile * fd = vfs_fopen(playback->filename, "rb");
-    tuple = tag_tuple_read(tuple, fd);
-    vfs_fclose(fd);
-#endif
     playback->set_tuple(playback, tuple);
-    playback->set_params(playback, NULL, 0, c->bit_rate, c->sample_rate, c->channels);
+#endif
+
+    if (pause)
+        playback->output->pause(TRUE);
+
+    playback->set_params(playback, NULL, 0, ic->bit_rate, c->sample_rate, c->channels);
 
     g_mutex_lock(ctrl_mutex);
 
     playback->playing = TRUE;
-    seek_value = -1;
-    pause_flag = FALSE;
+    seek_value = (start_time > 0) ? start_time : -1;
     playback->set_pb_ready(playback);
     errcount = 0;
     seekable = ffaudio_codec_is_seekable(codec);
 
     g_mutex_unlock(ctrl_mutex);
 
-
-    /* ctrl_mutex is locked at loop entry */
-    while (playback->playing)
+    while (playback->playing && (stop_time < 0 ||
+     playback->output->written_time () < stop_time))
     {
         AVPacket tmp;
         gint ret;
@@ -410,29 +418,17 @@ ffaudio_play_file(InputPlayback *playback)
 
         if (seek_value >= 0 && seekable)
         {
-            playback->output->flush(seek_value * 1000);
-            if (av_seek_frame(ic, -1, seek_value * AV_TIME_BASE, AVSEEK_FLAG_ANY) < 0)
+            playback->output->flush (seek_value);
+            if (av_seek_frame (ic, -1, (gint64) seek_value * AV_TIME_BASE /
+             1000, AVSEEK_FLAG_ANY) < 0)
             {
-                _ERROR("error while seeking");
+                _ERROR("error while seeking\n");
             } else
                 errcount = 0;
         }
         seek_value = -1;
         g_cond_signal(ctrl_cond);
 
-        if (pause_flag != paused)
-        {
-            playback->output->pause(pause_flag);
-            paused = pause_flag;
-            g_cond_signal(ctrl_cond);
-        }
-
-        if (paused)
-        {
-            g_cond_wait(ctrl_cond, ctrl_mutex);
-            g_mutex_unlock(ctrl_mutex);
-            continue;
-        }
 
         g_mutex_unlock(ctrl_mutex);
 
@@ -441,14 +437,14 @@ ffaudio_play_file(InputPlayback *playback)
         {
             if (ret == AVERROR_EOF)
             {
-                _DEBUG("eof reached");
+                AUDDBG("eof reached\n");
                 break;
             }
             else
             {
                 if (++errcount > 4)
                 {
-                    _ERROR("av_read_frame error %d, giving up.", ret);
+                    _ERROR("av_read_frame error %d, giving up.\n", ret);
                     break;
                 } else
                     continue;
@@ -495,7 +491,7 @@ ffaudio_play_file(InputPlayback *playback)
 #endif
             if (len < 0)
             {
-                _DEBUG("codec failure, breaking out of loop");
+                AUDDBG("codec failure, breaking out of loop\n");
                 break;
             }
 
@@ -517,13 +513,12 @@ ffaudio_play_file(InputPlayback *playback)
                 outbuf_p = outbuf;
 
             /* Output audio in small blocks */
-            while (out_size > 0 && playback->playing)
+            while (out_size > 0 && playback->playing && (stop_time < 0 ||
+             playback->output->written_time () < stop_time))
             {
                 gint writeoff = MIN (chunk_size, out_size);
 
-                playback->pass_audio(playback, out_fmt,
-                    c->channels, writeoff,
-                    (gint16 *)outbuf_p, NULL);
+                playback->output->write_audio((gint16 *)outbuf_p, writeoff);
 
                 outbuf_p += writeoff;
                 out_size -= writeoff;
@@ -563,7 +558,7 @@ ffaudio_play_file(InputPlayback *playback)
 
 error_exit:
 
-    _DEBUG("decode loop finished, shutting down");
+    AUDDBG("decode loop finished, shutting down\n");
 
     playback->playing = FALSE;
 
@@ -578,40 +573,42 @@ error_exit:
     if (ic != NULL)
         av_close_input_file(ic);
 
-    _DEBUG("exiting thread");
+    AUDDBG("exiting thread\n");
+    return ! playback->error;
 }
 
 static void ffaudio_stop(InputPlayback * playback)
 {
     g_mutex_lock(ctrl_mutex);
-    playback->playing = FALSE;
-    g_cond_signal(ctrl_cond);
-    g_mutex_unlock(ctrl_mutex);
-    g_thread_join(playback->thread);
-    playback->thread = NULL;
+
+    if (playback->playing)
+    {
+        playback->playing = FALSE;
+        playback->output->abort_write();
+        g_cond_signal(ctrl_cond);
+    }
+
+    g_mutex_unlock (ctrl_mutex);
 }
 
-static void ffaudio_pause(InputPlayback * playback, gshort p)
+static void ffaudio_pause(InputPlayback * playback, gshort pause)
 {
     g_mutex_lock(ctrl_mutex);
 
     if (playback->playing)
-    {
-        pause_flag = p;
-        g_cond_signal(ctrl_cond);
-        g_cond_wait(ctrl_cond, ctrl_mutex);
-    }
+        playback->output->pause(pause);
 
     g_mutex_unlock(ctrl_mutex);
 }
 
-static void ffaudio_seek(InputPlayback * playback, gint time)
+static void ffaudio_seek (InputPlayback * playback, gulong time)
 {
     g_mutex_lock(ctrl_mutex);
 
     if (playback->playing)
     {
         seek_value = time;
+        playback->output->abort_write();
         g_cond_signal(ctrl_cond);
         g_cond_wait(ctrl_cond, ctrl_mutex);
     }
@@ -619,7 +616,7 @@ static void ffaudio_seek(InputPlayback * playback, gint time)
     g_mutex_unlock(ctrl_mutex);
 }
 
-static gchar *ffaudio_fmts[] = {
+static const gchar *ffaudio_fmts[] = {
     /* musepack, SV7/SV8 */
     "mpc", "mp+", "mpp",
 
@@ -644,6 +641,12 @@ static gchar *ffaudio_fmts[] = {
     /* Apple Lossless */
     "m4a",
 
+    /* WAV (there are some WAV formats sndfile can't handle) */
+    "wav",
+
+    /* Handle OGG streams (FLAC/Vorbis etc.) */
+    "ogg",
+
     /* end of table */
     NULL
 };
@@ -655,7 +658,6 @@ ffaudio_about(void)
 
     if (aboutbox == NULL)
     {
-        gchar *formats = g_strjoinv(", ", ffaudio_fmts);
         gchar *description = g_strdup_printf(
         _("Multi-format audio decoding plugin for Audacious based on\n"
         "FFmpeg multimedia framework (http://www.ffmpeg.org/)\n"
@@ -663,24 +665,16 @@ ffaudio_about(void)
         "\n"
         "FFmpeg libavformat %d.%d.%d, libavcodec %d.%d.%d\n"
         "\n"
-        "Supported formats: %s\n"
-        "\n"
         "Audacious plugin by:\n"
         "            William Pitcock <nenolod@nenolod.net>,\n"
         "            Matti Hämäläinen <ccr@tnsp.org>\n"),
         LIBAVFORMAT_VERSION_MAJOR, LIBAVFORMAT_VERSION_MINOR, LIBAVFORMAT_VERSION_MICRO,
-        LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, LIBAVCODEC_VERSION_MICRO,
-        formats);
+        LIBAVCODEC_VERSION_MAJOR, LIBAVCODEC_VERSION_MINOR, LIBAVCODEC_VERSION_MICRO);
 
-        aboutbox = audacious_info_dialog(
-            _("About FFaudio Plugin"),
-            description, _("Ok"), FALSE, NULL, NULL);
+        audgui_simple_message (& aboutbox, GTK_MESSAGE_INFO,
+         _("About FFaudio Plugin"), description);
 
-        g_free(formats);
         g_free(description);
-
-        g_signal_connect(G_OBJECT(aboutbox), "destroy",
-            G_CALLBACK(gtk_widget_destroyed), &aboutbox);
     }
 }
 
@@ -688,16 +682,18 @@ InputPlugin ffaudio_ip = {
     .init = ffaudio_init,
     .cleanup = ffaudio_cleanup,
     .is_our_file_from_vfs = ffaudio_probe,
-    .play_file = ffaudio_play_file,
+#ifdef FFAUDIO_USE_AUDTAG
+    .probe_for_tuple = ffaudio_probe_for_tuple,
+#endif
+    .play = ffaudio_play,
     .stop = ffaudio_stop,
     .pause = ffaudio_pause,
-    .seek = ffaudio_seek,
-    .get_song_tuple = ffaudio_get_song_tuple,
+    .mseek = ffaudio_seek,
     .about = ffaudio_about,
     .description = "FFaudio Plugin",
     .vfs_extensions = ffaudio_fmts,
 #ifdef FFAUDIO_USE_AUDTAG
-    .update_song_tuple = ffaudio_update_song_tuple,
+    .update_song_tuple = ffaudio_write_tag,
 #endif
 
     /* FFMPEG probing takes forever on network files, so try everything else

@@ -20,7 +20,18 @@
 #ifndef UI_NEW_H
 #define UI_NEW_H
 
+extern gboolean multi_columns_view;
+
 extern Interface gtkui_interface;
+
+extern GtkWidget *window;
+extern GtkWidget *vbox;
+extern GtkWidget *menu;
+extern GtkWidget *playlist_box;
+extern GtkWidget *infoarea;
+extern GtkWidget *statusbar;
+
+void setup_panes (void);
 void show_preferences_window(gboolean show);
 
 #endif

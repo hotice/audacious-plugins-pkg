@@ -52,7 +52,11 @@
 #include "ui_skin.h"
 #include "util.h"
 #include "skins_cfg.h"
-#include <audacious/plugin.h>
+
+#include <audacious/audconfig.h>
+#include <audacious/drct.h>
+#include <audacious/playlist.h>
+#include <libaudgui/libaudgui.h>
 
 #define UI_SKINNED_PLAYLIST_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), ui_skinned_playlist_get_type(), UiSkinnedPlaylistPrivate))
 typedef struct _UiSkinnedPlaylistPrivate UiSkinnedPlaylistPrivate;
@@ -144,8 +148,6 @@ static void ui_skinned_playlist_init(UiSkinnedPlaylist *playlist) {
     g_object_set_data(G_OBJECT(playlist), "timer_id", GINT_TO_POINTER(0));
     g_object_set_data(G_OBJECT(playlist), "timer_active", GINT_TO_POINTER(0));
 
-    GtkWidget *popup = audacious_fileinfopopup_create();
-    g_object_set_data(G_OBJECT(playlist), "popup", popup);
     g_object_set_data(G_OBJECT(playlist), "popup_active", GINT_TO_POINTER(0));
     g_object_set_data(G_OBJECT(playlist), "popup_position", GINT_TO_POINTER(-1));
 }
@@ -411,7 +413,7 @@ static gboolean ui_skinned_playlist_expose(GtkWidget *widget, GdkEventExpose *ev
 
     for (i = priv->first; i < priv->first + priv->rows && i < active_length; i ++)
     {
-        gint i_length = aud_playlist_entry_get_length (active_playlist, i);
+        gint i_length = aud_playlist_entry_get_length (active_playlist, i, TRUE);
 
         if (i_length > 0)
             g_snprintf (length, sizeof (length), "%d:%02d", i_length / 60000,
@@ -434,8 +436,9 @@ static gboolean ui_skinned_playlist_expose(GtkWidget *widget, GdkEventExpose *ev
 
     for (i = priv->first; i < priv->first + priv->rows && i < active_length; i ++)
     {
-        const gchar * title = aud_playlist_entry_get_title (active_playlist, i);
-        gint i_length = aud_playlist_entry_get_length (active_playlist, i);
+        const gchar * title = aud_playlist_entry_get_title (active_playlist, i,
+         TRUE);
+        gint i_length = aud_playlist_entry_get_length (active_playlist, i, TRUE);
         gint pos = aud_playlist_queue_find_entry (active_playlist, i);
 
         tail[0] = 0;
@@ -752,7 +755,8 @@ static void delete_selected (UiSkinnedPlaylistPrivate * private)
     active_length = aud_playlist_entry_count (active_playlist);
     calc_layout (private);
 
-    select_single (private, TRUE, shift);
+    private->focused = adjust_position (private, TRUE, shift);
+    select_single (private, TRUE, 0);
 }
 
 void ui_skinned_playlist_update (GtkWidget * widget)
@@ -816,7 +820,7 @@ gboolean ui_skinned_playlist_key (GtkWidget * widget, GdkEventKey * event)
             select_single (private, TRUE, 0);
             aud_playlist_set_playing (active_playlist);
             aud_playlist_set_position (active_playlist, private->focused);
-            audacious_drct_play ();
+            aud_drct_play ();
             break;
           case GDK_Escape:
             select_single (private, FALSE, aud_playlist_get_position
@@ -941,6 +945,18 @@ void ui_skinned_playlist_scroll_to (GtkWidget * widget, gint row)
         ui_skinned_playlist_slider_update (private->slider);
 }
 
+void ui_skinned_playlist_set_focused (GtkWidget * widget, gint row)
+{
+    UiSkinnedPlaylistPrivate * private = UI_SKINNED_PLAYLIST_GET_PRIVATE
+     ((UiSkinnedPlaylist *) widget);
+
+    cancel_all (widget, private);
+    private->focused = row;
+    scroll_to (private, row);
+
+    gtk_widget_queue_draw (widget);
+}
+
 void ui_skinned_playlist_hover (GtkWidget * widget, gint x, gint y)
 {
     UiSkinnedPlaylistPrivate * private = UI_SKINNED_PLAYLIST_GET_PRIVATE
@@ -1048,7 +1064,7 @@ static gboolean ui_skinned_playlist_button_press (GtkWidget * widget,
 
         aud_playlist_set_playing (active_playlist);
         aud_playlist_set_position (active_playlist, position);
-        audacious_drct_play ();
+        aud_drct_play ();
         break;
       default:
         return TRUE;
@@ -1207,21 +1223,7 @@ static gboolean ui_skinned_playlist_popup_show(gpointer data) {
     gint pos = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "popup_position"));
 
     if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "timer_active")) == 1 && pos != -1) {
-        const Tuple * tuple;
-        gint pl_active = aud_playlist_get_active ();
-        GtkWidget *popup = g_object_get_data(G_OBJECT(widget), "popup");
-
-        tuple = aud_playlist_entry_get_tuple (pl_active, pos);
-
-        if (tuple == NULL)
-        {
-            const gchar * title = aud_playlist_entry_get_title (pl_active, pos);
-
-            audacious_fileinfopopup_show_from_title (popup, (gchar *) title);
-        }
-        else
-            audacious_fileinfopopup_show_from_tuple (popup, (Tuple *) tuple);
-
+        audgui_infopopup_show (active_playlist, pos);
         g_object_set_data(G_OBJECT(widget), "popup_active" , GINT_TO_POINTER(1));
     }
 
@@ -1231,9 +1233,8 @@ static gboolean ui_skinned_playlist_popup_show(gpointer data) {
 
 static void ui_skinned_playlist_popup_hide(GtkWidget *widget) {
     if (GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "popup_active")) == 1) {
-        GtkWidget *popup = g_object_get_data(G_OBJECT(widget), "popup");
         g_object_set_data(G_OBJECT(widget), "popup_active", GINT_TO_POINTER(0));
-        audacious_fileinfopopup_hide(popup, NULL);
+        audgui_infopopup_hide ();
     }
 }
 

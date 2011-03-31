@@ -35,9 +35,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "plugin.h"
 
+#include <audacious/debug.h>
 #include <audacious/plugin.h>
+
+#include "plugin.h"
 #include "ui_skin.h"
 #include "util.h"
 #include "ui_main.h"
@@ -181,6 +183,7 @@ aud_active_skin_load(const gchar * path)
     }
 
     mainwin_refresh_hints ();
+    ui_vis_set_colors ();
     ui_skinned_window_draw_all(mainwin);
     ui_skinned_window_draw_all(equalizerwin);
     ui_skinned_window_draw_all(playlistwin);
@@ -248,6 +251,14 @@ skin_free(Skin * skin)
     skin->path = NULL;
 
     skin_set_default_vis_color(skin);
+
+    if (original_gtk_theme != NULL)
+    {
+        gtk_settings_set_string_property (gtk_settings_get_default (),
+         "gtk-theme-name", original_gtk_theme, "audacious");
+        g_free (original_gtk_theme);
+        original_gtk_theme = NULL;
+    }
 }
 
 void
@@ -558,6 +569,13 @@ void cleanup_skins()
 {
     skin_destroy(aud_active_skin);
     aud_active_skin = NULL;
+
+    gtk_widget_destroy (mainwin);
+    mainwin = NULL;
+    gtk_widget_destroy (playlistwin);
+    playlistwin = NULL;
+    gtk_widget_destroy (equalizerwin);
+    equalizerwin = NULL;
 }
 
 
@@ -649,11 +667,11 @@ skin_parse_hints(Skin * skin, gchar *path_p)
     if (filename == NULL)
         return;
 
-    inifile = aud_open_ini_file(filename);
+    inifile = open_ini_file(filename);
     if (!inifile)
         return;
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinOthertext");
+    tmp = read_ini_string(inifile, "skin", "mainwinOthertext");
 
     if (tmp != NULL)
     {
@@ -661,7 +679,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinVisX");
+    tmp = read_ini_string(inifile, "skin", "mainwinVisX");
 
     if (tmp != NULL)
     {
@@ -669,7 +687,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinVisY");
+    tmp = read_ini_string(inifile, "skin", "mainwinVisY");
 
     if (tmp != NULL)
     {
@@ -677,7 +695,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinVisWidth");
+    tmp = read_ini_string(inifile, "skin", "mainwinVisWidth");
 
     if (tmp != NULL)
     {
@@ -685,7 +703,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinTextX");
+    tmp = read_ini_string(inifile, "skin", "mainwinTextX");
 
     if (tmp != NULL)
     {
@@ -693,7 +711,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinTextY");
+    tmp = read_ini_string(inifile, "skin", "mainwinTextY");
 
     if (tmp != NULL)
     {
@@ -701,7 +719,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinTextWidth");
+    tmp = read_ini_string(inifile, "skin", "mainwinTextWidth");
 
     if (tmp != NULL)
     {
@@ -709,7 +727,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinInfoBarX");
+    tmp = read_ini_string(inifile, "skin", "mainwinInfoBarX");
 
     if (tmp != NULL)
     {
@@ -717,7 +735,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinInfoBarY");
+    tmp = read_ini_string(inifile, "skin", "mainwinInfoBarY");
 
     if (tmp != NULL)
     {
@@ -725,7 +743,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber0X");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber0X");
 
     if (tmp != NULL)
     {
@@ -733,7 +751,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber0Y");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber0Y");
 
     if (tmp != NULL)
     {
@@ -741,7 +759,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber1X");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber1X");
 
     if (tmp != NULL)
     {
@@ -749,7 +767,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber1Y");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber1Y");
 
     if (tmp != NULL)
     {
@@ -757,7 +775,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber2X");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber2X");
 
     if (tmp != NULL)
     {
@@ -765,7 +783,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber2Y");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber2Y");
 
     if (tmp != NULL)
     {
@@ -773,7 +791,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber3X");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber3X");
 
     if (tmp != NULL)
     {
@@ -781,7 +799,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber3Y");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber3Y");
 
     if (tmp != NULL)
     {
@@ -789,7 +807,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber4X");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber4X");
 
     if (tmp != NULL)
     {
@@ -797,7 +815,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNumber4Y");
+    tmp = read_ini_string(inifile, "skin", "mainwinNumber4Y");
 
     if (tmp != NULL)
     {
@@ -805,7 +823,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPlayStatusX");
+    tmp = read_ini_string(inifile, "skin", "mainwinPlayStatusX");
 
     if (tmp != NULL)
     {
@@ -813,7 +831,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPlayStatusY");
+    tmp = read_ini_string(inifile, "skin", "mainwinPlayStatusY");
 
     if (tmp != NULL)
     {
@@ -821,7 +839,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinMenurowVisible");
+    tmp = read_ini_string(inifile, "skin", "mainwinMenurowVisible");
 
     if (tmp != NULL)
     {
@@ -829,7 +847,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinVolumeX");
+    tmp = read_ini_string(inifile, "skin", "mainwinVolumeX");
 
     if (tmp != NULL)
     {
@@ -837,7 +855,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinVolumeY");
+    tmp = read_ini_string(inifile, "skin", "mainwinVolumeY");
 
     if (tmp != NULL)
     {
@@ -845,7 +863,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinBalanceX");
+    tmp = read_ini_string(inifile, "skin", "mainwinBalanceX");
 
     if (tmp != NULL)
     {
@@ -853,7 +871,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinBalanceY");
+    tmp = read_ini_string(inifile, "skin", "mainwinBalanceY");
 
     if (tmp != NULL)
     {
@@ -861,7 +879,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPositionX");
+    tmp = read_ini_string(inifile, "skin", "mainwinPositionX");
 
     if (tmp != NULL)
     {
@@ -869,7 +887,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPositionY");
+    tmp = read_ini_string(inifile, "skin", "mainwinPositionY");
 
     if (tmp != NULL)
     {
@@ -877,7 +895,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinOthertextIsStatus");
+    tmp = read_ini_string(inifile, "skin", "mainwinOthertextIsStatus");
 
     if (tmp != NULL)
     {
@@ -885,7 +903,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinOthertextVisible");
+    tmp = read_ini_string(inifile, "skin", "mainwinOthertextVisible");
 
     if (tmp != NULL)
     {
@@ -893,7 +911,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinTextVisible");
+    tmp = read_ini_string(inifile, "skin", "mainwinTextVisible");
 
     if (tmp != NULL)
     {
@@ -901,7 +919,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinVisVisible");
+    tmp = read_ini_string(inifile, "skin", "mainwinVisVisible");
 
     if (tmp != NULL)
     {
@@ -909,7 +927,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPreviousX");
+    tmp = read_ini_string(inifile, "skin", "mainwinPreviousX");
 
     if (tmp != NULL)
     {
@@ -917,7 +935,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPreviousY");
+    tmp = read_ini_string(inifile, "skin", "mainwinPreviousY");
 
     if (tmp != NULL)
     {
@@ -925,7 +943,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPlayX");
+    tmp = read_ini_string(inifile, "skin", "mainwinPlayX");
 
     if (tmp != NULL)
     {
@@ -933,7 +951,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPlayY");
+    tmp = read_ini_string(inifile, "skin", "mainwinPlayY");
 
     if (tmp != NULL)
     {
@@ -941,7 +959,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPauseX");
+    tmp = read_ini_string(inifile, "skin", "mainwinPauseX");
 
     if (tmp != NULL)
     {
@@ -949,7 +967,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPauseY");
+    tmp = read_ini_string(inifile, "skin", "mainwinPauseY");
 
     if (tmp != NULL)
     {
@@ -957,7 +975,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinStopX");
+    tmp = read_ini_string(inifile, "skin", "mainwinStopX");
 
     if (tmp != NULL)
     {
@@ -965,7 +983,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinStopY");
+    tmp = read_ini_string(inifile, "skin", "mainwinStopY");
 
     if (tmp != NULL)
     {
@@ -973,7 +991,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNextX");
+    tmp = read_ini_string(inifile, "skin", "mainwinNextX");
 
     if (tmp != NULL)
     {
@@ -981,7 +999,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinNextY");
+    tmp = read_ini_string(inifile, "skin", "mainwinNextY");
 
     if (tmp != NULL)
     {
@@ -989,7 +1007,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinEjectX");
+    tmp = read_ini_string(inifile, "skin", "mainwinEjectX");
 
     if (tmp != NULL)
     {
@@ -997,7 +1015,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinEjectY");
+    tmp = read_ini_string(inifile, "skin", "mainwinEjectY");
 
     if (tmp != NULL)
     {
@@ -1005,7 +1023,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinWidth");
+    tmp = read_ini_string(inifile, "skin", "mainwinWidth");
 
     if (tmp != NULL)
     {
@@ -1015,7 +1033,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
 
     skin_mask_info[0].width = skin->properties.mainwin_width;
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinHeight");
+    tmp = read_ini_string(inifile, "skin", "mainwinHeight");
 
     if (tmp != NULL)
     {
@@ -1025,7 +1043,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
 
     skin_mask_info[0].height = skin->properties.mainwin_height;
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinAboutX");
+    tmp = read_ini_string(inifile, "skin", "mainwinAboutX");
 
     if (tmp != NULL)
     {
@@ -1033,7 +1051,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinAboutY");
+    tmp = read_ini_string(inifile, "skin", "mainwinAboutY");
 
     if (tmp != NULL)
     {
@@ -1041,7 +1059,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinShuffleX");
+    tmp = read_ini_string(inifile, "skin", "mainwinShuffleX");
 
     if (tmp != NULL)
     {
@@ -1049,7 +1067,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinShuffleY");
+    tmp = read_ini_string(inifile, "skin", "mainwinShuffleY");
 
     if (tmp != NULL)
     {
@@ -1057,7 +1075,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinRepeatX");
+    tmp = read_ini_string(inifile, "skin", "mainwinRepeatX");
 
     if (tmp != NULL)
     {
@@ -1065,7 +1083,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinRepeatY");
+    tmp = read_ini_string(inifile, "skin", "mainwinRepeatY");
 
     if (tmp != NULL)
     {
@@ -1073,7 +1091,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinEQButtonX");
+    tmp = read_ini_string(inifile, "skin", "mainwinEQButtonX");
 
     if (tmp != NULL)
     {
@@ -1081,7 +1099,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinEQButtonY");
+    tmp = read_ini_string(inifile, "skin", "mainwinEQButtonY");
 
     if (tmp != NULL)
     {
@@ -1089,7 +1107,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPLButtonX");
+    tmp = read_ini_string(inifile, "skin", "mainwinPLButtonX");
 
     if (tmp != NULL)
     {
@@ -1097,7 +1115,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinPLButtonY");
+    tmp = read_ini_string(inifile, "skin", "mainwinPLButtonY");
 
     if (tmp != NULL)
     {
@@ -1105,7 +1123,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "textboxBitmapFontWidth");
+    tmp = read_ini_string(inifile, "skin", "textboxBitmapFontWidth");
 
     if (tmp != NULL)
     {
@@ -1113,7 +1131,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "textboxBitmapFontHeight");
+    tmp = read_ini_string(inifile, "skin", "textboxBitmapFontHeight");
 
     if (tmp != NULL)
     {
@@ -1121,7 +1139,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinMinimizeX");
+    tmp = read_ini_string(inifile, "skin", "mainwinMinimizeX");
 
     if (tmp != NULL)
     {
@@ -1129,7 +1147,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinMinimizeY");
+    tmp = read_ini_string(inifile, "skin", "mainwinMinimizeY");
 
     if (tmp != NULL)
     {
@@ -1137,7 +1155,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinShadeX");
+    tmp = read_ini_string(inifile, "skin", "mainwinShadeX");
 
     if (tmp != NULL)
     {
@@ -1145,7 +1163,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinShadeY");
+    tmp = read_ini_string(inifile, "skin", "mainwinShadeY");
 
     if (tmp != NULL)
     {
@@ -1153,7 +1171,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinCloseX");
+    tmp = read_ini_string(inifile, "skin", "mainwinCloseX");
 
     if (tmp != NULL)
     {
@@ -1161,7 +1179,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
         g_free(tmp);
     }
 
-    tmp = aud_read_ini_string(inifile, "skin", "mainwinCloseY");
+    tmp = read_ini_string(inifile, "skin", "mainwinCloseY");
 
     if (tmp != NULL)
     {
@@ -1172,7 +1190,7 @@ skin_parse_hints(Skin * skin, gchar *path_p)
     if (filename != NULL)
         g_free(filename);
 
-    aud_close_ini_file(inifile);
+    close_ini_file(inifile);
 }
 
 static guint
@@ -1201,7 +1219,7 @@ skin_load_color(INIFile *inifile,
 
     if (inifile || default_hex) {
         if (inifile) {
-            value = aud_read_ini_string(inifile, section, key);
+            value = read_ini_string(inifile, section, key);
             if (value == NULL) {
                 value = g_strdup(default_hex);
             }
@@ -1268,22 +1286,22 @@ skin_create_transparent_mask(const gchar * path,
     if (!filename)
         return create_default_mask(window, width, height);
 
-    inifile = aud_open_ini_file(filename);
+    inifile = open_ini_file(filename);
 
-    if ((num = aud_read_ini_array(inifile, section, "NumPoints")) == NULL) {
+    if ((num = read_ini_array(inifile, section, "NumPoints")) == NULL) {
         g_free(filename);
-        aud_close_ini_file(inifile);
+        close_ini_file(inifile);
         return NULL;
     }
 
-    if ((point = aud_read_ini_array(inifile, section, "PointList")) == NULL) {
+    if ((point = read_ini_array(inifile, section, "PointList")) == NULL) {
         g_array_free(num, TRUE);
         g_free(filename);
-        aud_close_ini_file(inifile);
+        close_ini_file(inifile);
         return NULL;
     }
 
-    aud_close_ini_file(inifile);
+    close_ini_file(inifile);
 
     mask = gdk_pixmap_new(window, width, height, 1);
     gc = gdk_gc_new(mask);
@@ -1337,6 +1355,7 @@ static void skin_load_viscolor (Skin * skin, const gchar * path, const gchar *
         return;
 
     buffer = load_text_file (filename);
+    g_free (filename);
     string = buffer;
 
     for (line = 0; string != NULL && line < 24; line ++)
@@ -1414,7 +1433,7 @@ skin_load_pixmaps(Skin * skin, const gchar * path)
         skin_numbers_generate_dash(skin);
 
     filename = find_file_case_uri (path, "pledit.txt");
-    inifile = (filename != NULL) ? aud_open_ini_file (filename) : NULL;
+    inifile = (filename != NULL) ? open_ini_file (filename) : NULL;
 
     skin->colors[SKIN_PLEDIT_NORMAL] =
         skin_load_color(inifile, "Text", "Normal", "#2499ff");
@@ -1426,7 +1445,7 @@ skin_load_pixmaps(Skin * skin, const gchar * path)
         skin_load_color(inifile, "Text", "SelectedBG", "#0a124a");
 
     if (inifile)
-        aud_close_ini_file(inifile);
+        close_ini_file(inifile);
 
     if (filename)
         g_free(filename);
@@ -1485,7 +1504,6 @@ skin_check_pixmaps(const Skin * skin, const gchar * skin_path)
 static gboolean
 skin_load_nolock(Skin * skin, const gchar * path, gboolean force)
 {
-    GtkSettings *settings;
     gchar *gtkrcpath;
     gchar *newpath, *skin_path;
     int archive = 0;
@@ -1544,23 +1562,13 @@ skin_load_nolock(Skin * skin, const gchar * path, gboolean force)
         return FALSE;
     }
 
-    /* restore gtk theme if changed by previous skin */
-    settings = gtk_settings_get_default();
-
-    if (original_gtk_theme != NULL) {
-        gtk_settings_set_string_property(settings, "gtk-theme-name",
-                                              original_gtk_theme, "audacious");
-        g_free(original_gtk_theme);
-        original_gtk_theme = NULL;
-    }
-
 #ifndef _WIN32
     if (! config.disable_inline_gtk && ! archive)
     {
         gtkrcpath = g_strdup_printf ("%s/gtk-2.0/gtkrc", skin->path);
 
         if (g_file_test (gtkrcpath, G_FILE_TEST_IS_REGULAR))
-            skin_set_gtk_theme (settings, skin);
+            skin_set_gtk_theme (gtk_settings_get_default (), skin);
 
         g_free (gtkrcpath);
     }

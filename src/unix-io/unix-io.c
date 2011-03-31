@@ -28,7 +28,9 @@
 
 #include <glib.h>
 
+#include <audacious/debug.h>
 #include <audacious/plugin.h>
+#include <libaudcore/audstrings.h>
 
 #define error(...) fprintf (stderr, "unix-io: " __VA_ARGS__)
 
@@ -37,10 +39,9 @@ static VFSFile * unix_fopen (const gchar * uri, const gchar * mode)
     VFSFile * file = NULL;
     gboolean update;
     mode_t mode_flag;
-    gchar * filename;
     gint handle;
 
-    AUDDBG("fopen %s, mode = %s\n", uri, mode);
+    AUDDBG ("fopen %s, mode = %s\n", uri, mode);
 
     update = (strchr (mode, '+') != NULL);
 
@@ -59,9 +60,8 @@ static VFSFile * unix_fopen (const gchar * uri, const gchar * mode)
         return NULL;
     }
 
-    filename = g_filename_from_uri (uri, NULL, NULL);
-
-    if (filename == NULL)
+    gchar * filename = uri_to_filename (uri);
+    if (! filename)
         return NULL;
 
     if (mode_flag & O_CREAT)
@@ -70,7 +70,9 @@ static VFSFile * unix_fopen (const gchar * uri, const gchar * mode)
     else
         handle = open (filename, mode_flag);
 
-    if (handle == -1)
+    AUDDBG (" = %d.\n", handle);
+
+    if (handle < 0)
     {
         error ("Cannot open %s: %s.\n", filename, strerror (errno));
         goto DONE;
@@ -91,62 +93,66 @@ static gint unix_fclose (VFSFile * file)
     gint handle = GPOINTER_TO_INT (file->handle);
     gint result = 0;
 
-    AUDDBG("fclose\n");
+    AUDDBG ("[%d] fclose\n", handle);
 
-    if (fsync (handle) == -1)
+    if (fsync (handle) < 0)
     {
         error ("fsync failed: %s.\n", strerror (errno));
-        result = EOF;
+        result = -1;
     }
 
-    close (handle);
+    if (close (handle) < 0)
+    {
+        error ("close failed: %s.\n", strerror (errno));
+        result = -1;
+    }
+
     return result;
 }
 
-static size_t unix_fread (gpointer ptr, size_t size, size_t nitems, VFSFile *
- file)
+static gint64 unix_fread (void * ptr, gint64 size, gint64 nitems, VFSFile * file)
 {
     gint handle = GPOINTER_TO_INT (file->handle);
-    gint goal = size * nitems;
-    gint total = 0;
+    gint64 goal = size * nitems;
+    gint64 total = 0;
 
-    AUDDBG("fread %d x %d\n", size, nitems);
+/*    AUDDBG ("[%d] fread %d x %d\n", handle, (gint) size, (gint) nitems); */
 
     while (total < goal)
     {
-        gint readed = read (handle, (gchar *) ptr + total, goal - total);
+        gint64 readed = read (handle, (gchar *) ptr + total, goal - total);
 
-        if (readed == -1)
+        if (readed < 0)
         {
             error ("read failed: %s.\n", strerror (errno));
             break;
         }
 
-        if (readed == 0)
+        if (! readed)
             break;
 
         total += readed;
     }
 
-    AUDDBG(" = %d\n", total);
+/*    AUDDBG (" = %d\n", (gint) total); */
 
     return (size > 0) ? total / size : 0;
 }
 
-static size_t unix_fwrite (gconstpointer ptr, size_t size, size_t nitems,
+static gint64 unix_fwrite (const void * ptr, gint64 size, gint64 nitems,
  VFSFile * file)
 {
     gint handle = GPOINTER_TO_INT (file->handle);
-    gint goal = size * nitems;
-    gint total = 0;
+    gint64 goal = size * nitems;
+    gint64 total = 0;
 
-    AUDDBG("fwrite %d x %d\n", size, nitems);
+    AUDDBG ("[%d] fwrite %d x %d\n", handle, (gint) size, (gint) nitems);
 
     while (total < goal)
     {
-        gint written = write (handle, (gchar *) ptr + total, goal - total);
+        gint64 written = write (handle, (gchar *) ptr + total, goal - total);
 
-        if (written == -1)
+        if (written < 0)
         {
             error ("write failed: %s.\n", strerror (errno));
             break;
@@ -155,18 +161,18 @@ static size_t unix_fwrite (gconstpointer ptr, size_t size, size_t nitems,
         total += written;
     }
 
-    AUDDBG(" = %d\n", total);
+    AUDDBG (" = %d\n", (gint) total);
 
     return (size > 0) ? total / size : 0;
 }
 
-static gint unix_fseek (VFSFile * file, glong offset, gint whence)
+static gint unix_fseek (VFSFile * file, gint64 offset, gint whence)
 {
     gint handle = GPOINTER_TO_INT (file->handle);
 
-    AUDDBG("fseek %ld, whence = %d\n", offset, whence);
+    AUDDBG ("[%d] fseek %d, whence = %d\n", handle, (gint) offset, whence);
 
-    if (lseek (handle, offset, whence) == -1)
+    if (lseek (handle, offset, whence) < 0)
     {
         error ("lseek failed: %s.\n", strerror (errno));
         return -1;
@@ -175,12 +181,12 @@ static gint unix_fseek (VFSFile * file, glong offset, gint whence)
     return 0;
 }
 
-static glong unix_ftell (VFSFile * file)
+static gint64 unix_ftell (VFSFile * file)
 {
     gint handle = GPOINTER_TO_INT (file->handle);
-    glong result = lseek (handle, 0, SEEK_CUR);
+    gint64 result = lseek (handle, 0, SEEK_CUR);
 
-    if (result == -1)
+    if (result < 0)
         error ("lseek failed: %s.\n", strerror (errno));
 
     return result;
@@ -190,12 +196,12 @@ static gint unix_getc (VFSFile * file)
 {
     guchar c;
 
-    return (unix_fread (& c, 1, 1, file) == 1) ? c : EOF;
+    return (unix_fread (& c, 1, 1, file) == 1) ? c : -1;
 }
 
 static gint unix_ungetc (gint c, VFSFile * file)
 {
-    return (unix_fseek (file, -1, SEEK_CUR) == 0) ? c : EOF;
+    return (! unix_fseek (file, -1, SEEK_CUR)) ? c : -1;
 }
 
 static void unix_rewind (VFSFile * file)
@@ -207,40 +213,40 @@ static gboolean unix_feof (VFSFile * file)
 {
     gint test = unix_getc (file);
 
-    if (test == EOF)
+    if (test < 0)
         return TRUE;
 
     unix_ungetc (test, file);
     return FALSE;
 }
 
-static gboolean unix_truncate (VFSFile * file, glong length)
+static gint unix_ftruncate (VFSFile * file, gint64 length)
 {
     gint handle = GPOINTER_TO_INT (file->handle);
+
+    AUDDBG ("[%d] ftruncate %d\n", handle, (gint) length);
+
     gint result = ftruncate (handle, length);
 
-    if (result == -1)
-    {
+    if (result < 0)
         error ("ftruncate failed: %s.\n", strerror (errno));
-        return FALSE;
-    }
 
-    return TRUE;
+    return result;
 }
 
-static off_t unix_fsize (VFSFile * file)
+static gint64 unix_fsize (VFSFile * file)
 {
-    glong position, length;
+    gint64 position, length;
 
     position = unix_ftell (file);
 
-    if (position == -1)
+    if (position < 0)
         return -1;
 
     unix_fseek (file, 0, SEEK_END);
     length = unix_ftell (file);
 
-    if (length == -1)
+    if (length < 0)
         return -1;
 
     unix_fseek (file, position, SEEK_SET);
@@ -261,14 +267,14 @@ static VFSConstructor constructor =
     .vfs_rewind_impl = unix_rewind,
     .vfs_ftell_impl = unix_ftell,
     .vfs_feof_impl = unix_feof,
-    .vfs_truncate_impl = unix_truncate,
+    .vfs_ftruncate_impl = unix_ftruncate,
     .vfs_fsize_impl = unix_fsize,
     .vfs_get_metadata_impl = NULL,
 };
 
 static void unix_init (void)
 {
-    aud_vfs_register_transport (& constructor);
+    vfs_register_transport (& constructor);
 }
 
 DECLARE_PLUGIN (unix_io, unix_init, NULL)

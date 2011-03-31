@@ -4,9 +4,12 @@
 
 #include "config.h"
 #include <gtk/gtk.h>
+
+#include <audacious/configdb.h>
 #include <audacious/i18n.h>
 #include <audacious/plugin.h>
-
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
 static void init(void);
 static void about(void);
@@ -31,6 +34,7 @@ EffectPlugin stereo_ep =
     .finish = stereo_finish,
     .decoder_to_output_time = stereo_decoder_to_output_time,
     .output_to_decoder_time = stereo_output_to_decoder_time,
+    .preserves_format = TRUE,
 };
 
 static const char *about_text = N_("Extra Stereo Plugin\n\n"
@@ -52,19 +56,12 @@ static void init(void)
 	aud_cfg_db_close(db);
 }
 
-static void about(void)
+static void about (void)
 {
-	static GtkWidget *about_dialog = NULL;
+	static GtkWidget * about_dialog = NULL;
 
-	if (about_dialog != NULL)
-		return;
-
-	about_dialog = audacious_info_dialog(_("About Extra Stereo Plugin"),
-					 _(about_text), _("Ok"), FALSE,
-					 NULL, NULL);
-	gtk_signal_connect(GTK_OBJECT(about_dialog), "destroy",
-			   GTK_SIGNAL_FUNC(gtk_widget_destroyed),
-			   &about_dialog);
+    audgui_simple_message (& about_dialog, GTK_MESSAGE_INFO,
+     _("About Extra Stereo Plugin"), _(about_text));
 }
 
 static void conf_ok_cb(GtkButton * button, gpointer data)

@@ -23,14 +23,9 @@
 #include "actions-mainwin.h"
 #include "actions-playlist.h"
 
-#if 0
-/* this header contains prototypes for plugin-available menu functions */
-#include "ui_plugin_menu.h"
-#endif
-
-#include <audacious/plugin.h>
-#include <audacious/ui_plugin_menu.h>
+#include <audacious/misc.h>
 #include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
 static GtkUIManager *ui_manager = NULL;
 
@@ -48,6 +43,18 @@ static GtkToggleActionEntry toggleaction_entries_others[] = {
 
     {"playback no playlist advance", NULL, N_("No Playlist Advance"), "<Ctrl>N",
      N_("No Playlist Advance"), G_CALLBACK(action_playback_noplaylistadvance), FALSE},
+
+    {"view playlists", NULL, N_("Show playlists"), "<Shift><Ctrl>P",
+     N_("Show/hide playlists"), G_CALLBACK(action_view_playlist), FALSE},
+
+    {"view infoarea", NULL, N_("Show infoarea"), "<Shift><Ctrl>I",
+     N_("Show/hide infoarea"), G_CALLBACK(action_view_infoarea), FALSE},
+
+    {"view menu", NULL, N_("Show main menu"), "<Shift><Ctrl>M",
+     N_("Show/hide main menu"), G_CALLBACK(action_view_menu), FALSE},
+
+    {"view statusbar", NULL, N_("Show statusbar"), "<Shift><Ctrl>S",
+     N_("Show/hide statusbar"), G_CALLBACK(action_view_statusbar), FALSE},
 };
 
 /* normal actions */
@@ -72,18 +79,6 @@ static GtkActionEntry action_entries_playback[] = {
      N_("Next"), G_CALLBACK(action_playback_next)}
 };
 
-
-static GtkActionEntry action_entries_visualization[] = {
-    {"visualization", NULL, N_("Visualization")},
-    {"vismode", NULL, N_("Visualization Mode")},
-    {"anamode", NULL, N_("Analyzer Mode")},
-    {"scomode", NULL, N_("Scope Mode")},
-    {"vprmode", NULL, N_("Voiceprint Mode")},
-    {"wshmode", NULL, N_("WindowShade VU Mode")},
-    {"anafoff", NULL, N_("Analyzer Falloff")},
-    {"peafoff", NULL, N_("Peaks Falloff")}
-};
-
 static GtkActionEntry action_entries_playlist[] = {
 
     {"playlist", NULL, N_("Playlist")},
@@ -91,93 +86,39 @@ static GtkActionEntry action_entries_playlist[] = {
     {"playlist new", GTK_STOCK_NEW, N_("New Playlist"), "<Shift>N",
      N_("New Playlist"), G_CALLBACK(action_playlist_new)},
 
-    {"playlist select next", GTK_STOCK_MEDIA_NEXT, N_("Select Next Playlist"), "<Shift>P",
-     N_("Select Next Playlist"), G_CALLBACK(action_playlist_next)},
-
-    {"playlist select previous", GTK_STOCK_MEDIA_PREVIOUS, N_("Select Previous Playlist"), "<Shift><Ctrl>P",
-     N_("Select Previous Playlist"), G_CALLBACK(action_playlist_prev)},
-
     {"playlist delete", GTK_STOCK_DELETE, N_("Delete Playlist"), "<Shift>D",
      N_("Delete Playlist"), G_CALLBACK(action_playlist_delete)},
 
-    {"playlist load", GTK_STOCK_OPEN, N_("Load List"), "O",
+    {"playlist load", GTK_STOCK_OPEN, N_("Import Playlist ..."), "O",
      N_("Loads a playlist file into the selected playlist."), G_CALLBACK(action_playlist_load_list)},
 
-    {"playlist save", GTK_STOCK_SAVE, N_("Save List"), "<Shift>S",
+    {"playlist save", GTK_STOCK_SAVE, N_("Export Playlist ..."), "<Shift>S",
      N_("Saves the selected playlist."), G_CALLBACK(action_playlist_save_list)},
 
-    {"playlist save default", GTK_STOCK_SAVE, N_("Save Default List"), "<Alt>S",
-     N_("Saves the selected playlist to the default location."),
-     G_CALLBACK(action_playlist_save_default_list)},
+    {"playlist save all", GTK_STOCK_SAVE, N_("Save All Playlists"), "<Alt>S",
+     N_("Saves all the playlists that are open. Note that this "
+        "is done automatically when Audacious quits."),
+     G_CALLBACK(action_playlist_save_all_playlists)},
 
-    {"playlist refresh", GTK_STOCK_REFRESH, N_("Refresh List"), "F5",
+    {"playlist refresh", GTK_STOCK_REFRESH, N_("Refresh"), "F5",
      N_("Refreshes metadata associated with a playlist entry."),
      G_CALLBACK(action_playlist_refresh_list)},
 
-    {"playlist manager", AUD_STOCK_PLAYLIST, N_("List Manager"), "P",
+    {"playlist manager", AUD_STOCK_PLAYLIST, N_("Playlist Manager"), "P",
      N_("Opens the playlist manager."),
-     G_CALLBACK(action_open_list_manager)}
-};
+     G_CALLBACK(action_open_list_manager)},
 
-static GtkActionEntry action_entries_view[] = {
-
-    {"view", NULL, N_("View")}
-};
-
-static GtkActionEntry action_entries_playlist_add[] = {
-    {"playlist add url", GTK_STOCK_NETWORK, N_("Add Internet Address..."), "<Ctrl>H",
+    {"playlist add url", GTK_STOCK_NETWORK, N_("Add URL ..."), "<Ctrl>H",
      N_("Adds a remote track to the playlist."),
      G_CALLBACK(action_playlist_add_url)},
 
-    {"playlist add files", GTK_STOCK_ADD, N_("Add Files..."), "F",
+    {"playlist add files", GTK_STOCK_ADD, N_("Add Files ..."), "F",
      N_("Adds files to the playlist."),
      G_CALLBACK(action_playlist_add_files)},
-};
 
-static GtkActionEntry action_entries_playlist_select[] = {
-    {"playlist search and select", GTK_STOCK_FIND, N_("Search and Select"), "<Ctrl>F",
-     N_("Searches the playlist and selects playlist entries based on specific criteria."),
-     G_CALLBACK(action_playlist_search_and_select)},
-
-    {"playlist invert selection", NULL, N_("Invert Selection"), NULL,
-     N_("Inverts the selected and unselected entries."),
-     G_CALLBACK(action_playlist_invert_selection)},
-
-    {"playlist select all", NULL, N_("Select All"), "<Ctrl>A",
-     N_("Selects all of the playlist entries."),
-     G_CALLBACK(action_playlist_select_all)},
-
-    {"playlist select none", NULL, N_("Select None"), "<Shift><Ctrl>A",
-     N_("Deselects all of the playlist entries."),
-     G_CALLBACK(action_playlist_select_none)},
-};
-
-static GtkActionEntry action_entries_playlist_delete[] = {
     {"playlist remove all", GTK_STOCK_CLEAR, N_("Remove All"), NULL,
      N_("Removes all entries from the playlist."),
      G_CALLBACK(action_playlist_remove_all)},
-
-    {"playlist clear queue", GTK_STOCK_CLEAR, N_("Clear Queue"), "<Shift>Q",
-     N_("Clears the queue associated with this playlist."),
-     G_CALLBACK(action_playlist_clear_queue)},
-
-    {"playlist remove unavailable", GTK_STOCK_DIALOG_ERROR, N_("Remove Unavailable Files"), NULL,
-     N_("Removes unavailable files from the playlist."),
-     G_CALLBACK(action_playlist_remove_unavailable)},
-
-    {"playlist remove dups menu", NULL, N_("Remove Duplicates")},
-
-    {"playlist remove dups by title", NULL, N_("By Title"), NULL,
-     N_("Removes duplicate entries from the playlist by title."),
-     G_CALLBACK(action_playlist_remove_dupes_by_title)},
-
-    {"playlist remove dups by filename", NULL, N_("By Filename"), NULL,
-     N_("Removes duplicate entries from the playlist by filename."),
-     G_CALLBACK(action_playlist_remove_dupes_by_filename)},
-
-    {"playlist remove dups by full path", NULL, N_("By Path + Filename"), NULL,
-     N_("Removes duplicate entries from the playlist by their full path."),
-     G_CALLBACK(action_playlist_remove_dupes_by_full_path)},
 
     {"playlist remove unselected", GTK_STOCK_REMOVE, N_("Remove Unselected"), NULL,
      N_("Remove unselected entries from the playlist."),
@@ -186,77 +127,36 @@ static GtkActionEntry action_entries_playlist_delete[] = {
     {"playlist remove selected", GTK_STOCK_REMOVE, N_("Remove Selected"), "Delete",
      N_("Remove selected entries from the playlist."),
      G_CALLBACK(action_playlist_remove_selected)},
+
+ {"playlist sort", GTK_STOCK_SORT_ASCENDING, N_("Sort"), NULL, NULL, NULL},
+ {"playlist sort track", NULL, N_("By Track Number"), NULL, NULL, (GCallback)
+  playlist_sort_track},
+ {"playlist sort title", NULL, N_("By Title"), NULL, NULL, (GCallback)
+  playlist_sort_title},
+ {"playlist sort artist", NULL, N_("By Artist"), NULL, NULL, (GCallback)
+  playlist_sort_artist},
+ {"playlist sort album", NULL, N_("By Album"), NULL, NULL, (GCallback)
+  playlist_sort_album},
+ {"playlist sort path", NULL, N_("By File Path"), NULL, NULL, (GCallback)
+  playlist_sort_path},
+ {"playlist reverse", GTK_STOCK_SORT_DESCENDING, N_("Reverse Order"), NULL,
+  NULL, (GCallback) playlist_reverse},
+ {"playlist randomize", NULL, N_("Random Order"), NULL, NULL, (GCallback)
+  playlist_randomize}};
+
+static GtkActionEntry action_entries_output[] =
+{
+    {"output", NULL, N_("Output")},
+
+    {"effects menu", NULL, N_("Effects")},
+
+    {"equalizer show", NULL, N_("Equalizer"), "<Ctrl>E", NULL, (GCallback)
+     audgui_show_equalizer_window},
 };
 
-static GtkActionEntry action_entries_playlist_sort[] = {
-    {"playlist randomize list", AUD_STOCK_RANDOMIZEPL, N_("Randomize List"), "<Ctrl><Shift>R",
-     N_("Randomizes the playlist."),
-     G_CALLBACK(action_playlist_randomize_list)},
-
-    {"playlist reverse list", GTK_STOCK_GO_UP, N_("Reverse List"), NULL,
-     N_("Reverses the playlist."),
-     G_CALLBACK(action_playlist_reverse_list)},
-
-    {"playlist sort menu", GTK_STOCK_GO_DOWN, N_("Sort List")},
-
-    {"playlist sort by title", NULL, N_("By Title"), NULL,
-     N_("Sorts the list by title."),
-     G_CALLBACK(action_playlist_sort_by_title)},
-
-    {"playlist sort by album", NULL, N_("By Album"), NULL,
-     N_("Sorts the list by album."),
-     G_CALLBACK(action_playlist_sort_by_album)},
-
-    {"playlist sort by artist", NULL, N_("By Artist"), NULL,
-     N_("Sorts the list by artist."),
-     G_CALLBACK(action_playlist_sort_by_artist)},
-
-    {"playlist sort by filename", NULL, N_("By Filename"), NULL,
-     N_("Sorts the list by filename."),
-     G_CALLBACK(action_playlist_sort_by_filename)},
-
-    {"playlist sort by full path", NULL, N_("By Path + Filename"), NULL,
-     N_("Sorts the list by full pathname."),
-     G_CALLBACK(action_playlist_sort_by_full_path)},
-
-    {"playlist sort by date", NULL, N_("By Date"), NULL,
-     N_("Sorts the list by modification time."),
-     G_CALLBACK(action_playlist_sort_by_date)},
-
-    {"playlist sort by track number", NULL, N_("By Track Number"), NULL,
-     N_("Sorts the list by track number."),
-     G_CALLBACK(action_playlist_sort_by_track_number)},
-
-    {"playlist sort selected menu", GTK_STOCK_GO_DOWN, N_("Sort Selected")},
-
-    {"playlist sort selected by title", NULL, N_("By Title"), NULL,
-     N_("Sorts the list by title."),
-     G_CALLBACK(action_playlist_sort_selected_by_title)},
-
-    {"playlist sort selected by album", NULL, N_("By Album"), NULL,
-     N_("Sorts the list by album."),
-     G_CALLBACK(action_playlist_sort_selected_by_album)},
-
-    {"playlist sort selected by artist", NULL, N_("By Artist"), NULL,
-     N_("Sorts the list by artist."),
-     G_CALLBACK(action_playlist_sort_selected_by_artist)},
-
-    {"playlist sort selected by filename", NULL, N_("By Filename"), NULL,
-     N_("Sorts the list by filename."),
-     G_CALLBACK(action_playlist_sort_selected_by_filename)},
-
-    {"playlist sort selected by full path", NULL, N_("By Path + Filename"), NULL,
-     N_("Sorts the list by full pathname."),
-     G_CALLBACK(action_playlist_sort_selected_by_full_path)},
-
-    {"playlist sort selected by date", NULL, N_("By Date"), NULL,
-     N_("Sorts the list by modification time."),
-     G_CALLBACK(action_playlist_sort_selected_by_date)},
-
-    {"playlist sort selected by track number", NULL, N_("By Track Number"), NULL,
-     N_("Sorts the list by track number."),
-     G_CALLBACK(action_playlist_sort_selected_by_track_number)},
-};
+static GtkActionEntry action_entries_view[] = {
+ {"view", NULL, N_("View")},
+ {"iface menu", NULL, N_("Interface")}};
 
 static GtkActionEntry action_entries_others[] = {
 
@@ -277,10 +177,10 @@ static GtkActionEntry action_entries_others[] = {
     {"about audacious", GTK_STOCK_DIALOG_INFO, N_("About Audacious"), NULL,
      N_("About Audacious"), G_CALLBACK(action_about_audacious)},
 
-    {"play file", GTK_STOCK_OPEN, N_("Play File"), "L",
+    {"play file", GTK_STOCK_OPEN, N_("Open Files ..."), "L",
      N_("Load and play a file"), G_CALLBACK(action_play_file)},
 
-    {"play location", GTK_STOCK_NETWORK, N_("Play Location"), "<Ctrl>L",
+    {"play location", GTK_STOCK_NETWORK, N_("Open URL ..."), "<Ctrl>L",
      N_("Play media from the selected location"), G_CALLBACK(action_play_location)},
 
     {"plugins", NULL, N_("Plugin services")},
@@ -309,8 +209,30 @@ static GtkActionEntry action_entries_others[] = {
     {"queue toggle", AUD_STOCK_QUEUETOGGLE, N_("Queue Toggle"), "Q",
      N_("Enables/disables the entry in the playlist's queue."),
      G_CALLBACK(action_queue_toggle)},
+
+    {"playlist copy", GTK_STOCK_COPY, N_("Copy"), "<Ctrl>C",
+     NULL, G_CALLBACK(action_playlist_copy)},
+
+    {"playlist cut", GTK_STOCK_CUT, N_("Cut"), "<Ctrl>X",
+     NULL, G_CALLBACK(action_playlist_cut)},
+
+    {"playlist paste", GTK_STOCK_PASTE, N_("Paste"), "<Ctrl>V",
+     NULL, G_CALLBACK(action_playlist_paste)},
+
+    {"playlist select all", NULL, N_("Select All"), "<Ctrl>A",
+     N_("Selects all of the playlist entries."),
+     G_CALLBACK(action_playlist_select_all)},
+
+    {"playlist select none", NULL, N_("Select None"), "<Shift><Ctrl>A",
+     N_("Deselects all of the playlist entries."),
+     G_CALLBACK(action_playlist_select_none)},
 };
 
+static GtkActionGroup * action_group_playback;
+static GtkActionGroup * action_group_output;
+static GtkActionGroup * action_group_view;
+static GtkActionGroup * action_group_others;
+static GtkActionGroup * action_group_playlist;
 
 /* ***************************** */
 
@@ -343,8 +265,9 @@ void ui_manager_init(void)
     action_group_playlist = ui_manager_new_action_group("action_playlist");
     gtk_action_group_add_actions(action_group_playlist, action_entries_playlist, G_N_ELEMENTS(action_entries_playlist), NULL);
 
-    action_group_visualization = ui_manager_new_action_group("action_visualization");
-    gtk_action_group_add_actions(action_group_visualization, action_entries_visualization, G_N_ELEMENTS(action_entries_visualization), NULL);
+    action_group_output = ui_manager_new_action_group ("action_output");
+    gtk_action_group_add_actions (action_group_output, action_entries_output,
+     G_N_ELEMENTS (action_entries_output), NULL);
 
     action_group_view = ui_manager_new_action_group("action_view");
     gtk_action_group_add_actions(action_group_view, action_entries_view, G_N_ELEMENTS(action_entries_view), NULL);
@@ -352,32 +275,14 @@ void ui_manager_init(void)
     action_group_others = ui_manager_new_action_group("action_others");
     gtk_action_group_add_actions(action_group_others, action_entries_others, G_N_ELEMENTS(action_entries_others), NULL);
 
-    action_group_playlist_add = ui_manager_new_action_group("action_playlist_add");
-    gtk_action_group_add_actions(action_group_playlist_add, action_entries_playlist_add, G_N_ELEMENTS(action_entries_playlist_add), NULL);
-
-    action_group_playlist_select = ui_manager_new_action_group("action_playlist_select");
-    gtk_action_group_add_actions(action_group_playlist_select, action_entries_playlist_select, G_N_ELEMENTS(action_entries_playlist_select), NULL);
-
-    action_group_playlist_delete = ui_manager_new_action_group("action_playlist_delete");
-    gtk_action_group_add_actions(action_group_playlist_delete, action_entries_playlist_delete, G_N_ELEMENTS(action_entries_playlist_delete), NULL);
-
-    action_group_playlist_sort = ui_manager_new_action_group("action_playlist_sort");
-    gtk_action_group_add_actions(action_group_playlist_sort, action_entries_playlist_sort, G_N_ELEMENTS(action_entries_playlist_sort), NULL);
-
     /* ui */
     ui_manager = gtk_ui_manager_new();
     gtk_ui_manager_insert_action_group(ui_manager, toggleaction_group_others, 0);
     gtk_ui_manager_insert_action_group(ui_manager, action_group_playback, 0);
     gtk_ui_manager_insert_action_group(ui_manager, action_group_playlist, 0);
-    gtk_ui_manager_insert_action_group(ui_manager, action_group_visualization, 0);
+    gtk_ui_manager_insert_action_group(ui_manager, action_group_output, 0);
     gtk_ui_manager_insert_action_group(ui_manager, action_group_view, 0);
     gtk_ui_manager_insert_action_group(ui_manager, action_group_others, 0);
-    gtk_ui_manager_insert_action_group(ui_manager, action_group_playlist_add, 0);
-    gtk_ui_manager_insert_action_group(ui_manager, action_group_playlist_select, 0);
-    gtk_ui_manager_insert_action_group(ui_manager, action_group_playlist_delete, 0);
-    gtk_ui_manager_insert_action_group(ui_manager, action_group_playlist_sort, 0);
-
-    return;
 }
 
 #ifdef GDK_WINDOWING_QUARTZ
@@ -394,60 +299,26 @@ void ui_manager_create_menus(void)
 
     if (gerr != NULL)
     {
-        g_critical("Error creating UI<ui/mainwin.ui>: %s", gerr->message);
+        g_critical("Error loading player.ui: %s", gerr->message);
         g_error_free(gerr);
         return;
     }
 
-    /* create GtkMenu widgets using path from xml definitions */
-    mainwin_songname_menu = ui_manager_get_popup_menu(ui_manager, "/mainwin-menus/songname-menu");
-    mainwin_visualization_menu = ui_manager_get_popup_menu(ui_manager, "/mainwin-menus/main-menu/visualization");
-    mainwin_playback_menu = ui_manager_get_popup_menu(ui_manager, "/mainwin-menus/main-menu/playback");
-    mainwin_playlist_menu = ui_manager_get_popup_menu(ui_manager, "/mainwin-menus/main-menu/playlist");
-    mainwin_view_menu = ui_manager_get_popup_menu(ui_manager, "/mainwin-menus/main-menu/view");
-    mainwin_general_menu = ui_manager_get_popup_menu(ui_manager, "/mainwin-menus/main-menu");
-
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(gtk_ui_manager_get_widget(ui_manager, "/mainwin-menus/plugins-menu")), aud_get_plugin_menu(AUDACIOUS_MENU_MAIN));
-
-#ifdef GDK_WINDOWING_QUARTZ
-    gtk_ui_manager_add_ui_from_file(ui_manager, DATA_DIR "/ui/carbon-menubar.ui", &gerr);
-
-    if (gerr != NULL)
-    {
-        g_critical("Error creating UI<ui/carbon-menubar.ui>: %s", gerr->message);
-        g_error_free(gerr);
-        return;
-    }
-
-    carbon_menubar = ui_manager_get_popup_menu(ui_manager, "/carbon-menubar/main-menu");
-    sync_menu_takeover_menu(GTK_MENU_SHELL(carbon_menubar));
-#endif
-
-    gtk_ui_manager_add_ui_from_file(ui_manager, DATA_DIR "/ui/playlist.ui", &gerr);
-
-    if (gerr != NULL)
-    {
-        g_critical("Error creating UI<ui/playlist.ui>: %s", gerr->message);
-        g_error_free(gerr);
-        return;
-    }
+    gtk_menu_item_set_submenu ((GtkMenuItem *) gtk_ui_manager_get_widget
+     (ui_manager, "/mainwin-menus/plugins-menu"), aud_get_plugin_menu
+     (AUDACIOUS_MENU_MAIN));
+    gtk_menu_item_set_submenu ((GtkMenuItem *) gtk_ui_manager_get_widget
+     (ui_manager, "/mainwin-menus/output/effects menu"),
+     audgui_create_effects_menu ());
+    gtk_menu_item_set_submenu ((GtkMenuItem *) gtk_ui_manager_get_widget
+     (ui_manager, "/mainwin-menus/view/iface menu"),
+     audgui_create_iface_menu ());
 
     playlistwin_popup_menu = ui_manager_get_popup_menu(ui_manager, "/playlist-menus/playlist-rightclick-menu");
 
-    playlistwin_pladd_menu = ui_manager_get_popup_menu(ui_manager, "/playlist-menus/add-menu");
-    playlistwin_pldel_menu = ui_manager_get_popup_menu(ui_manager, "/playlist-menus/del-menu");
-    playlistwin_plsel_menu = ui_manager_get_popup_menu(ui_manager, "/playlist-menus/select-menu");
-    playlistwin_plsort_menu = ui_manager_get_popup_menu(ui_manager, "/playlist-menus/misc-menu");
-    playlistwin_pllist_menu = ui_manager_get_popup_menu(ui_manager, "/playlist-menus/playlist-menu");
-
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(gtk_ui_manager_get_widget(ui_manager, "/playlist-menus/playlist-menu/plugins-menu")), aud_get_plugin_menu(AUDACIOUS_MENU_PLAYLIST));
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(gtk_ui_manager_get_widget(ui_manager, "/playlist-menus/playlist-rightclick-menu/plugins-menu")), aud_get_plugin_menu(AUDACIOUS_MENU_PLAYLIST_RCLICK));
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(gtk_ui_manager_get_widget(ui_manager, "/playlist-menus/add-menu/plugins-menu")), aud_get_plugin_menu(AUDACIOUS_MENU_PLAYLIST_ADD));
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(gtk_ui_manager_get_widget(ui_manager, "/playlist-menus/del-menu/plugins-menu")), aud_get_plugin_menu(AUDACIOUS_MENU_PLAYLIST_REMOVE));
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(gtk_ui_manager_get_widget(ui_manager, "/playlist-menus/select-menu/plugins-menu")), aud_get_plugin_menu(AUDACIOUS_MENU_PLAYLIST_SELECT));
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(gtk_ui_manager_get_widget(ui_manager, "/playlist-menus/misc-menu/plugins-menu")), aud_get_plugin_menu(AUDACIOUS_MENU_PLAYLIST_MISC));
-
-    return;
+    gtk_menu_item_set_submenu ((GtkMenuItem *) gtk_ui_manager_get_widget
+     (ui_manager, "/playlist-menus/playlist-rightclick-menu/plugins-menu"),
+     aud_get_plugin_menu (AUDACIOUS_MENU_PLAYLIST_RCLICK));
 }
 
 
@@ -497,15 +368,15 @@ void ui_manager_popup_menu_show(GtkMenu * menu, gint x, gint y, guint button, gu
 
 void ui_manager_destroy(void)
 {
+    gtk_menu_detach ((GtkMenu *) aud_get_plugin_menu (AUDACIOUS_MENU_MAIN));
+    gtk_menu_detach ((GtkMenu *) aud_get_plugin_menu
+     (AUDACIOUS_MENU_PLAYLIST_RCLICK));
+
     g_object_unref((GObject *) toggleaction_group_others);
     g_object_unref((GObject *) action_group_playback);
     g_object_unref((GObject *) action_group_playlist);
-    g_object_unref((GObject *) action_group_visualization);
+    g_object_unref((GObject *) action_group_output);
     g_object_unref((GObject *) action_group_view);
     g_object_unref((GObject *) action_group_others);
-    g_object_unref((GObject *) action_group_playlist_add);
-    g_object_unref((GObject *) action_group_playlist_select);
-    g_object_unref((GObject *) action_group_playlist_delete);
-    g_object_unref((GObject *) action_group_playlist_sort);
     g_object_unref((GObject *) ui_manager);
 }

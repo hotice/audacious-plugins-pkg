@@ -21,8 +21,11 @@
 
 #include "config.h"
 
+#include <audacious/configdb.h>
 #include <audacious/i18n.h>
 #include <audacious/plugin.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
 #include "compressor.h"
 
@@ -31,8 +34,7 @@ void compressor_config_load (void)
     mcs_handle_t * database = aud_cfg_db_open ();
 
     aud_cfg_db_get_float (database, "compressor", "target", & compressor_target);
-    aud_cfg_db_get_float (database, "compressor", "strength",
-     & compressor_strength);
+    aud_cfg_db_get_float (database, "compressor", "range", & compressor_range);
 
     aud_cfg_db_close (database);
 }
@@ -42,16 +44,17 @@ void compressor_config_save (void)
     mcs_handle_t * database = aud_cfg_db_open ();
 
     aud_cfg_db_set_float (database, "compressor", "target", compressor_target);
-    aud_cfg_db_set_float (database, "compressor", "strength",
-     compressor_strength);
+    aud_cfg_db_set_float (database, "compressor", "range", compressor_range);
 
     aud_cfg_db_close (database);
 }
 
 static void compressor_about (void)
 {
-    const char markup[] = "<b>Dynamic Range Compression Plugin for "
-     "Audacious</b>\n"
+    static GtkWidget * window = NULL;
+
+    audgui_simple_message (& window, GTK_MESSAGE_INFO, _("About Dynamic Range "
+     "Compression Plugin"), "Dynamic Range Compression Plugin for Audacious\n"
      "Copyright 2010 John Lindgren\n\n"
      "Redistribution and use in source and binary forms, with or without "
      "modification, are permitted provided that the following conditions are "
@@ -63,21 +66,7 @@ static void compressor_about (void)
      "documentation provided with the distribution.\n\n"
      "This software is provided \"as is\" and without any warranty, express or "
      "implied. In no event shall the authors be liable for any damages arising "
-     "from the use of this software.";
-
-    static GtkWidget * window = NULL;
-
-    if (window == NULL)
-    {
-        window = gtk_message_dialog_new_with_markup (NULL, 0, GTK_MESSAGE_INFO,
-         GTK_BUTTONS_OK, markup);
-        g_signal_connect ((GObject *) window, "response", (GCallback)
-         gtk_widget_destroy, NULL);
-        g_signal_connect ((GObject *) window, "destroy", (GCallback)
-         gtk_widget_destroyed, & window);
-    }
-
-    gtk_window_present ((GtkWindow *) window);
+     "from the use of this software.");
 }
 
 static void value_changed (GtkRange * range, void * data)
@@ -110,9 +99,9 @@ static void compressor_configure (void)
         gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
 
         gtk_box_pack_start ((GtkBox *) hbox, gtk_label_new (_("Target "
-         "volume:")), TRUE, FALSE, 0);
+         "volume:")), FALSE, FALSE, 0);
 
-        slider = gtk_hscale_new_with_range (0.0, 1.0, 0.1);
+        slider = gtk_hscale_new_with_range (0.1, 1.0, 0.1);
         gtk_range_set_value ((GtkRange *) slider, compressor_target);
         gtk_widget_set_size_request (slider, 100, -1);
         gtk_box_pack_start ((GtkBox *) hbox, slider, FALSE, FALSE, 0);
@@ -122,15 +111,15 @@ static void compressor_configure (void)
         hbox = gtk_hbox_new (FALSE, 6);
         gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
 
-        gtk_box_pack_start ((GtkBox *) hbox, gtk_label_new (_("Effect "
-         "strength:")), TRUE, FALSE, 0);
+        gtk_box_pack_start ((GtkBox *) hbox, gtk_label_new (_("Dynamic "
+         "range:")), FALSE, FALSE, 0);
 
-        slider = gtk_hscale_new_with_range (0.0, 1.0, 0.1);
-        gtk_range_set_value ((GtkRange *) slider, compressor_strength);
-        gtk_widget_set_size_request (slider, 100, -1);
+        slider = gtk_hscale_new_with_range (0.0, 3.0, 0.1);
+        gtk_range_set_value ((GtkRange *) slider, compressor_range);
+        gtk_widget_set_size_request (slider, 250, -1);
         gtk_box_pack_start ((GtkBox *) hbox, slider, FALSE, FALSE, 0);
         g_signal_connect (slider, "value-changed", (GCallback) value_changed,
-         & compressor_strength);
+         & compressor_range);
 
         hbox = gtk_hbox_new (FALSE, 6);
         gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
@@ -143,6 +132,8 @@ static void compressor_configure (void)
         gtk_widget_grab_default (button);
         g_signal_connect_swapped (button, "clicked", (GCallback)
          gtk_widget_destroy, window);
+
+        audgui_destroy_on_escape (window);
 
         gtk_widget_show_all (vbox);
     }
@@ -163,6 +154,7 @@ EffectPlugin compressor_plugin =
     .finish = compressor_finish,
     .decoder_to_output_time = compressor_decoder_to_output_time,
     .output_to_decoder_time = compressor_output_to_decoder_time,
+    .preserves_format = TRUE,
 };
 
 EffectPlugin * compressor_list[] = {& compressor_plugin, NULL};

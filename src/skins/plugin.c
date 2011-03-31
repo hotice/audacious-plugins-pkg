@@ -21,24 +21,28 @@
 
 #include "plugin.h"
 #include "skins_cfg.h"
+#include "ui_dock.h"
 #include "ui_equalizer.h"
 #include "ui_main.h"
 #include "ui_skin.h"
 #include "ui_manager.h"
 #include "ui_main_evlisteners.h"
 #include "ui_playlist_evlisteners.h"
+
+#include <audacious/audconfig.h>
+#include <audacious/drct.h>
 #include <audacious/i18n.h>
 #include <libaudgui/libaudgui.h>
-#include <libintl.h>
+#include <libaudgui/libaudgui-gtk.h>
 
-#include "ui_playlist_manager.h"
+#include <libintl.h>
 
 gchar * skins_paths[SKINS_PATH_COUNT];
 
 Interface skins_interface =
 {
     .id = "skinned",
-    .desc = "Audacious Skinned GUI",
+    .desc = "Winamp Classic Interface",
     .init = skins_init,
     .fini = skins_cleanup
 };
@@ -107,11 +111,12 @@ gboolean skins_init (InterfaceCbs * cbs)
     init_skins(config.skin);
     mainwin_setup_menus();
 
-    if (audacious_drct_get_playing ())
+    if (aud_drct_get_playing ())
     {
         ui_main_evlistener_playback_begin (NULL, NULL);
+        info_change ();
 
-        if (audacious_drct_get_paused ())
+        if (aud_drct_get_paused ())
             ui_main_evlistener_playback_pause (NULL, NULL);
     }
     else
@@ -139,7 +144,6 @@ gboolean skins_init (InterfaceCbs * cbs)
     eq_init_hooks ();
     update_source = g_timeout_add (250, update_cb, NULL);
 
-    gtk_main ();
     return TRUE;
 }
 
@@ -152,43 +156,33 @@ gboolean skins_cleanup (void)
         eq_end_hooks ();
         g_source_remove (update_source);
 
-        gtk_widget_destroy (mainwin);
-        gtk_widget_destroy (equalizerwin);
-        gtk_widget_destroy (playlistwin);
         skins_cfg_save();
 
-        if (playman_win)
-            gtk_widget_destroy (playman_win);
+        audgui_playlist_manager_destroy();
 
         cleanup_skins();
+        clear_dock_window_list ();
         skins_free_paths();
         skins_cfg_free();
         ui_manager_destroy();
         plugin_is_active = FALSE;
     }
 
-    gtk_main_quit();
-
     return TRUE;
 }
 
-void skins_about(void) {
-    static GtkWidget* about_window = NULL;
+void skins_about (void)
+{
+    static GtkWidget * about_window = NULL;
 
-    if (about_window) {
-        gtk_window_present(GTK_WINDOW(about_window));
-        return;
-    }
-
-    about_window = audacious_info_dialog(_("About Skinned GUI"),
-                   _("Copyright (c) 2008, by Tomasz Moń <desowin@gmail.com>\n\n"),
-                   _("OK"), FALSE, NULL, NULL);
-
-    g_signal_connect(G_OBJECT(about_window), "destroy",	G_CALLBACK(gtk_widget_destroyed), &about_window);
+    audgui_simple_message (& about_window, GTK_MESSAGE_INFO,
+     _("About Skinned GUI"),
+     _("Copyright (c) 2008, by Tomasz Moń <desowin@gmail.com>\n\n"));
 }
 
 void show_preferences_window(gboolean show) {
-    static GtkWidget **prefswin = NULL;
+    /* static GtkWidget * * prefswin = NULL; */
+    static void * * prefswin = NULL;
 
     if (show) {
         if ((prefswin != NULL) && (*prefswin != NULL)) {

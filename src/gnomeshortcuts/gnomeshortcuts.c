@@ -5,7 +5,7 @@
  *  Copyright (c) 2007-2008    Sascha Hlusiak <contact@saschahlusiak.de>
  *  Name: plugin.c
  *  Description: plugin.c
- * 
+ *
  *  audacious-gnome-shortcut is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -28,11 +28,11 @@
 #include <dbus/dbus-glib-bindings.h>
 #include <glib-object.h>
 
+#include <audacious/drct.h>
 #include <audacious/plugin.h>
-#include <audacious/auddrct.h>
-
 #include <audacious/i18n.h>
-
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
 static void init (void);
 static void about (void);
@@ -71,9 +71,9 @@ hotkey_marshal_VOID__STRING_STRING (GClosure     *closure,
 	register GMarshalFunc_VOID__STRING_STRING callback;
 	register GCClosure *cc = (GCClosure*) closure;
 	register gpointer data1;
-	
+
 	g_return_if_fail (n_param_values == 3);
-	
+
 	if (G_CCLOSURE_SWAP_DATA (closure))
 	{
 		data1 = closure->data;
@@ -81,7 +81,7 @@ hotkey_marshal_VOID__STRING_STRING (GClosure     *closure,
 		data1 = g_value_peek_pointer (param_values + 0);
 	}
 	callback = (GMarshalFunc_VOID__STRING_STRING) (marshal_data ? marshal_data : cc->callback);
-	
+
 	callback (data1,
 		g_marshal_value_peek_string (param_values + 1),
 		g_marshal_value_peek_string (param_values + 2));
@@ -94,12 +94,12 @@ on_media_player_key_pressed (DBusGProxy *proxy, const gchar *application, const 
 		gint current_volume, old_volume;
 		static gint volume_static = 0;
 		gboolean play, mute;
-		
+
 		/* playing or not */
-		play = audacious_drct_is_playing ();
-		
+		play = aud_drct_get_playing ();
+
 		/* get current volume */
-		audacious_drct_get_volume_main (&current_volume);
+		aud_drct_get_volume_main (&current_volume);
 		old_volume = current_volume;
 		if (current_volume)
 		{
@@ -109,22 +109,22 @@ on_media_player_key_pressed (DBusGProxy *proxy, const gchar *application, const 
 			/* volume is mute */
 			mute = TRUE;
 		}
-			
+
 		/* mute the playback */
 		if (strcmp ("Mute", key) == 0)
 		{
 			if (!mute)
 			{
 				volume_static = current_volume;
-				audacious_drct_set_main_volume (0);
+				aud_drct_set_volume_main (0);
 				mute = TRUE;
 			} else {
-				audacious_drct_set_main_volume (volume_static);
+				aud_drct_set_volume_main (volume_static);
 				mute = FALSE;
 			}
 			return;
 		}
-		
+
 		/* decreace volume */
 /*		if ((keycode == plugin_cfg.vol_down) && (state == plugin_cfg.vol_down_mask))
 		{
@@ -134,22 +134,22 @@ on_media_player_key_pressed (DBusGProxy *proxy, const gchar *application, const 
 				old_volume = 0;
 				mute = FALSE;
 			}
-				
+
 			if ((current_volume -= plugin_cfg.vol_decrement) < 0)
 			{
 				current_volume = 0;
 			}
-				
+
 			if (current_volume != old_volume)
 			{
 				xmms_remote_set_main_volume (audacioushotkey.xmms_session,
 							current_volume);
 			}
-				
+
 			old_volume = current_volume;
 			return TRUE;
 		}*/
-		
+
 		/* increase volume */
 /*		if ((keycode == plugin_cfg.vol_up) && (state == plugin_cfg.vol_up_mask))
 		{
@@ -159,61 +159,61 @@ on_media_player_key_pressed (DBusGProxy *proxy, const gchar *application, const 
 				old_volume = 0;
 				mute = FALSE;
 			}
-				
+
 			if ((current_volume += plugin_cfg.vol_increment) > 100)
 			{
 				current_volume = 100;
 			}
-				
+
 			if (current_volume != old_volume)
 			{
 				xmms_remote_set_main_volume (audacioushotkey.xmms_session,
 							current_volume);
 			}
-				
+
 			old_volume = current_volume;
 			return TRUE;
 		}*/
-		
+
 		/* play */
 		if (strcmp ("Play", key) == 0)
 		{
 			if (!play)
 			{
-				audacious_drct_play ();
+				aud_drct_play ();
 			} else {
-				audacious_drct_pause ();
+				aud_drct_pause ();
 			}
 			return;
 		}
-	
+
 		/* pause */
 		if (strcmp ("Pause", key) == 0)
 		{
-			if (!play) audacious_drct_play ();
-			else audacious_drct_pause ();
-	
+			if (!play) aud_drct_play ();
+			else aud_drct_pause ();
+
 			return;
 		}
-		
+
 		/* stop */
 		if (strcmp ("Stop", key) == 0)
 		{
-			audacious_drct_stop ();
+			aud_drct_stop ();
 			return;
 		}
-		
-		/* prev track */	
+
+		/* prev track */
 		if (strcmp ("Previous", key) == 0)
 		{
-			audacious_drct_playlist_prev ();
+			aud_drct_pl_prev ();
 			return;
 		}
-		
+
 		/* next track */
 		if (strcmp ("Next", key) == 0)
 		{
-			audacious_drct_playlist_next ();
+			aud_drct_pl_next ();
 			return;
 		}
 	}
@@ -250,7 +250,7 @@ void gnome_remote_init ()
 		g_warning ("Error connecting to DBus: %s", error->message);
 	} else {
 		media_player_keys_proxy = dbus_g_proxy_new_for_name (bus,
-			"org.gnome.SettingsDaemon", 
+			"org.gnome.SettingsDaemon",
 			"/org/gnome/SettingsDaemon/MediaKeys",
 			"org.gnome.SettingsDaemon.MediaKeys");
 		if (media_player_keys_proxy == NULL) return;
@@ -267,7 +267,7 @@ void gnome_remote_init ()
 			g_object_unref(media_player_keys_proxy);
 			media_player_keys_proxy = NULL;
     			media_player_keys_proxy = dbus_g_proxy_new_for_name (bus,
-				"org.gnome.SettingsDaemon", 
+				"org.gnome.SettingsDaemon",
 				"/org/gnome/SettingsDaemon",
 				"org.gnome.SettingsDaemon");
 			if (media_player_keys_proxy == NULL) return;
@@ -300,17 +300,13 @@ void gnome_remote_init ()
 
 static void about (void)
 {
-	static GtkWidget *dialog;
+    static GtkWidget * dialog = NULL;
 
-	dialog = audacious_info_dialog (_("About Gnome Shortcut Plugin"),
-				_("Gnome Shortcut Plugin\n"
-				"Let's you control the player with Gnome's shortcuts.\n\n"
-				"Copyright (C) 2007-2008 Sascha Hlusiak <contact@saschahlusiak.de>\n\n"
-                         	),
-                         	_("OK"), TRUE, NULL, NULL);
-
-	gtk_signal_connect(GTK_OBJECT(dialog), "destroy",
-			   GTK_SIGNAL_FUNC(gtk_widget_destroyed), &dialog);						
+    audgui_simple_message (& dialog, GTK_MESSAGE_INFO,
+     _("About Gnome Shortcut Plugin"),
+     _("Gnome Shortcut Plugin\n"
+     "Let's you control the player with Gnome's shortcuts.\n\n"
+     "Copyright (C) 2007-2008 Sascha Hlusiak <contact@saschahlusiak.de>\n\n"));
 }
 
 static void init (void)

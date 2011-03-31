@@ -29,11 +29,16 @@
 #include "emuopl.h"
 #include "silentopl.h"
 #include "players.h"
+
+extern "C" {
+#include <audacious/configdb.h>
 #include <audacious/i18n.h>
-extern "C"
-{
+#include <audacious/misc.h>
 #include <audacious/plugin.h>
-#include <audacious/output.h>
+#include <libaudcore/tuple_formatter.h>
+#include <libaudcore/vfs_buffered_file.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 }
 
 
@@ -138,28 +143,6 @@ print_left (const gchar * text)
   return GTK_WIDGET (label);
 }
 
-#if 0
-static void
-MessageBox (const char *title, const char *text, const char *button)
-{
-  char *tmptitle = (char *) malloc (strlen (title) + 1),
-    *tmptxt = (char *) malloc (strlen (text) + 1),
-    *tmpbutton = (char *) malloc (strlen (button) + 1);
-
-  strcpy (tmptitle, title);
-  strcpy (tmptxt, text);
-  strcpy (tmpbutton, button);
-
-  GtkWidget *msgbox = audacious_info_dialog (tmptitle, tmptxt, tmpbutton, FALSE,
-                                         G_CALLBACK (gtk_widget_destroyed),
-                                         &msgbox);
-
-  free (tmptitle);
-  free (tmptxt);
-  free (tmpbutton);
-}
-#endif
-
 /***** Dialog boxes *****/
 
 extern "C" void
@@ -177,14 +160,10 @@ adplug_about (void)
                                     "\n\nThis plugin uses the AdPlug library, which is copyright (C) Simon Peter, et al.\n"
                                     "Linked AdPlug library version: "),
                                    version_text, NULL);
-    about_win =
-      audacious_info_dialog (about_title, about_text, _("Ok"), FALSE, NULL, NULL);
-    g_signal_connect (G_OBJECT (about_win), "destroy",
-                      G_CALLBACK (gtk_widget_destroyed), &about_win);
+    audgui_simple_message (& about_win, GTK_MESSAGE_INFO, about_title, about_text);
     g_free (about_text);
     g_free (about_title);
   }
-  gtk_widget_show (about_win);
 }
 
 static void
@@ -479,7 +458,7 @@ factory (VFSFile * fd, Copl * newopl)
 
 extern "C" {
 void adplug_stop(InputPlayback * data);
-void adplug_play(InputPlayback * data);
+gboolean adplug_play(InputPlayback * data, const gchar * filename, VFSFile * file, gint start_time, gint stop_time, gboolean pause);
 }
 
 static void
@@ -487,7 +466,7 @@ subsong_slider (GtkAdjustment * adj)
 {
   adplug_stop (NULL);
   plr.subsong = (unsigned int) adj->value - 1;
-  adplug_play (playback);
+  adplug_play (playback, playback->filename, NULL, 0, 0, FALSE);
 }
 
 static void
@@ -506,7 +485,7 @@ extern "C" void
 adplug_info_box (const gchar *filename)
 {
   CSilentopl tmpopl;
-  VFSFile *fd = aud_vfs_buffered_file_new_from_uri (filename);
+  VFSFile *fd = vfs_buffered_file_new_from_uri (filename);
 
   if (!fd)
     return;
@@ -680,7 +659,7 @@ adplug_get_tuple (const gchar *filename)
 {
   Tuple * ti = NULL;
   CSilentopl tmpopl;
-  VFSFile *fd = aud_vfs_buffered_file_new_from_uri (filename);
+  VFSFile *fd = vfs_buffered_file_new_from_uri (filename);
 
   if (!fd)
     return NULL;
@@ -689,32 +668,32 @@ adplug_get_tuple (const gchar *filename)
 
   if (p)
   {
-    ti = aud_tuple_new_from_filename (filename);
+    ti = tuple_new_from_filename (filename);
 
     if (! p->getauthor().empty())
-      aud_tuple_associate_string(ti, FIELD_ARTIST, NULL, p->getauthor().c_str());
+      tuple_associate_string(ti, FIELD_ARTIST, NULL, p->getauthor().c_str());
     if (! p->gettitle().empty())
-      aud_tuple_associate_string(ti, FIELD_TITLE, NULL, p->gettitle().c_str());
+      tuple_associate_string(ti, FIELD_TITLE, NULL, p->gettitle().c_str());
     else if (! p->getdesc().empty())
-      aud_tuple_associate_string(ti, FIELD_TITLE, NULL, p->getdesc().c_str());
+      tuple_associate_string(ti, FIELD_TITLE, NULL, p->getdesc().c_str());
     else
-      aud_tuple_associate_string(ti, FIELD_TITLE, NULL, g_path_get_basename(filename));
-    aud_tuple_associate_string(ti, FIELD_CODEC, NULL, p->gettype().c_str());
-    aud_tuple_associate_string(ti, FIELD_QUALITY, NULL, "sequenced");
-    aud_tuple_associate_int(ti, FIELD_LENGTH, NULL, p->songlength (plr.subsong));
+      tuple_associate_string(ti, FIELD_TITLE, NULL, g_path_get_basename(filename));
+    tuple_associate_string(ti, FIELD_CODEC, NULL, p->gettype().c_str());
+    tuple_associate_string(ti, FIELD_QUALITY, NULL, "sequenced");
+    tuple_associate_int(ti, FIELD_LENGTH, NULL, p->songlength (plr.subsong));
     delete p;
   }
 
-  aud_vfs_fclose (fd);
+  vfs_fclose (fd);
   return ti;
 }
 
 static char* format_and_free_ti( Tuple* ti, int* length )
 {
-  char* result = aud_tuple_formatter_make_title_string(ti, aud_get_gentitle_format());
+  char* result = tuple_formatter_make_title_string(ti, aud_get_gentitle_format());
   if ( result )
-    *length = aud_tuple_get_int(ti, FIELD_LENGTH, NULL);
-  aud_tuple_free((void *) ti);
+    *length = tuple_get_int(ti, FIELD_LENGTH, NULL);
+  tuple_free((void *) ti);
 
   return result;
 }
@@ -761,7 +740,7 @@ play_loop (void *data)
   // we use VfsBufferedFile class here because adplug does a lot of
   // probing. a short delay before probing begins is better than
   // a lot of delay during probing.
-  VFSFile *fd = aud_vfs_buffered_file_new_from_uri (playback->filename);
+  VFSFile *fd = vfs_buffered_file_new_from_uri (playback->filename);
 
   if (!fd)
     return (NULL);
@@ -906,7 +885,7 @@ play_loop (void *data)
   }
   free (sndbuf);
   dbg_printf (".\n");
-  aud_vfs_fclose (fd);
+  vfs_fclose (fd);
   return (NULL);
 }
 
@@ -937,10 +916,9 @@ adplug_is_our_fd (const gchar * filename, VFSFile * fd)
 
 /***** Player control *****/
 
-extern "C" void
-adplug_play (InputPlayback * data)
+extern "C" gboolean
+adplug_play (InputPlayback * data, const gchar * filename, VFSFile * file, gint start_time, gint stop_time, gboolean pause)
 {
-  char *filename = data->filename;
   playback = data;
   dbg_printf ("adplug_play(\"%s\"): ", filename);
   audio_error = FALSE;
@@ -957,11 +935,12 @@ adplug_play (InputPlayback * data)
                   conf.stereo ? 2 : 1))
   {
     audio_error = TRUE;
-    return;
+    return TRUE;
   }
 
   play_loop (playback);
   playback->output->close_audio ();
+  return FALSE;
 }
 
 extern "C" void adplug_stop (InputPlayback * playback)
@@ -1056,7 +1035,7 @@ adplug_init (void)
     {
       std::string userdb;
       userdb = "file://" + std::string(g_get_home_dir()) + "/" ADPLUG_CONFDIR "/" + ADPLUGDB_FILE;
-      if (aud_vfs_file_test(userdb.c_str(),G_FILE_TEST_EXISTS)) {
+      if (vfs_file_test(userdb.c_str(),G_FILE_TEST_EXISTS)) {
       plr.db->load (userdb);    // load user's database
       dbg_printf (" (userdb=\"%s\")", userdb.c_str());
       }

@@ -17,8 +17,13 @@
  */
 
 #include "config.h"
-#include <audacious/plugin.h>
+
 #include <audacious/i18n.h>
+#include <audacious/misc.h>
+#include <audacious/plugin.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
+
 #include <glib.h>
 #include <stdlib.h>
 #include <math.h>
@@ -40,23 +45,17 @@ static void tone_init(void)
     aud_uri_set_plugin("tone://", &tone_ip);
 }
 
-static void tone_about(void)
+static void tone_about (void)
 {
-    static GtkWidget *aboutbox = NULL;
+    static GtkWidget * aboutbox = NULL;
 
-    if (aboutbox == NULL)
-    {
-        aboutbox = audacious_info_dialog(
-            _("About Tone Generator"),
-            /* I18N: UTF-8 Translation: "Haavard Kvaalen" -> "H\303\245vard Kv\303\245len" */
-            _("Sinus tone generator by Haavard Kvaalen <havardk@xmms.org>\n"
-            "Modified by Daniel J. Peng <danielpeng@bigfoot.com>\n\n"
-            "To use it, add a URL: tone://frequency1;frequency2;frequency3;...\n"
-            "e.g. tone://2000;2005 to play a 2000Hz tone and a 2005Hz tone"),
-            _("Ok"), FALSE, NULL, NULL);
-
-        g_signal_connect(GTK_OBJECT(aboutbox), "destroy", (GCallback) gtk_widget_destroyed, &aboutbox);
-    }
+    audgui_simple_message (& aboutbox, GTK_MESSAGE_INFO,
+     _("About Tone Generator"),
+     /* I18N: UTF-8 Translation: "Haavard Kvaalen" -> "H\303\245vard Kv\303\245len" */
+     _("Sinus tone generator by Haavard Kvaalen <havardk@xmms.org>\n"
+     "Modified by Daniel J. Peng <danielpeng@bigfoot.com>\n\n"
+     "To use it, add a URL: tone://frequency1;frequency2;frequency3;...\n"
+     "e.g. tone://2000;2005 to play a 2000Hz tone and a 2005Hz tone"));
 }
 
 static gint tone_is_our_file(const gchar * filename)
@@ -195,7 +194,7 @@ static void tone_pause(InputPlayback * playback, gshort paused)
 
 static Tuple *tone_get_song_tuple(const gchar * filename)
 {
-    Tuple *tuple = aud_tuple_new_from_filename(filename);
+    Tuple *tuple = tuple_new_from_filename(filename);
     gchar *tmp;
 
     if (tuple == NULL)
@@ -203,7 +202,7 @@ static Tuple *tone_get_song_tuple(const gchar * filename)
 
     if ((tmp = tone_title(filename)) != NULL)
     {
-        aud_tuple_associate_string(tuple, FIELD_TITLE, NULL, tmp);
+        tuple_associate_string(tuple, FIELD_TITLE, NULL, tmp);
         g_free(tmp);
     }
 

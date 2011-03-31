@@ -19,11 +19,13 @@
 
 #include <gtk/gtk.h>
 
-#include "config.h"
-
+#include <audacious/configdb.h>
 #include <audacious/i18n.h>
 #include <audacious/plugin.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
+#include "config.h"
 #include "resample.h"
 
 int common_rates[] = {8000, 16000, 22050, 44100, 48000, 96000, 192000};
@@ -44,8 +46,9 @@ void resample_config_load (void)
         aud_cfg_db_get_int (database, "resample", scratch,
          & converted_rates[count]);
     }
-    
+
     aud_cfg_db_get_int (database, "resample", "method", & method);
+    aud_cfg_db_get_int (database, "resample", "fallback_rate", & fallback_rate);
 
     aud_cfg_db_close (database);
 }
@@ -61,15 +64,19 @@ void resample_config_save (void)
         snprintf (scratch, sizeof scratch, "%d", common_rates[count]);
         aud_cfg_db_set_int (database, "resample", scratch, converted_rates[count]);
     }
-    
+
     aud_cfg_db_set_int (database, "resample", "method", method);
+    aud_cfg_db_set_int (database, "resample", "fallback_rate", fallback_rate);
 
     aud_cfg_db_close (database);
 }
 
 static void resample_about (void)
 {
-    const char markup[] = "<b>Sample Rate Converter Plugin for Audacious</b>\n"
+    static GtkWidget * window = NULL;
+
+    audgui_simple_message (& window, GTK_MESSAGE_INFO, _("About Sample Rate "
+     "Converter Plugin"), "Sample Rate Converter Plugin for Audacious\n"
      "Copyright 2010 John Lindgren\n\n"
      "Redistribution and use in source and binary forms, with or without "
      "modification, are permitted provided that the following conditions are "
@@ -81,21 +88,7 @@ static void resample_about (void)
      "documentation provided with the distribution.\n\n"
      "This software is provided \"as is\" and without any warranty, express or "
      "implied. In no event shall the authors be liable for any damages arising "
-     "from the use of this software.";
-
-    static GtkWidget * window = NULL;
-
-    if (window == NULL)
-    {
-        window = gtk_message_dialog_new_with_markup (NULL, 0, GTK_MESSAGE_INFO,
-         GTK_BUTTONS_OK, markup);
-        g_signal_connect ((GObject *) window, "response", (GCallback)
-         gtk_widget_destroy, NULL);
-        g_signal_connect ((GObject *) window, "destroy", (GCallback)
-         gtk_widget_destroyed, & window);
-    }
-
-    gtk_window_present ((GtkWindow *) window);
+     "from the use of this software.");
 }
 
 static void value_changed (GtkSpinButton * button, void * data)
@@ -114,13 +107,13 @@ static GtkWidget * make_method_list (void)
     const char * name;
 
     GtkWidget * list = gtk_combo_box_new_text ();
-    
+
     for (count = 0; (name = src_get_name (count)) != NULL; count ++)
         gtk_combo_box_append_text ((GtkComboBox *) list, name);
-    
+
     gtk_combo_box_set_active ((GtkComboBox *) list, method);
     g_signal_connect (list, "changed", (GCallback) list_changed, & method);
-    
+
     return list;
 }
 
@@ -169,7 +162,7 @@ static void resample_configure (void)
             g_signal_connect (button, "value-changed", (GCallback)
              value_changed, & converted_rates[count]);
         }
-             
+
         hbox = gtk_hbox_new (FALSE, 6);
         gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
 
@@ -181,7 +174,7 @@ static void resample_configure (void)
         gtk_spin_button_set_value ((GtkSpinButton *) button, fallback_rate);
         g_signal_connect (button, "value-changed", (GCallback)
          value_changed, & fallback_rate);
-             
+
         hbox = gtk_hbox_new (FALSE, 6);
         gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
 
@@ -195,10 +188,16 @@ static void resample_configure (void)
 
         button = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
         gtk_box_pack_end ((GtkBox *) hbox, button, FALSE, FALSE, 0);
+#if GTK_CHECK_VERSION (2, 18, 0)
         gtk_widget_set_can_default (button, TRUE);
+#else
+        GTK_WIDGET_SET_FLAGS (button, GTK_CAN_DEFAULT);
+#endif
         gtk_widget_grab_default (button);
         g_signal_connect_swapped (button, "clicked", (GCallback)
          gtk_widget_destroy, window);
+
+        audgui_destroy_on_escape (window);
 
         gtk_widget_show_all (vbox);
     }
@@ -219,6 +218,8 @@ EffectPlugin resample_plugin =
     .finish = resample_finish,
     .decoder_to_output_time = resample_decoder_to_output_time,
     .output_to_decoder_time = resample_output_to_decoder_time,
+
+    .order = 2, /* must be before crossfade */
 };
 
 EffectPlugin * resample_list[] = {& resample_plugin, NULL};

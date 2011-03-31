@@ -45,6 +45,7 @@ void del_directory(const gchar *dirname);
 gboolean dir_foreach(const gchar *path, DirForeachFunc function,
                      gpointer user_data, GError **error);
 
+typedef GHashTable INIFile;
 
 INIFile *open_ini_file(const gchar *filename);
 void close_ini_file(INIFile *key_file);
@@ -70,8 +71,6 @@ GtkWidget *make_filebrowser(const gchar *title, gboolean save);
 GdkPixbuf *audacious_create_colorized_pixbuf(GdkPixbuf *src, gint red,
                                              gint green, gint blue);
 
-void insert_drag_list(gint playlist, gint position, const gchar *list);
-void open_drag_list (const gchar * list);
 void resize_window(GtkWidget *window, gint width, gint height);
 gboolean widget_really_drawable (GtkWidget * widget);
 void widget_destroy_on_escape (GtkWidget * widget);

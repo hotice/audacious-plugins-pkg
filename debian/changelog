@@ -1,3 +1,33 @@
+audacious-plugins (2.4.3-1) experimental; urgency=low
+
+  * New upstream release.
+  * debian/control:
+    - Bump build-depend on audacious-dev to >= 2.4.3.
+    - Bump Recommends,Breaks,Replaces on audacious to 2.4.3.
+
+ -- Bilal Akhtar <bilalakhtar@ubuntu.com>  Tue, 25 Jan 2011 15:27:50 +0100
+
+audacious-plugins (2.4.2-1) experimental; urgency=low
+
+  * New upstream release.
+    - Fixes error with alsa-gapless and dmix (Closes: #585574).
+    - Remove "Audacious standard menu" from status icon (Closes: #485491).
+    - Allow updating FLAC tags (Closes: #586453, LP: #211946).
+    - Adds scrobbler plugin again (Closes: #552466, #584962, LP: #568651).
+    - Fix volume decreases with every new song with PulseAudio output
+      (Closes: #544097).
+    - Fix shows meaningless timer values when playing Internet streams
+      (Closes: #584249).
+    - Provides RoarAudio plugin (Closes: #589756).
+    - Fix 100% CPU load on pause in amidi-plugin (Closes: #598808).
+  * Drop all patches.
+  * Drop override_dh_auto_clean.
+  * Bump build dependency on audacious-dev to >= 2.4.2.
+  * Bump breaks & replaces of audacious to 2.4.2.
+  * Update my email address.
+
+ -- Benjamin Drung <bdrung@debian.org>  Wed, 29 Dec 2010 23:35:46 +0100
+
 audacious-plugins (2.3+dfsg-1) unstable; urgency=low
 
   * Put Audacious under the umbrella of the Multimedia Maintainers team.

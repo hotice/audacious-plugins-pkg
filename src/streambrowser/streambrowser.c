@@ -20,8 +20,14 @@
 #include <stdlib.h>
 #include <gtk/gtk.h>
 #include <glib.h>
+
+#include <audacious/configdb.h>
+#include <audacious/debug.h>
+#include <audacious/misc.h>
+#include <audacious/playlist.h>
 #include <audacious/plugin.h>
-#include <audacious/ui_plugin_menu.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
 #include "streambrowser.h"
 #include "streamdir.h"
@@ -98,17 +104,17 @@ void failure (const char *fmt, ...)
 
 gboolean fetch_remote_to_local_file (gchar * remote_url, gchar * local_url)
 {
-    VFSFile *remote_file = aud_vfs_fopen (remote_url, "r");
+    VFSFile *remote_file = vfs_fopen (remote_url, "r");
     if (remote_file == NULL)
     {
         failure ("failed to fetch file '%s'\n", remote_url);
         return FALSE;
     }
 
-    VFSFile *local_file = aud_vfs_fopen (local_url, "w");
+    VFSFile *local_file = vfs_fopen (local_url, "w");
     if (local_file == NULL)
     {
-        aud_vfs_fclose (remote_file);
+        vfs_fclose (remote_file);
 
         failure ("failed to create local file '%s'\n", local_file);
         return FALSE;
@@ -116,28 +122,28 @@ gboolean fetch_remote_to_local_file (gchar * remote_url, gchar * local_url)
 
     unsigned char buff[DEF_BUFFER_SIZE];
     int size;
-    while (!aud_vfs_feof (remote_file))
+    while (!vfs_feof (remote_file))
     {
-        size = aud_vfs_fread (buff, 1, DEF_BUFFER_SIZE, remote_file);
+        size = vfs_fread (buff, 1, DEF_BUFFER_SIZE, remote_file);
 
-        // i don't know why aud_vfs_feof() doesn't ever return TRUE
+        // i don't know why vfs_feof() doesn't ever return TRUE
         // so this is a workaround to properly end the loop
         if (size == 0)
             break;
 
-        size = aud_vfs_fwrite (buff, 1, size, local_file);
+        size = vfs_fwrite (buff, 1, size, local_file);
         if (size == 0)
         {
-            aud_vfs_fclose (local_file);
-            aud_vfs_fclose (remote_file);
+            vfs_fclose (local_file);
+            vfs_fclose (remote_file);
 
             failure ("failed to write to local file '%s'\n", local_file);
             return FALSE;
         }
     }
 
-    aud_vfs_fclose (local_file);
-    aud_vfs_fclose (remote_file);
+    vfs_fclose (local_file);
+    vfs_fclose (remote_file);
 
     return TRUE;
 }
@@ -317,32 +323,18 @@ static void sb_init ()
     gui_init ();
 }
 
-static void sb_about ()
+static void sb_about (void)
 {
-    AUDDBG("sb_about()\n");
+    static GtkWidget * about_window = NULL;
 
-    static GtkWidget *about_window = NULL;
-
-    if (about_window != NULL)
-    {
-        gtk_window_present (GTK_WINDOW (about_window));
-    }
-    else
-    {
-        about_window =
-            audacious_info_dialog (_("About Stream Browser"),
-                                   _
-                                   ("Copyright (c) 2008, by Calin Crisan <ccrisan@gmail.com> and The Audacious Team.\n\n"
-                                    "This is a simple stream browser that includes the most popular streaming directories.\n"
-                                    "Many thanks to the Streamtuner developers <http://www.nongnu.org/streamtuner>,\n"
-                                    "\tand of course to the whole Audacious community.\n\n"
-                                    "Also thank you Tony Vroon for mentoring & guiding me, again.\n\n"
-                                    "This was a Google Summer of Code 2008 project."),
-                                   _("OK"), FALSE, NULL, NULL);
-
-        g_signal_connect (G_OBJECT (about_window), "destroy",
-                          G_CALLBACK (gtk_widget_destroyed), &about_window);
-    }
+    audgui_simple_message (& about_window, GTK_MESSAGE_INFO,
+     _("About Stream Browser"),
+     _("Copyright (c) 2008, by Calin Crisan <ccrisan@gmail.com> and The Audacious Team.\n\n"
+     "This is a simple stream browser that includes the most popular streaming directories.\n"
+     "Many thanks to the Streamtuner developers <http://www.nongnu.org/streamtuner>,\n"
+     "\tand of course to the whole Audacious community.\n\n"
+     "Also thank you Tony Vroon for mentoring & guiding me, again.\n\n"
+     "This was a Google Summer of Code 2008 project."));
 }
 
 static void sb_configure ()
@@ -369,7 +361,7 @@ static void gui_init ()
     gtk_widget_show (playlist_menu_item);
     g_signal_connect (G_OBJECT (playlist_menu_item), "activate",
                       G_CALLBACK (on_plugin_services_menu_item_click), NULL);
-    audacious_menu_plugin_item_add (AUDACIOUS_MENU_PLAYLIST_RCLICK,
+    aud_menu_plugin_item_add (AUDACIOUS_MENU_PLAYLIST_RCLICK,
                                     playlist_menu_item);
 
     main_menu_item = gtk_image_menu_item_new_with_label (_("Streambrowser"));
@@ -379,7 +371,7 @@ static void gui_init ()
     gtk_widget_show (main_menu_item);
     g_signal_connect (G_OBJECT (main_menu_item), "activate",
                       G_CALLBACK (on_plugin_services_menu_item_click), NULL);
-    audacious_menu_plugin_item_add (AUDACIOUS_MENU_MAIN, main_menu_item);
+    aud_menu_plugin_item_add (AUDACIOUS_MENU_MAIN, main_menu_item);
 
     /* main streambrowser window */
     streambrowser_win_init ();
@@ -395,9 +387,9 @@ static void gui_init ()
 static void gui_done ()
 {
     /* the plugin services menu */
-    audacious_menu_plugin_item_remove (AUDACIOUS_MENU_PLAYLIST_RCLICK,
+    aud_menu_plugin_item_remove (AUDACIOUS_MENU_PLAYLIST_RCLICK,
                                        playlist_menu_item);
-    audacious_menu_plugin_item_remove (AUDACIOUS_MENU_MAIN, main_menu_item);
+    aud_menu_plugin_item_remove (AUDACIOUS_MENU_MAIN, main_menu_item);
 
     /* main streambrowser window */
     streambrowser_win_hide ();
@@ -722,7 +714,7 @@ static gpointer update_thread_core (gpointer user_data)
 static void streaminfo_add_to_playlist (streaminfo_t * streaminfo)
 {
     gint playlist = aud_playlist_get_active ();
-    gchar * unix_name = g_build_filename (audacious_get_localdir (),
+    gchar * unix_name = g_build_filename (aud_util_get_localdir (),
      PLAYLIST_TEMP_FILE, NULL);
     gchar * uri_name = g_filename_to_uri (unix_name, NULL, NULL);
 

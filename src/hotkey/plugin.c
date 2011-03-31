@@ -4,7 +4,7 @@
  *  Copyright (c) 2007 - 2008  Sascha Hlusiak <contact@saschahlusiak.de>
  *  Name: plugin.c
  *  Description: plugin.c
- * 
+ *
  *  Part of this code is from itouch-ctrl plugin.
  *  Authors of itouch-ctrl are listed below:
  *
@@ -38,11 +38,14 @@
 #include <stdio.h>
 #include <X11/XF86keysym.h>
 
+#include <gdk/gdk.h>
 #include <gdk/gdkx.h>
-#include <audacious/plugin.h>
-#include <audacious/auddrct.h>
 
+#include <audacious/configdb.h>
+#include <audacious/drct.h>
 #include <audacious/i18n.h>
+#include <audacious/plugin.h>
+#include <libaudcore/hook.h>
 
 #include "plugin.h"
 #include "gui.h"
@@ -80,7 +83,7 @@ PluginConfig* get_config(void)
 }
 
 
-/* 
+/*
  * plugin activated
  */
 static void init (void)
@@ -98,12 +101,12 @@ gboolean handle_keyevent (EVENT event)
 	gint current_volume, old_volume;
 	static gint volume_static = 0;
 	gboolean play, mute;
-	
+
 	/* playing or not */
-	play = audacious_drct_is_playing ();
-	
+	play = aud_drct_get_playing ();
+
 	/* get current volume */
-	audacious_drct_get_volume_main (&current_volume);
+	aud_drct_get_volume_main (&current_volume);
 	old_volume = current_volume;
 	if (current_volume)
 	{
@@ -120,15 +123,15 @@ gboolean handle_keyevent (EVENT event)
 		if (!mute)
 		{
 			volume_static = current_volume;
-			audacious_drct_set_main_volume (0);
+			aud_drct_set_volume_main (0);
 			mute = TRUE;
 		} else {
-			audacious_drct_set_main_volume (volume_static);
+			aud_drct_set_volume_main (volume_static);
 			mute = FALSE;
 		}
 		return TRUE;
 	}
-	
+
 	/* decreace volume */
 	if (event == EVENT_VOL_DOWN)
 	{
@@ -138,21 +141,21 @@ gboolean handle_keyevent (EVENT event)
 			old_volume = 0;
 			mute = FALSE;
 		}
-			
+
 		if ((current_volume -= plugin_cfg.vol_decrement) < 0)
 		{
 			current_volume = 0;
 		}
-			
+
 		if (current_volume != old_volume)
 		{
-			audacious_drct_set_main_volume (current_volume);
+			aud_drct_set_volume_main (current_volume);
 		}
-			
+
 		old_volume = current_volume;
 		return TRUE;
 	}
-	
+
 	/* increase volume */
 	if (event == EVENT_VOL_UP)
 	{
@@ -162,108 +165,93 @@ gboolean handle_keyevent (EVENT event)
 			old_volume = 0;
 			mute = FALSE;
 		}
-			
+
 		if ((current_volume += plugin_cfg.vol_increment) > 100)
 		{
 			current_volume = 100;
 		}
-			
+
 		if (current_volume != old_volume)
 		{
-			audacious_drct_set_main_volume (current_volume);
+			aud_drct_set_volume_main (current_volume);
 		}
-			
+
 		old_volume = current_volume;
 		return TRUE;
 	}
-	
+
 	/* play */
 	if (event == EVENT_PLAY)
 	{
-		audacious_drct_play ();
+		aud_drct_play ();
 		return TRUE;
 	}
 
 	/* pause */
 	if (event == EVENT_PAUSE)
 	{
-		if (!play) audacious_drct_play ();
-		else audacious_drct_pause ();
+		if (!play) aud_drct_play ();
+		else aud_drct_pause ();
 
 		return TRUE;
 	}
-	
+
 	/* stop */
 	if (event == EVENT_STOP)
 	{
-		audacious_drct_stop ();
+		aud_drct_stop ();
 		return TRUE;
 	}
-	
-	/* prev track */	
+
+	/* prev track */
 	if (event == EVENT_PREV_TRACK)
 	{
-		audacious_drct_playlist_prev ();
+		aud_drct_pl_prev ();
 		return TRUE;
 	}
-	
+
 	/* next track */
 	if (event == EVENT_NEXT_TRACK)
 	{
-		audacious_drct_playlist_next ();
+		aud_drct_pl_next ();
 		return TRUE;
 	}
 
 	/* forward */
 	if (event == EVENT_FORWARD)
 	{
-		gint time = audacious_drct_get_output_time();
-		time += 5000; /* Jump 5s into future */
-		audacious_drct_jump_to_time(time);
+		aud_drct_seek (aud_drct_get_time () + 5000);
 		return TRUE;
 	}
 
 	/* backward */
 	if (event == EVENT_BACKWARD)
 	{
-		gint time = audacious_drct_get_output_time();
+		gint time = aud_drct_get_time ();
 		if (time > 5000) time -= 5000; /* Jump 5s back */
 			else time = 0;
-		audacious_drct_jump_to_time(time);
+		aud_drct_seek (time);
 		return TRUE;
 	}
 
 	/* Open Jump-To-File dialog */
 	if (event == EVENT_JUMP_TO_FILE)
 	{
-		audacious_drct_show_jtf_box();
+		hook_call ("interface show jump to track", NULL);
 		return TRUE;
 	}
 
 	/* Toggle Windows */
 	if (event == EVENT_TOGGLE_WIN)
 	{
-		static gboolean is_main, is_eq, is_pl;
-		is_main = audacious_drct_main_win_is_visible();
-		if (is_main) { /* Hide windows */
-			is_pl = audacious_drct_pl_win_is_visible();
-			is_eq = audacious_drct_eq_win_is_visible();
-			audacious_drct_main_win_toggle(FALSE);
-			audacious_drct_pl_win_toggle(FALSE);
-			audacious_drct_eq_win_toggle(FALSE);
-		} else { /* Show hidden windows */
-			audacious_drct_main_win_toggle(TRUE);
-			audacious_drct_pl_win_toggle(is_pl);
-			audacious_drct_eq_win_toggle(is_eq);
-			audacious_drct_activate();
-		}
+		hook_call ("interface toggle visibility", NULL);
 		return TRUE;
 	}
 
 	/* Show OSD through AOSD plugin*/
 	if (event == EVENT_SHOW_AOSD)
 	{
-		aud_hook_call("aosd toggle", NULL);
+		hook_call("aosd toggle", NULL);
 		return TRUE;
 	}
 
@@ -321,7 +309,7 @@ void load_config (void)
 	mcs_handle_t *cfdb;
 	HotkeyConfiguration *hotkey;
 	int i,max;
-	
+
 	/* default volume level */
 	plugin_cfg.vol_increment = 4;
 	plugin_cfg.vol_decrement = 4;

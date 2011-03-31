@@ -18,6 +18,15 @@
  * Audacious or using our public API to be a derived work.
  */
 
+#include <glib.h>
+#include <stdlib.h>
+
+#include <audacious/configdb.h>
+#include <audacious/debug.h>
+#include <audacious/i18n.h>
+#include <audacious/misc.h>
+#include <audacious/preferences.h>
+#include <libaudcore/audstrings.h>
 
 #include "skins_cfg.h"
 #include "ui_dock.h"
@@ -32,14 +41,9 @@
 #include "plugin.h"
 #include "dnd.h"
 #include "util.h"
-#include <glib.h>
-#include <stdlib.h>
-#include <audacious/i18n.h>
-#include <libintl.h>
 
 skins_cfg_t config;
 GtkWidget *skin_view;
-GtkWidget *skin_refresh_button;
 static GtkWidget *colorize_settings = NULL;
 /* colorize settings scales */
 GtkWidget *green_scale;
@@ -93,9 +97,6 @@ skins_cfg_t skins_default_config = {
     .playlist_height = PLAYLISTWIN_DEFAULT_HEIGHT,
     .playlist_position = 0,
     .colorize_r = 255, .colorize_g = 255, .colorize_b = 255,
-    .snap_distance = 10,
-    .snap_windows = TRUE,
-    .save_window_position = TRUE,
     .analyzer_peaks = TRUE,
     .twoway_scroll = TRUE,             /* use back and forth scroll */
     .mainwin_use_bitmapfont = TRUE,
@@ -104,7 +105,6 @@ skins_cfg_t skins_default_config = {
     .playlist_font = NULL,
     .mainwin_font = NULL,
     .random_skin_on_play = FALSE,
-    .no_confirm_playlist_delete = FALSE,
 };
 
 typedef struct skins_cfg_boolent_t {
@@ -134,8 +134,6 @@ static skins_cfg_boolent skins_boolents[] = {
     {"easy_move", &config.easy_move, TRUE},
     {"allow_broken_skins", &config.allow_broken_skins, TRUE},
     {"disable_inline_gtk", &config.disable_inline_gtk, TRUE},
-    {"snap_windows", &config.snap_windows, TRUE},
-    {"save_window_positions", &config.save_window_position, TRUE},
     {"analyzer_peaks", &config.analyzer_peaks, TRUE},
     {"twoway_scroll", &config.twoway_scroll, TRUE},
     {"warn_about_win_visibility", &config.warn_about_win_visibility, TRUE},
@@ -144,7 +142,6 @@ static skins_cfg_boolent skins_boolents[] = {
     {"eq_scaled_linked", &config.eq_scaled_linked, TRUE},
     {"show_separator_in_pl", &config.show_separator_in_pl, TRUE},
     {"random_skin_on_play", &config.random_skin_on_play, TRUE},
-    {"no_confirm_playlist_delete", & config.no_confirm_playlist_delete, TRUE},
 };
 
 static gint ncfgbent = G_N_ELEMENTS(skins_boolents);
@@ -177,7 +174,6 @@ static skins_cfg_nument skins_numents[] = {
     {"colorize_r", &config.colorize_r, TRUE},
     {"colorize_g", &config.colorize_g, TRUE},
     {"colorize_b", &config.colorize_b, TRUE},
-    {"snap_distance", &config.snap_distance, TRUE},
 };
 
 static gint ncfgient = G_N_ELEMENTS(skins_numents);
@@ -256,16 +252,6 @@ void skins_cfg_save() {
     }
 
     int i;
-
-    if (config.save_window_position == FALSE)
-    {
-        config.player_x = MAINWIN_DEFAULT_POS_X;
-        config.player_y = MAINWIN_DEFAULT_POS_Y;
-        config.equalizer_x = EQUALIZER_DEFAULT_POS_X;
-        config.equalizer_y = EQUALIZER_DEFAULT_POS_Y;
-        config.playlist_x = PLAYLISTWIN_DEFAULT_POS_X;
-        config.playlist_y = PLAYLISTWIN_DEFAULT_POS_Y;
-    }
 
     for (i = 0; i < ncfgsent; ++i) {
         if (skins_strents[i].se_wrt)
@@ -354,7 +340,7 @@ on_skin_view_realize(GtkTreeView * treeview,
                      gpointer data)
 {
     skin_view_realize(treeview);
-    skin_view_update(GTK_TREE_VIEW(skin_view), GTK_WIDGET(skin_refresh_button));
+    skin_view_update ((GtkTreeView *) skin_view);
 
     return TRUE;
 }
@@ -529,11 +515,11 @@ on_skin_view_drag_data_received(GtkWidget * widget,
 
     /* FIXME: use a real URL validator/parser */
 
-    if (aud_str_has_prefix_nocase(path, "file:///")) {
+    if (str_has_prefix_nocase(path, "file:///")) {
         path[strlen(path) - 2] = 0; /* Why the hell a CR&LF? */
         path += 7;
     }
-    else if (aud_str_has_prefix_nocase(path, "file:")) {
+    else if (str_has_prefix_nocase(path, "file:")) {
         path += 5;
     }
 
@@ -541,8 +527,7 @@ on_skin_view_drag_data_received(GtkWidget * widget,
         if (!aud_active_skin_load(path))
             return;
         skin_install_skin(path);
-        skin_view_update(GTK_TREE_VIEW(widget),
-                         GTK_WIDGET(skin_refresh_button));
+        skin_view_update ((GtkTreeView *) widget);
 
         /* Change skin name in the config file */
         db = aud_cfg_db_open();
@@ -560,8 +545,6 @@ GtkWidget* skins_configure(void) {
     GtkWidget *hbox13;
     GtkWidget *label103;
     GtkWidget *colorspace_button;
-    GtkWidget *image11;
-    GtkWidget *image12;
     GtkWidget *alignment95;
     GtkWidget *skin_view_scrolled_window;
 
@@ -588,20 +571,10 @@ GtkWidget* skins_configure(void) {
     gtk_label_set_use_markup (GTK_LABEL (label103), TRUE);
     gtk_misc_set_alignment (GTK_MISC (label103), 0, 0);
 
-    colorspace_button = gtk_button_new ();
+    colorspace_button = gtk_button_new_with_label (_("Color adjustment ..."));
+    gtk_button_set_image ((GtkButton *) colorspace_button,
+     gtk_image_new_from_stock (GTK_STOCK_COLOR_PICKER, GTK_ICON_SIZE_BUTTON));
     gtk_box_pack_start (GTK_BOX (hbox13), colorspace_button, FALSE, FALSE, 0);
-
-    image11 = gtk_image_new_from_stock ("gtk-properties", GTK_ICON_SIZE_BUTTON);
-    gtk_container_add (GTK_CONTAINER (colorspace_button), image11);
-
-    skin_refresh_button = gtk_button_new ();
-    gtk_box_pack_start (GTK_BOX (hbox13), skin_refresh_button, FALSE, FALSE, 0);
-    GTK_WIDGET_UNSET_FLAGS (skin_refresh_button, GTK_CAN_FOCUS);
-    gtk_button_set_relief (GTK_BUTTON (skin_refresh_button), GTK_RELIEF_HALF);
-    gtk_button_set_focus_on_click (GTK_BUTTON (skin_refresh_button), FALSE);
-
-    image12 = gtk_image_new_from_stock ("gtk-refresh", GTK_ICON_SIZE_BUTTON);
-    gtk_container_add (GTK_CONTAINER (skin_refresh_button), image12);
 
     alignment95 = gtk_alignment_new (0.5, 0.5, 1, 1);
     gtk_box_pack_start (GTK_BOX (vbox38), alignment95, TRUE, TRUE, 0);
@@ -633,15 +606,6 @@ GtkWidget* skins_configure(void) {
     g_signal_connect(mainwin, "drag-data-received",
                      G_CALLBACK(mainwin_drag_data_received),
                      skin_view);
-#if 0
-    g_signal_connect(skin_refresh_button, "clicked",
-                     G_CALLBACK(on_skin_refresh_button_clicked),
-                     NULL);
-
-    g_signal_connect_swapped(G_OBJECT(skin_refresh_button), "clicked",
-                             G_CALLBACK(on_skin_refresh_button_clicked),
-                             prefswin);
-#endif
     g_signal_connect_after(G_OBJECT(skin_view), "realize",
                            G_CALLBACK(on_skin_view_realize),
                            NULL);

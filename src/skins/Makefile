@@ -24,13 +24,17 @@ SRCS = plugin.c \
        ui_main.c \
        ui_equalizer.c \
        ui_playlist.c \
-       ui_playlist_manager.c \
        ui_main_evlisteners.c \
        ui_playlist_evlisteners.c \
        ui_manager.c \
        ui_hints.c \
        ui_skinselector.c
 
+include ../../buildsys.mk
+include ../../extra.mk
+
+# These overrides variables in buildsys.mk and so must come after it.
+PACKAGE = audacious
 DATA = Skins/Classic/balance.png	\
        Skins/Classic/cbuttons.png	\
        Skins/Classic/eq_ex.png		\
@@ -244,15 +248,14 @@ DATA = Skins/Classic/balance.png	\
        Skins/Refugee/text.png		\
        Skins/Refugee/titlebar.png	\
        Skins/Refugee/viscolor.txt	\
-       Skins/Refugee/volume.png
-
-include ../../buildsys.mk
-include ../../extra.mk
-
-PACKAGE = audacious
+       Skins/Refugee/volume.png \
+       ui/equalizer.ui \
+       ui/mainwin.ui \
+       ui/playlist.ui \
+       ui/carbon-menubar.ui
 
 plugindir := ${plugindir}/${GENERAL_PLUGIN_DIR}
 
+CPPFLAGS += -std=gnu99 ${PLUGIN_CPPFLAGS} -I../..
 CFLAGS += ${PLUGIN_CFLAGS} ${BEEP_DEFINES}
-CPPFLAGS += ${PLUGIN_CPPFLAGS} ${MOWGLI_CFLAGS}  ${GTK_CFLAGS} ${GLIB_CFLAGS} ${PANGO_CFLAGS} ${CAIRO_CFLAGS} ${PANGOCAIRO_CFLAGS} ${XRENDER_CFLAGS} ${XCOMPOSITE_CFLAGS} -I../..
-LIBS += ${GTK_LIBS} ${GLIB_LIBS} ${PANGO_LIBS} ${CAIRO_LIBS} ${PANGOCAIRO_LIBS} ${XRENDER_LIBS} ${XCOMPOSITE_LIBS} ${MOWGLI_LIBS} -laudgui
+LIBS += ${GTK_LIBS} ${GLIB_LIBS} ${PANGO_LIBS} ${CAIRO_LIBS} ${PANGOCAIRO_LIBS} ${XRENDER_LIBS} ${XCOMPOSITE_LIBS} ${MOWGLI_LIBS} -laudgui -lm

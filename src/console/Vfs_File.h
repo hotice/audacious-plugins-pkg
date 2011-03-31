@@ -5,7 +5,9 @@
 
 #include "Data_Reader.h"
 
+extern "C" {
 #include <audacious/plugin.h>
+}
 
 class Vfs_File_Reader : public File_Reader {
 public:
@@ -13,7 +15,7 @@ public:
 	error_t open( const char* path );
 	VFSFile* file() const { return file_; }
 	void close();
-	
+
 public:
 	Vfs_File_Reader();
 	~Vfs_File_Reader();

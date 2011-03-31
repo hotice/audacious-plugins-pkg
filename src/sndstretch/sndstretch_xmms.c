@@ -27,14 +27,15 @@
 #include "FB_logo.xpm"
 
 #include "config.h"
-#include <audacious/plugin.h>
-#include <audacious/i18n.h>
 #include <gtk/gtk.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
+#include <audacious/configdb.h>
+#include <audacious/i18n.h>
+#include <audacious/plugin.h>
 #include <libaudcore/audio.h>
 
 #define SNDSTRETCH_VERSION_STRING "0.7"
@@ -61,6 +62,7 @@ EffectPlugin sndstretch_ep = {
     .finish = sndstretch_finish,
     .decoder_to_output_time = sndstretch_decoder_to_output_time,
     .output_to_decoder_time = sndstretch_output_to_decoder_time,
+    .preserves_format = TRUE,
 };
 
 EffectPlugin *sndstretch_eplist[] = { &sndstretch_ep, NULL };

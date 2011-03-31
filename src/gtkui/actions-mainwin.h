@@ -43,6 +43,10 @@ void action_roll_up_playlist_editor(GtkToggleAction *);
 void action_show_equalizer(GtkToggleAction *);
 void action_show_player(GtkToggleAction *);
 void action_show_playlist_editor(GtkToggleAction *);
+void action_view_playlist(GtkToggleAction *);
+void action_view_infoarea(GtkToggleAction *);
+void action_view_menu(GtkToggleAction *);
+void action_view_statusbar(GtkToggleAction *);
 
 /* radio actions (one for each radio action group) */
 void action_anafoff(GtkAction *, GtkRadioAction *);

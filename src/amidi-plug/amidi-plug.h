@@ -29,7 +29,7 @@
 
 #include "i_common.h"
 #include <audacious/plugin.h>
-#include <audacious/auddrct.h>
+
 #include "i_vfslayer.h"
 #include "i_backend.h"
 #include "i_configure.h"
@@ -56,7 +56,8 @@ amidiplug_cfg_ap_t amidiplug_cfg_ap =
   0		/* ap_opts_lyrics_extract */
 };
 
-gchar *amidiplug_vfs_extensions[] = { "mid" , "midi" , "rmi" , "rmid" , NULL };
+static const gchar * const amidiplug_vfs_extensions[] = {"mid", "midi", "rmi",
+ "rmid", NULL};
 
 gpointer amidiplug_play_loop( gpointer );
 void amidiplug_skipto( gint );
@@ -92,7 +93,7 @@ InputPlugin amidiplug_ip =
   .get_song_tuple = amidiplug_get_song_tuple,		/* get_song_info */
   .file_info_box = amidiplug_file_info_box,		/* file_info_box */
   .is_our_file_from_vfs = amidiplug_is_our_file_from_vfs,	/* is_our_file_from_vfs */
-  .vfs_extensions = amidiplug_vfs_extensions		/* aud_vfs_extensions */
+  .vfs_extensions = amidiplug_vfs_extensions		/* vfs_extensions */
 };
 
 #endif /* !_I_AMIDIPLUG_H */

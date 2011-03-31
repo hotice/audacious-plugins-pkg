@@ -40,9 +40,15 @@ typedef struct
 {
     gint player_x, player_y;
     gint player_width, player_height;
+    gint playlist_width, playlist_height;
     gboolean save_window_position;
     gboolean player_visible;
+    gboolean playlist_visible;
     VisPosition vis_position;
+    gboolean multi_column_view;
+    gboolean infoarea_visible;
+    gboolean menu_visible;
+    gboolean statusbar_visible;
 } gtkui_cfg_t;
 
 extern gtkui_cfg_t config;

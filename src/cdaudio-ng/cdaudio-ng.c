@@ -36,9 +36,16 @@
 
 #include <glib.h>
 
-#include <audacious/plugin.h>
+#include <audacious/audconfig.h>
+#include <audacious/configdb.h>
+#include <audacious/debug.h>
 #include <audacious/i18n.h>
-#include <audacious/output.h>
+#include <audacious/misc.h>
+#include <audacious/playlist.h>
+#include <audacious/plugin.h>
+#include <libaudcore/eventqueue.h>
+#include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 
 #include "cdaudio-ng.h"
 #include "configure.h"
@@ -81,9 +88,9 @@ static trackinfo_t *trackinfo = NULL;
 static volatile gboolean pause_flag = FALSE;
 static gint playing_track = -1;
 static dae_params_t *pdae_params = NULL;
+static gint monitor_source = 0;
 
 /* read / set these variables in main thread only */
-static int monitor_source;
 
 static void cdaudio_init (void);
 static void cdaudio_about (void);
@@ -100,7 +107,7 @@ static void cdaudio_cleanup (void);
 static Tuple *create_tuple_from_trackinfo_and_filename (const gchar * filename);
 static void dae_play_loop (dae_params_t * pdae_params);
 static void scan_cd (void);
-static void refresh_trackinfo (void);
+static void refresh_trackinfo (gboolean warning);
 static gint calculate_track_length (gint startlsn, gint endlsn);
 static gint find_trackno_from_filename (const gchar * filename);
 
@@ -137,7 +144,7 @@ static void cdaudio_error (const gchar * message_format, ...)
     msg = g_markup_vprintf_escaped (message_format, args);
     va_end (args);
 
-    aud_event_queue_with_data_free ("interface show error", msg);
+    event_queue_with_data_free ("interface show error", msg);
 }
 
 /* main thread only */
@@ -176,19 +183,32 @@ static gboolean monitor (gpointer unused)
     g_mutex_lock (mutex);
 
     if (trackinfo != NULL)
-    {
-        refresh_trackinfo ();
+        refresh_trackinfo (FALSE);
 
-        if (trackinfo == NULL)
-        {
-            g_mutex_unlock (mutex);
-            purge_all_playlists ();
-            return FALSE;
-        }
+    if (trackinfo != NULL)
+    {
+        g_mutex_unlock (mutex);
+        return TRUE;
     }
 
+    monitor_source = 0;
     g_mutex_unlock (mutex);
-    return TRUE;
+
+    purge_all_playlists ();
+    return FALSE;
+}
+
+/* mutex must be locked */
+static void trigger_monitor (void)
+{
+    if (monitor_source)
+        return;
+
+#if GLIB_CHECK_VERSION (2, 14, 0)
+    monitor_source = g_timeout_add_seconds (1, monitor, NULL);
+#else
+    monitor_source = g_timeout_add (1000, monitor, NULL);
+#endif
 }
 
 /* main thread only */
@@ -202,17 +222,11 @@ static void cdaudio_init ()
     cdng_cfg.use_dae = TRUE;
     cdng_cfg.use_cdtext = TRUE;
     cdng_cfg.use_cddb = TRUE;
-    cdng_cfg.device = g_strdup ("");
-    cdng_cfg.cddb_server = g_strdup (CDDA_DEFAULT_CDDB_SERVER);
-    cdng_cfg.cddb_path = g_strdup ("");
     cdng_cfg.cddb_port = CDDA_DEFAULT_CDDB_PORT;
     cdng_cfg.cddb_http = FALSE;
     cdng_cfg.disc_speed = DEFAULT_DISC_SPEED;
     cdng_cfg.use_proxy = FALSE;
-    cdng_cfg.proxy_host = g_strdup ("");
     cdng_cfg.proxy_port = CDDA_DEFAULT_PROXY_PORT;
-    cdng_cfg.proxy_username = g_strdup ("");
-    cdng_cfg.proxy_password = g_strdup ("");
 
     if ((db = aud_cfg_db_open ()) == NULL)
     {
@@ -239,6 +253,19 @@ static void cdaudio_init ()
     aud_cfg_db_get_string (db, "audacious", "proxy_pass",
                            &cdng_cfg.proxy_password);
 
+    if (cdng_cfg.device == NULL)
+        cdng_cfg.device = g_strdup ("");
+    if (cdng_cfg.cddb_server == NULL)
+        cdng_cfg.cddb_server = g_strdup (CDDA_DEFAULT_CDDB_SERVER);
+    if (cdng_cfg.cddb_path == NULL)
+        cdng_cfg.cddb_path = g_strdup ("");
+    if (cdng_cfg.proxy_host == NULL)
+        cdng_cfg.proxy_host = g_strdup ("");
+    if (cdng_cfg.proxy_username == NULL)
+        cdng_cfg.proxy_username = g_strdup ("");
+    if (cdng_cfg.proxy_password == NULL)
+        cdng_cfg.proxy_password = g_strdup ("");
+
     aud_cfg_db_close (db);
 
     if (!cdio_init ())
@@ -250,35 +277,21 @@ static void cdaudio_init ()
     libcddb_init ();
 
     aud_uri_set_plugin ("cdda://", &inputplugin);
-
-    trackinfo = NULL;
-    monitor_source = g_timeout_add (1000, monitor, NULL);
 }
 
 /* main thread only */
-static void cdaudio_about ()
+static void cdaudio_about (void)
 {
-    static GtkWidget *about_window = NULL;
+    static GtkWidget * about_window = NULL;
 
-    if (about_window)
-    {
-        gtk_window_present (GTK_WINDOW (about_window));
-    }
-    else
-    {
-        about_window = audacious_info_dialog (_("About Audio CD Plugin"),
-                                              _
-                                              ("Copyright (c) 2007, by Calin Crisan <ccrisan@gmail.com> and The Audacious Team.\n\n"
-                                               "Many thanks to libcdio developers <http://www.gnu.org/software/libcdio/>\n"
-                                               "\tand to libcddb developers <http://libcddb.sourceforge.net/>.\n\n"
-                                               "Also thank you Tony Vroon for mentoring & guiding me.\n\n"
-                                               "This was a Google Summer of Code 2007 project.\n\n"
-                                               "Copyright 2009 John Lindgren"),
-                                              _("Close"), FALSE, NULL, NULL);
-
-        g_signal_connect (G_OBJECT (about_window), "destroy",
-                          G_CALLBACK (gtk_widget_destroyed), &about_window);
-    }
+    audgui_simple_message (& about_window, GTK_MESSAGE_INFO,
+     _("About Audio CD Plugin"),
+     _("Copyright (c) 2007, by Calin Crisan <ccrisan@gmail.com> and The Audacious Team.\n\n"
+     "Many thanks to libcdio developers <http://www.gnu.org/software/libcdio/>\n"
+     "\tand to libcddb developers <http://libcddb.sourceforge.net/>.\n\n"
+     "Also thank you Tony Vroon for mentoring & guiding me.\n\n"
+     "This was a Google Summer of Code 2007 project.\n\n"
+     "Copyright 2009 John Lindgren"));
 }
 
 /* main thread only */
@@ -323,11 +336,10 @@ static void cdaudio_play_file (InputPlayback * pinputplayback)
 
     if (trackinfo == NULL)
     {
-        refresh_trackinfo ();
+        refresh_trackinfo (TRUE);
 
         if (trackinfo == NULL)
         {
-            cdaudio_error ("No audio CD found.");
             pinputplayback->error = TRUE;
             goto UNLOCK;
         }
@@ -574,7 +586,11 @@ static void cdaudio_cleanup (void)
 {
     g_mutex_lock (mutex);
 
-    g_source_remove (monitor_source);
+    if (monitor_source)
+    {
+        g_source_remove (monitor_source);
+        monitor_source = 0;
+    }
 
     if (pcdio != NULL)
     {
@@ -603,6 +619,13 @@ static void cdaudio_cleanup (void)
     aud_cfg_db_set_string (db, "CDDA", "device", cdng_cfg.device);
     aud_cfg_db_close (db);
 
+    g_free (cdng_cfg.device);
+    g_free (cdng_cfg.cddb_server);
+    g_free (cdng_cfg.cddb_path);
+    g_free (cdng_cfg.proxy_host);
+    g_free (cdng_cfg.proxy_username);
+    g_free (cdng_cfg.proxy_password);
+
     g_mutex_unlock (mutex);
     g_mutex_free (mutex);
     g_cond_free (control_cond);
@@ -617,17 +640,13 @@ static Tuple *create_tuple_from_trackinfo_and_filename (const gchar * filename)
     g_mutex_lock (mutex);
 
     if (trackinfo == NULL)
-        refresh_trackinfo ();
-
+        refresh_trackinfo (TRUE);
     if (trackinfo == NULL)
-    {
-        warn ("No audio CD found.\n");
         goto DONE;
-    }
 
     if (!strcmp (filename, "cdda://"))
     {
-        tuple = aud_tuple_new_from_filename (filename);
+        tuple = tuple_new_from_filename (filename);
         tuple->nsubtunes = 1 + lasttrackno - firsttrackno;
         tuple->subtunes = g_malloc (sizeof *tuple->subtunes * tuple->nsubtunes);
 
@@ -645,27 +664,27 @@ static Tuple *create_tuple_from_trackinfo_and_filename (const gchar * filename)
         goto DONE;
     }
 
-    tuple = aud_tuple_new_from_filename (filename);
+    tuple = tuple_new_from_filename (filename);
 
     if (strlen (trackinfo[trackno].performer))
     {
-        aud_tuple_associate_string (tuple, FIELD_ARTIST, NULL,
+        tuple_associate_string (tuple, FIELD_ARTIST, NULL,
                                     trackinfo[trackno].performer);
     }
     if (strlen (trackinfo[0].name))
     {
-        aud_tuple_associate_string (tuple, FIELD_ALBUM, NULL,
+        tuple_associate_string (tuple, FIELD_ALBUM, NULL,
                                     trackinfo[0].name);
     }
     if (strlen (trackinfo[trackno].name))
     {
-        aud_tuple_associate_string (tuple, FIELD_TITLE, NULL,
+        tuple_associate_string (tuple, FIELD_TITLE, NULL,
                                     trackinfo[trackno].name);
     }
 
-    aud_tuple_associate_int (tuple, FIELD_TRACK_NUMBER, NULL, trackno);
+    tuple_associate_int (tuple, FIELD_TRACK_NUMBER, NULL, trackno);
 
-    aud_tuple_associate_int (tuple, FIELD_LENGTH, NULL,
+    tuple_associate_int (tuple, FIELD_LENGTH, NULL,
                              calculate_track_length (trackinfo[trackno].
                                                      startlsn,
                                                      trackinfo[trackno].
@@ -673,7 +692,7 @@ static Tuple *create_tuple_from_trackinfo_and_filename (const gchar * filename)
 
     if (strlen (trackinfo[trackno].genre))
     {
-        aud_tuple_associate_string (tuple, FIELD_GENRE, NULL,
+        tuple_associate_string (tuple, FIELD_GENRE, NULL,
                                     trackinfo[trackno].genre);
     }
 
@@ -786,12 +805,10 @@ static void dae_play_loop (dae_params_t * pdae_params)
 }
 
 /* mutex must be locked */
-static void scan_cd (void)
+static void open_cd (void)
 {
-    gint trackno;
-
-    g_free (trackinfo);
-    trackinfo = NULL;
+    AUDDBG ("Opening CD drive.\n");
+    g_return_if_fail (pcdio == NULL);
 
     /* find an available, audio capable, cd drive  */
     if (cdng_cfg.device != NULL && strlen (cdng_cfg.device) > 0)
@@ -800,31 +817,44 @@ static void scan_cd (void)
         if (pcdio == NULL)
         {
             cdaudio_error ("Failed to open CD device \"%s\".", cdng_cfg.device);
-            goto ERROR;
+            return;
         }
     }
     else
     {
         gchar **ppcd_drives =
             cdio_get_devices_with_cap (NULL, CDIO_FS_AUDIO, false);
-        pcdio = NULL;
+
         if (ppcd_drives != NULL && *ppcd_drives != NULL)
         {                       /* we have at least one audio capable cd drive */
             pcdio = cdio_open (*ppcd_drives, DRIVER_UNKNOWN);
             if (pcdio == NULL)
             {
                 cdaudio_error ("Failed to open CD.");
-                goto ERROR;
+                return;
             }
             AUDDBG ("found cd drive \"%s\" with audio capable media\n",
                    *ppcd_drives);
         }
         else
-            goto ERROR;
+        {
+            cdaudio_error ("No audio capable CD drive found.\n");
+            return;
+        }
 
         if (ppcd_drives != NULL && *ppcd_drives != NULL)
             cdio_free_device_list (ppcd_drives);
     }
+}
+
+/* mutex must be locked */
+static void scan_cd (void)
+{
+    AUDDBG ("Scanning CD drive.\n");
+    g_return_if_fail (pcdio != NULL);
+    g_return_if_fail (trackinfo == NULL);
+
+    gint trackno;
 
     if (cdio_set_speed (pcdio, cdng_cfg.disc_speed) != DRIVER_OP_SUCCESS)
         warn ("Cannot set drive speed.\n");
@@ -1071,10 +1101,39 @@ static void scan_cd (void)
 }
 
 /* mutex must be locked */
-static void refresh_trackinfo (void)
+static void refresh_trackinfo (gboolean warning)
 {
-    if (trackinfo == NULL || pcdio == NULL || cdio_get_media_changed (pcdio))
+    trigger_monitor ();
+
+    if (pcdio == NULL)
+    {
+        open_cd ();
+        if (pcdio == NULL)
+            return;
+    }
+
+    int mode = cdio_get_discmode (pcdio);
+    if (mode != CDIO_DISC_MODE_CD_DA && mode != CDIO_DISC_MODE_CD_MIXED)
+    {
+        if (warning)
+        {
+            if (mode == CDIO_DISC_MODE_NO_INFO)
+                cdaudio_error (_("Drive is empty."));
+            else
+                cdaudio_error (_("Unsupported disk type."));
+        }
+
+        g_free (trackinfo);
+        trackinfo = NULL;
+        return;
+    }
+
+    if (trackinfo == NULL || cdio_get_media_changed (pcdio))
+    {
+        g_free (trackinfo);
+        trackinfo = NULL;
         scan_cd ();
+    }
 }
 
 /* thread safe (mutex may be locked) */
