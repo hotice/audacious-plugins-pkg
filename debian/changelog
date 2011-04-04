@@ -3,11 +3,9 @@ audacious-plugins (2.4.4-1) unstable; urgency=low
   * New upstream release.
   * Upload to unstable.
   * debian/control:
-    - Bump build-depend on audacious-dev to >= 2.4.3.
-    - Bump Recommends, Breaks, Replaces on audacious to 2.4.3.
     - Update versioned dependencies according to upstream changes.
 
- -- Bilal Akhtar <bilalakhtar@ubuntu.com>  Mon, 04 Apr 2011 17:21:24 +0300
+ -- Bilal Akhtar <bilalakhtar@ubuntu.com>  Mon, 04 Apr 2011 18:06:19 +0300
 
 audacious-plugins (2.4.3-1) experimental; urgency=low
 
