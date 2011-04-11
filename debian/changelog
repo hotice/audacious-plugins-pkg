@@ -5,6 +5,9 @@ audacious-plugins (2.4.4-1) unstable; urgency=low
   * debian/control:
     - Update versioned dependencies according to upstream changes.
     - Bump Standards-Version to 3.9.2 (no changes needed).
+    - Since the package will be building against the new FFMpeg libs,
+      fix the problem of depending on old uninstallable libav*
+      packages (Closes: #617603)
 
  -- Bilal Akhtar <bilalakhtar@ubuntu.com>  Sun, 10 Apr 2011 18:56:21 +0300
 
