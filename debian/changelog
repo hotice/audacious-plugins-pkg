@@ -1,6 +1,7 @@
 audacious-plugins (2.4.4-1) unstable; urgency=low
 
   * New upstream release.
+    - Fix FTBFS with GCC 4.5 (Closes: #621989)
   * Upload to unstable.
   * debian/control:
     - Update versioned dependencies according to upstream changes.
