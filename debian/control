@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Debian Multimedia Maintainers <pkg-multimedia-maintainers@lists.alioth.debian.org>
 Uploaders: Chris Taylor <ctaylor@debian.org>,
            Bilal Akhtar <bilalakhtar@ubuntu.com>
-Build-Depends: audacious-dev (>= 2.4.3),
+Build-Depends: audacious-dev (>= 3.2),
                debhelper (>= 7.0.50~),
                libasound2-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386] | libasound-dev (>= 1.0) [!kfreebsd-i386 !kfreebsd-amd64 !hurd-i386],
                libavcodec-dev (>= 4:0.6.1),
@@ -43,7 +43,13 @@ Build-Depends: audacious-dev (>= 2.4.3),
                libtagc0-dev (>= 1.4),
                libvorbis-dev (>= 1.1),
                libwavpack-dev (>= 4.31),
-               libxcomposite-dev
+               libxcomposite-dev,
+	       libmpg123-dev,
+	       libmp3lame-dev,
+	       libnotify-dev,
+	       libmodplug-dev,
+	       oss4-dev,
+	       libbs2b-dev
 Homepage: http://www.audacious-media-player.org/
 Standards-Version: 3.9.2
 VCS-Browser: http://git.debian.org/?p=pkg-multimedia/audacious-plugins.git;a=summary

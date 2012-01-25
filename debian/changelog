@@ -1,3 +1,16 @@
+audacious-plugins (3.2-1) UNRELEASED; urgency=low
+ 
+  * New upstream release.
+  * debian/control:
+    + Adde build-deps necessary for mp3, bs2b and modplug support.
+    + Enabling OSS4 support. (Closes: #632303)
+    + Raised the build-dep of audacious-dev to 3.2.
+  * debian/rules:
+    + Removed "--enable-chardet" and "--disable-altivec" config flags as they
+      are not used anymore.
+ 
+ -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Wed, 25 Jan 2012 22:10:42 +0100
+
 audacious-plugins (2.4.4-1) unstable; urgency=low
 
   * New upstream release.
