@@ -20,26 +20,12 @@
  *  Audacious or using our public API to be a derived work.
  */
 
-#ifndef AUDACIOUS_UI_SKINSELECTOR_H
-#define AUDACIOUS_UI_SKINSELECTOR_H
+#ifndef SKINS_UI_SKINSELECTOR_H
+#define SKINS_UI_SKINSELECTOR_H
 
-#include <glib.h>
 #include <gtk/gtk.h>
 
-#define SKIN_NODE(x)  ((SkinNode *)(x))
-struct _SkinNode {
-    gchar *name;
-    gchar *desc;
-    gchar *path;
-    GTime *time;
-};
-
-typedef struct _SkinNode SkinNode;
-
-extern GList *skinlist;
-
-void skinlist_update();
 void skin_view_realize(GtkTreeView * treeview);
 void skin_view_update (GtkTreeView * treeview);
 
-#endif /* AUDACIOUS_UI_SKINSELECTOR_H */
+#endif /* SKINS_UI_SKINSELECTOR_H */

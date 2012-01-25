@@ -21,10 +21,11 @@
 
 #include <samplerate.h>
 
-#define ERROR(e) fprintf (stderr, "resample: %s\n", src_strerror (e))
+#define RESAMPLE_ERROR(e) fprintf (stderr, "resample: %s\n", src_strerror (e))
 
-extern int common_rates[];
-extern int n_common_rates;
+extern const int common_rates[];
+extern const int n_common_rates;
+
 extern int converted_rates[];
 extern int fallback_rate;
 extern int method;
@@ -32,7 +33,7 @@ extern int method;
 void resample_config_load (void);
 void resample_config_save (void);
 
-void resample_init (void);
+int resample_init (void);
 void resample_cleanup (void);
 void resample_start (int * channels, int * rate);
 void resample_process (float * * data, int * samples);

@@ -25,9 +25,14 @@
 #include "aosd_trigger.h"
 #include <audacious/i18n.h>
 
-
-GeneralPlugin *aosd_gplist[] = { &aosd_gp, NULL };
-SIMPLE_GENERAL_PLUGIN(aosd, aosd_gplist);
+AUD_GENERAL_PLUGIN
+(
+    .name = "Audacious OSD",
+    .init = aosd_init,
+    .about = aosd_about,
+    .configure = aosd_configure,
+    .cleanup = aosd_cleanup
+)
 
 aosd_cfg_t * global_config = NULL;
 gboolean plugin_is_active = FALSE;
@@ -36,8 +41,7 @@ gboolean plugin_is_active = FALSE;
 /* ***************** */
 /* plug-in functions */
 
-void
-aosd_init ( void )
+gboolean aosd_init (void)
 {
   plugin_is_active = TRUE;
   g_log_set_handler( NULL , G_LOG_LEVEL_WARNING , g_log_default_handler , NULL );
@@ -49,7 +53,7 @@ aosd_init ( void )
 
   aosd_trigger_start( &global_config->osd->trigger );
 
-  return;
+  return TRUE;
 }
 
 

@@ -22,15 +22,17 @@
 #include <gtk/gtk.h>
 
 #include <audacious/i18n.h>
+#include <audacious/plugin.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 
 #include "alsa.h"
+#include "config.h"
 
-static OutputPlugin plugin =
-{
-    .description = "ALSA Output Plugin",
-    .probe_priority = 2,
+AUD_OUTPUT_PLUGIN
+(
+    .name = "ALSA",
+    .probe_priority = 5,
     .init = alsa_init,
     .cleanup = alsa_cleanup,
     .open_audio = alsa_open_audio,
@@ -48,11 +50,7 @@ static OutputPlugin plugin =
     .get_volume = alsa_get_volume,
     .about = alsa_about,
     .configure = alsa_configure,
-};
-
-static OutputPlugin * list[] = {& plugin, NULL};
-
-SIMPLE_OUTPUT_PLUGIN (alsa, list)
+)
 
 void alsa_about (void)
 {
@@ -82,7 +80,7 @@ static int show_error (void * message)
 
     audgui_simple_message (& window, GTK_MESSAGE_ERROR, _("ALSA error"),
      message);
-    free (message);
+    g_free (message);
     return 0;
 }
 

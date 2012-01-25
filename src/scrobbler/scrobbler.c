@@ -1,5 +1,5 @@
+#include <inttypes.h>
 #include <pthread.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -7,7 +7,6 @@
 #include "fmt.h"
 #include "plugin.h"
 #include "scrobbler.h"
-#include "config.h"
 #include "settings.h"
 #include <glib.h>
 
@@ -15,7 +14,6 @@
 #include <audacious/debug.h>
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
-#include <libaudcore/md5.h>
 
 #define SCROBBLER_CLI_ID "aud"
 #define SCROBBLER_HS_WAIT 1800
@@ -142,12 +140,17 @@ static item_t *q_additem(item_t *newitem)
 static item_t *create_item(Tuple *tuple, int len)
 {
     item_t *item;
-    const gchar *album;
+    gchar *album, *artist, *title;
 
     item = malloc(sizeof(item_t));
 
-    item->artist = fmt_escape(tuple_get_string(tuple, FIELD_ARTIST, NULL));
-    item->title = fmt_escape(tuple_get_string(tuple, FIELD_TITLE, NULL));
+    artist = tuple_get_str(tuple, FIELD_ARTIST, NULL);
+    item->artist = fmt_escape(artist);
+    str_unref(artist);
+
+    title = tuple_get_str(tuple, FIELD_TITLE, NULL);
+    item->title = fmt_escape(title);
+    str_unref(title);
 
     if (item->artist == NULL || item->title == NULL)
     {
@@ -160,9 +163,12 @@ static item_t *create_item(Tuple *tuple, int len)
     item->timeplayed = 0;
     item->utctime = time(NULL);
 
-    album = tuple_get_string(tuple, FIELD_ALBUM, NULL);
+    album = tuple_get_str(tuple, FIELD_ALBUM, NULL);
     if (album)
-        item->album = fmt_escape((char*) album);
+    {
+        item->album = fmt_escape(album);
+        str_unref(album);
+    }
     else
         item->album = fmt_escape("");
 
@@ -458,12 +464,13 @@ static int sc_parse_hs_res(void)
 
 static unsigned char *md5_string(char *pass, int len)
 {
-    aud_md5state_t md5state;
     static unsigned char md5pword[16];
+    gsize md5len = 16;
 
-    aud_md5_init(&md5state);
-    aud_md5_append(&md5state, (unsigned const char *)pass, len);
-    aud_md5_finish(&md5state, md5pword);
+    GChecksum * state = g_checksum_new (G_CHECKSUM_MD5);
+    g_checksum_update (state, (unsigned char *) pass, len);
+    g_checksum_get_digest (state, md5pword, & md5len);
+    g_checksum_free (state);
 
     return md5pword;
 }
@@ -490,12 +497,11 @@ static GStaticMutex submit_mutex = G_STATIC_MUTEX_INIT;
 
 gpointer sc_curl_perform_thread(gpointer data)
 {
-    int status;
     CURL *curl = (CURL *) data;
 
     g_static_mutex_lock(&submit_mutex);
 
-    status = curl_easy_perform(curl);
+    curl_easy_perform(curl);
     curl_easy_cleanup(curl);
 
     if (sc_parse_sb_res()) {
@@ -533,15 +539,15 @@ static int sc_handshake(void)
     char *auth_tmp;
     char *auth;
 
-    auth_tmp = g_strdup_printf("%s%ld", sc_password, ts);
+    auth_tmp = g_strdup_printf("%s%"PRId64, sc_password, (gint64) ts);
     auth = (char *)md5_string(auth_tmp, strlen(auth_tmp));
     g_free(auth_tmp);
     hexify(auth, 16);
     auth_tmp = g_strdup(sc_response_hash);
 
-    g_snprintf(buf, sizeof(buf), "%s/?hs=true&p=%s&c=%s&v=%s&u=%s&t=%ld&a=%s",
+    g_snprintf(buf, sizeof(buf), "%s/?hs=true&p=%s&c=%s&v=%s&u=%s&t=%"PRId64"&a=%s",
             sc_hs_url, SCROBBLER_VERSION,
-            SCROBBLER_CLI_ID, SCROBBLER_IMPLEMENTATION, sc_username, ts,
+            SCROBBLER_CLI_ID, SCROBBLER_IMPLEMENTATION, sc_username, (gint64) ts,
             auth_tmp);
     g_free(auth_tmp);
 
@@ -575,17 +581,19 @@ static int sc_handshake(void)
     }
 
     if (sc_challenge_hash != NULL) {
-        aud_md5state_t md5state;
         unsigned char md5pword[16];
+        gsize md5len = 16;
 
-        aud_md5_init(&md5state);
         /*AUDDBG("Pass Hash: %s", sc_password));*/
-        aud_md5_append(&md5state, (unsigned const char *)sc_password,
-                strlen(sc_password));
         /*AUDDBG("Challenge Hash: %s", sc_challenge_hash));*/
-        aud_md5_append(&md5state, (unsigned const char *)sc_challenge_hash,
-                strlen(sc_challenge_hash));
-        aud_md5_finish(&md5state, md5pword);
+
+        GChecksum * state = g_checksum_new (G_CHECKSUM_MD5);
+        g_checksum_update (state, (unsigned char *) sc_password, strlen (sc_password));
+        g_checksum_update (state, (unsigned char *) sc_challenge_hash,
+         strlen (sc_challenge_hash));
+        g_checksum_get_digest (state, md5pword, & md5len);
+        g_checksum_free (state);
+
         hexify((char*)md5pword, sizeof(md5pword));
         /*AUDDBG("Response Hash: %s", sc_response_hash));*/
     }
@@ -786,9 +794,18 @@ static int sc_submit_np(Tuple *tuple)
     curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_0);
     /*cfa(&post, &last, "debug", "failed");*/
 
-        char *field_artist = fmt_escape(tuple_get_string(tuple, FIELD_ARTIST, NULL));
-        char *field_title = fmt_escape(tuple_get_string(tuple, FIELD_TITLE, NULL));
-        char *field_album = tuple_get_string(tuple, FIELD_ALBUM, NULL) ? fmt_escape(tuple_get_string(tuple, FIELD_ALBUM, NULL)) : fmt_escape("");
+    char *artist = tuple_get_str(tuple, FIELD_ARTIST, NULL);
+    char *field_artist = fmt_escape(artist);
+    str_unref(artist);
+
+    char *title = tuple_get_str(tuple, FIELD_TITLE, NULL);
+    char *field_title = fmt_escape(title);
+    str_unref(title);
+
+    char *album = tuple_get_str(tuple, FIELD_ALBUM, NULL);
+    char *field_album = album ? fmt_escape(album) : fmt_escape("");
+    str_unref(album);
+
     snprintf(entry, 16384, "s=%s&a=%s&t=%s&b=%s&l=%d&n=%d&m=", sc_session_id,
         field_artist,
         field_title,
@@ -916,26 +933,22 @@ static void sc_handlequeue(GMutex *mutex)
 
 static void read_cache(void)
 {
-    FILE *fd;
-    char buf[PATH_MAX];
     int i=0;
     item_t *item;
-    gchar* config_datadir;
 
-    config_datadir = aud_util_get_localdir();
-    g_snprintf(buf, sizeof(buf), "%s/scrobblerqueue.txt", config_datadir);
-    g_free(config_datadir);
+    gchar * path = g_strconcat (aud_get_path (AUD_PATH_USER_DIR), "/scrobblerqueue.txt", NULL);
 
-    if (!(fd = fopen(buf, "r")))
+    if (! g_file_test (path, G_FILE_TEST_EXISTS))
         return;
-    AUDDBG("Opening %s\n", buf);
-    fclose(fd);
+
+    AUDDBG ("Opening %s\n", path);
 
     gchar* cache;
     gchar** values;
     gchar** entry;
-    g_file_get_contents(buf, &cache, NULL, NULL);
+    g_file_get_contents (path, & cache, NULL, NULL);
     values = g_strsplit(cache, "\n", 0);
+    g_free (path);
 
     int x;
     for (x=0; values[x] && strlen(values[x]); x++) {
@@ -959,18 +972,18 @@ static void read_cache(void)
                 Tuple *tuple = tuple_new();
                 gchar* string_value;
                 string_value = xmms_urldecode_plain(artist);
-                tuple_associate_string(tuple, FIELD_ARTIST, NULL, string_value);
+                tuple_set_str(tuple, FIELD_ARTIST, NULL, string_value);
                 g_free(string_value);
                 string_value = xmms_urldecode_plain(title);
-                tuple_associate_string(tuple, FIELD_TITLE, NULL, string_value);
+                tuple_set_str(tuple, FIELD_TITLE, NULL, string_value);
                 g_free(string_value);
                 string_value = xmms_urldecode_plain(album);
-                tuple_associate_string(tuple, FIELD_ALBUM, NULL, string_value);
+                tuple_set_str(tuple, FIELD_ALBUM, NULL, string_value);
                 g_free(string_value);
-                tuple_associate_int(tuple, FIELD_TRACK_NUMBER, NULL, track);
+                tuple_set_int(tuple, FIELD_TRACK_NUMBER, NULL, track);
                 item = q_put(tuple, t, len);
 
-                tuple_free(tuple);
+                tuple_unref(tuple);
 
                 if (item != NULL)
                     AUDDBG ("a[%d]=%s t[%d]=%s l[%d]=%d i[%d]=%d b[%d]=%s\n", i,
@@ -994,28 +1007,27 @@ static void dump_queue(void)
 {
     FILE *fd;
     item_t *item;
-    char *home, buf[PATH_MAX];
-    gchar* config_datadir;
 
     /*AUDDBG("Entering dump_queue();");*/
 
+    gchar * home;
     if (!(home = getenv("HOME")))
     {
         AUDDBG("No HOME directory found. Cannot dump queue.\n");
         return;
     }
 
-    config_datadir = aud_util_get_localdir();
-    g_snprintf(buf, sizeof(buf), "%s/scrobblerqueue.txt", config_datadir);
-    g_free(config_datadir);
+    gchar * path = g_strconcat (aud_get_path (AUD_PATH_USER_DIR), "/scrobblerqueue.txt", NULL);
 
-    if (!(fd = fopen(buf, "w")))
+    if (! (fd = fopen (path, "w")))
     {
-        AUDDBG("Failure opening %s\n", buf);
+        AUDDBG("Failure opening %s\n", path);
+        g_free (path);
         return;
     }
 
-    AUDDBG("Opening %s\n", buf);
+    AUDDBG("Opening %s\n", path);
+    g_free (path);
 
     q_peekall(1);
 

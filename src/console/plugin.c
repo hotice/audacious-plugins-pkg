@@ -17,12 +17,12 @@
 #include "configure.h"
 
 Tuple * console_probe_for_tuple(const gchar *filename, VFSFile *fd);
-Tuple * console_get_file_tuple(const gchar *filename);
-void console_play_file(InputPlayback *playback);
+gboolean console_play(InputPlayback *playback, const gchar *filename,
+    VFSFile *file, gint start_time, gint stop_time, gboolean pause);
 void console_seek(InputPlayback *data, gint time);
 void console_stop(InputPlayback *playback);
-void console_pause(InputPlayback * playback, gshort p);
-void console_init(void);
+void console_pause(InputPlayback * playback, gboolean pause);
+gboolean console_init (void);
 void console_cleanup(void);
 
 static void console_aboutbox (void)
@@ -44,23 +44,18 @@ static const gchar *gme_fmts[] = {
     "vgm", "vgz", NULL
 };
 
-static InputPlugin console_ip =
-{
-    .description = "Game Console Music Decoder",
+AUD_INPUT_PLUGIN
+(
+    .name = "Game Console Music Decoder",
     .init = console_init,
     .cleanup = console_cleanup,
     .about = console_aboutbox,
     .configure = console_cfg_ui,
-    .play_file = console_play_file,
+    .play = console_play,
     .stop = console_stop,
     .pause = console_pause,
-    .seek = console_seek,
-    .vfs_extensions = gme_fmts,
-    .get_song_tuple = console_get_file_tuple,
+    .mseek = console_seek,
+    .extensions = gme_fmts,
     .probe_for_tuple = console_probe_for_tuple,
     .have_subtune = TRUE
-};
-
-static InputPlugin *console_iplist[] = { &console_ip, NULL };
-
-SIMPLE_INPUT_PLUGIN(console, console_iplist);
+)

@@ -1,94 +1,114 @@
 /************************************************************************
- * libnotify-aosd_event.c						*
- *									*
- * Copyright (C) 2010 Maximilian Bogner	<max@mbogner.de>		*
- *									*
- * This program is free software; you can redistribute it and/or modify	*
- * it under the terms of the GNU General Public License as published by	*
- * the Free Software Foundation; either version 3 of the License,	*
- * or (at your option) any later version.				*
- *									*
- * This program is distributed in the hope that it will be useful,	*
- * but WITHOUT ANY WARRANTY; without even the implied warranty of	*
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the		*
- * GNU General Public License for more details.				*
- *									*
- * You should have received a copy of the GNU General Public License	*
- * along with this program; if not, see <http://www.gnu.org/licenses/>.	*
+ * libnotify-aosd_event.c                                               *
+ *                                                                      *
+ * Copyright (C) 2010 Maximilian Bogner <max@mbogner.de>                *
+ * Copyright (C) 2011 John Lindgren <john.lindgren@tds.net>             *
+ *                                                                      *
+ * This program is free software; you can redistribute it and/or modify *
+ * it under the terms of the GNU General Public License as published by *
+ * the Free Software Foundation; either version 3 of the License,       *
+ * or (at your option) any later version.                               *
+ *                                                                      *
+ * This program is distributed in the hope that it will be useful,      *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of       *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the         *
+ * GNU General Public License for more details.                         *
+ *                                                                      *
+ * You should have received a copy of the GNU General Public License    *
+ * along with this program; if not, see <http://www.gnu.org/licenses/>. *
  ************************************************************************/
 
 #include <glib.h>
+#include <string.h>
 
 #include <audacious/drct.h>
 #include <audacious/i18n.h>
-#include <audacious/plugin.h>
 #include <audacious/playlist.h>
-#include <audacious/debug.h>
-#include <libaudcore/audstrings.h>
 #include <libaudcore/hook.h>
-#include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 
 #include "config.h"
 #include "libnotify-aosd_common.h"
 
-void event_init() {
-	AUDDBG("started!\n");
-	hook_associate("playback begin", event_playback_begin, NULL);
-	hook_associate("playback pause", event_playback_pause, NULL);
-	hook_associate("playback unpause", event_playback_begin, NULL);
-	AUDDBG("done!");
+static gchar * last_title = NULL, * last_message = NULL;
+
+static void clear (void)
+{
+    g_free (last_title);
+    last_title = NULL;
+    g_free (last_message);
+    last_message = NULL;
 }
 
-void event_uninit() {
-	AUDDBG("started!\n");
-	hook_dissociate("playback begin", event_playback_begin);
-	hook_dissociate("playback pause", event_playback_pause);
-	hook_dissociate("playback unpause", event_playback_begin);
-	AUDDBG("done!\n");
+static void update (void * unused, void * explicit)
+{
+    if (! aud_drct_get_playing () || ! aud_drct_get_ready ())
+    {
+        if (GPOINTER_TO_INT (explicit))
+            osd_show (_("Stopped"), _("Audacious is not playing."), NULL, NULL);
+
+        return;
+    }
+
+    gint list = aud_playlist_get_playing ();
+    gint entry = aud_playlist_get_position (list);
+
+    gchar * title, * artist, * album;
+    aud_playlist_entry_describe (list, entry, & title, & artist, & album, FALSE);
+
+    gchar * message;
+    if (artist)
+    {
+        if (album)
+            message = g_strdup_printf ("%s\n%s", artist, album);
+        else
+            message = g_strdup (artist);
+    }
+    else if (album)
+        message = g_strdup (album);
+    else
+        message = g_strdup ("");
+
+    if (! GPOINTER_TO_INT (explicit) && last_title && last_message && ! strcmp
+     (title, last_title) && ! strcmp (message, last_message))
+    {
+        g_free (message);
+        goto FREE;
+    }
+
+    GdkPixbuf * pb = audgui_pixbuf_for_current ();
+    if (pb)
+        audgui_pixbuf_scale_within (& pb, 96);
+
+    osd_show (title, message, "audio-x-generic", pb);
+
+    if (pb)
+        g_object_unref (pb);
+
+    clear ();
+    last_title = g_strdup (title);
+    last_message = message;
+
+FREE:
+    str_unref (title);
+    str_unref (artist);
+    str_unref (album);
 }
 
-void event_playback_begin(gpointer p1, gpointer p2) {
-	gint playlist, position;
-	const gchar *title, *artist, *album;
-	const gchar *filename;
-	const Tuple *tuple;
-	gchar *message;
-	GdkPixbuf *pb;
-
-	AUDDBG("started!\n");
-
-	playlist = aud_playlist_get_playing();
-	position = aud_playlist_get_position(playlist);
-
-	filename = aud_playlist_entry_get_filename(playlist, position);
-	tuple = aud_playlist_entry_get_tuple(playlist, position, FALSE);
-
-	title = tuple_get_string(tuple, FIELD_TITLE, NULL);
-	if (title == NULL)
-		title = aud_playlist_entry_get_title(playlist, position, FALSE);
-
-	artist = tuple_get_string(tuple, FIELD_ARTIST, NULL);
-	album = tuple_get_string(tuple, FIELD_ALBUM, NULL);
-
-	pb = audgui_pixbuf_for_file(filename);
-	if (pb != NULL)
-		audgui_pixbuf_scale_within(&pb, 128);
-
-	message = g_strdup_printf("%s\n%s", (artist != NULL && artist[0]) ? artist :
-	 _("Unknown artist"), (album != NULL && album[0]) ? album : _("Unknown album"));
-
-	osd_show(title, message, "notification-audio-play", pb);
-	g_free(message);
-
-	if (pb != NULL)
-		g_object_unref(pb);
-
-	AUDDBG("done!\n");
+void event_init (void)
+{
+    update (NULL, GINT_TO_POINTER (FALSE));
+    hook_associate ("aosd toggle", (HookFunction) update, GINT_TO_POINTER (TRUE));
+    hook_associate ("playback ready", (HookFunction) update, GINT_TO_POINTER (FALSE));
+    hook_associate ("playlist update", (HookFunction) update, GINT_TO_POINTER (FALSE));
+    hook_associate ("playback stop", (HookFunction) clear, NULL);
 }
 
-void event_playback_pause(gpointer p1, gpointer p2) {
-	AUDDBG("started!\n");
-	osd_show("Playback paused", NULL, "notification-audio-pause", NULL);
-	AUDDBG("done!\n");
+void event_uninit (void)
+{
+    hook_dissociate ("aosd toggle", (HookFunction) update);
+    hook_dissociate ("playback ready", (HookFunction) update);
+    hook_dissociate ("playlist update", (HookFunction) update);
+    hook_dissociate ("playback stop", (HookFunction) clear);
+    clear ();
 }

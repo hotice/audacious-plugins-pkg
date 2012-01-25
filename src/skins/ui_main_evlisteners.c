@@ -18,35 +18,41 @@
  * Audacious or using our public API to be a derived work.
  */
 
-#include <glib.h>
 #include <math.h>
 
-#include <audacious/audconfig.h>
 #include <audacious/drct.h>
 #include <audacious/misc.h>
 #include <libaudcore/hook.h>
 
 #include "skins_cfg.h"
-#include "ui_equalizer.h"
 #include "ui_main.h"
+#include "ui_main_evlisteners.h"
 #include "ui_manager.h"
-#include "ui_playlist.h"
+#include "ui_skin.h"
 #include "ui_skinned_playstatus.h"
-#include "ui_skinned_textbox.h"
-#include "ui_skinned_window.h"
+#include "ui_vis.h"
 #include "util.h"
 
-static void ui_main_evlistener_title_change (void * data, void * user_data)
+static void title_change (void)
 {
-    gchar * title;
+    if (aud_drct_get_ready ())
+    {
+        gchar * title = aud_drct_get_title ();
+        mainwin_set_song_title (title);
+        str_unref (title);
+    }
+    else
+        mainwin_set_song_title ("Buffering ...");
+}
 
-    /* may be called asynchronously */
-    if (! aud_drct_get_playing ())
-        return;
+static void info_change (void)
+{
+    gint bitrate = 0, samplerate = 0, channels = 0;
 
-    title = aud_drct_get_title ();
-    mainwin_set_song_title (title);
-    g_free (title);
+    if (aud_drct_get_ready ())
+        aud_drct_get_info (& bitrate, & samplerate, & channels);
+
+    mainwin_set_song_info (bitrate, samplerate, channels);
 }
 
 static void
@@ -68,14 +74,16 @@ void ui_main_evlistener_playback_begin (void * hook_data, void * user_data)
     gtk_widget_show (mainwin_10sec_num);
     gtk_widget_show (mainwin_sec_num);
 
-    if (aud_drct_get_length () > 0)
+    if (aud_drct_get_ready () && aud_drct_get_length () > 0)
     {
         gtk_widget_show (mainwin_position);
         gtk_widget_show (mainwin_sposition);
     }
 
     ui_skinned_playstatus_set_status(mainwin_playstatus, STATUS_PLAY);
-    ui_main_evlistener_title_change (NULL, NULL);
+
+    title_change ();
+    info_change ();
 }
 
 static void
@@ -84,11 +92,23 @@ ui_main_evlistener_playback_stop(gpointer hook_data, gpointer user_data)
     mainwin_clear_song_info ();
 }
 
+static void repeat_toggled (void * data, void * user)
+{
+    bool_t repeat = aud_get_bool (NULL, "repeat");
+    check_set (toggleaction_group_others, "playback repeat", repeat);
+}
+
+static void shuffle_toggled (void * data, void * user)
+{
+    bool_t shuffle = aud_get_bool (NULL, "shuffle");
+    check_set (toggleaction_group_others, "playback shuffle", shuffle);
+}
+
 static void stop_after_song_toggled (void * hook_data, void * user_data)
 {
     mainwin_enable_status_message (FALSE);
     check_set (toggleaction_group_others, "stop after current song",
-     aud_cfg->stopaftersong);
+     aud_get_bool (NULL, "stop_after_current_song"));
     mainwin_enable_status_message (TRUE);
 }
 
@@ -103,257 +123,188 @@ ui_main_evlistener_playback_unpause(gpointer hook_data, gpointer user_data)
     ui_skinned_playstatus_set_status(mainwin_playstatus, STATUS_PLAY);
 }
 
-static void
-ui_main_evlistener_playback_play_file(gpointer hook_data, gpointer user_data)
-{
-    if (config.random_skin_on_play)
-        skin_set_random_skin();
-}
-
-static void vis_clear_cb (void * unused, void * another)
+static void vis_clear_cb (void)
 {
     ui_vis_clear_data (mainwin_vis);
     ui_svis_clear_data (mainwin_svis);
 }
 
-void info_change (void)
+static void render_mono_pcm (const gfloat * pcm)
 {
-    gint bitrate, samplerate, channels;
+    guchar data[512];
 
-    /* may be called asynchronously */
-    if (! aud_drct_get_playing ())
+    if (config.vis_type != VIS_SCOPE)
         return;
 
-    aud_drct_get_info (& bitrate, & samplerate, & channels);
-    mainwin_set_song_info (bitrate, samplerate, channels);
+    for (gint i = 0; i < 75; i ++)
+    {
+        /* the signal is amplified by 2x */
+        /* output values are in the range 0 to 16 */
+        gint val = 8 + roundf (16 * pcm[i * 512 / 75]);
+        data[i] = CLAMP (val, 0, 16);
+    }
+
+    if (config.player_shaded)
+        ui_svis_timeout_func (mainwin_svis, data);
+    else
+        ui_vis_timeout_func (mainwin_vis, data);
 }
 
-static void
-ui_main_evlistener_mainwin_set_always_on_top(gpointer hook_data, gpointer user_data)
+/* calculate peak dB level, where 1 is 0 dB */
+static gfloat calc_peak_level (const gfloat * pcm, gint step)
 {
-    gboolean *ontop = (gboolean*)hook_data;
-    mainwin_set_always_on_top(*ontop);
+    gfloat peak = 0.0001; /* must be > 0, or level = -inf */
+
+    for (gint i = 0; i < 512; i ++)
+    {
+        peak = MAX (peak, * pcm);
+        pcm += step;
+    }
+
+    return 20 * log10 (peak);
 }
 
-static void
-ui_main_evlistener_mainwin_show(gpointer hook_data, gpointer user_data)
+static void render_multi_pcm (const gfloat * pcm, gint channels)
 {
-    gboolean show = GPOINTER_TO_INT(hook_data);
-    mainwin_show(show);
-}
-
-static void
-ui_main_evlistener_equalizerwin_show(gpointer hook_data, gpointer user_data)
-{
-    gboolean *show = (gboolean*)hook_data;
-    equalizerwin_show(*show);
-}
-
-static void ui_main_evlistener_visualization_timeout (const VisNode * vis,
- void * user)
-{
-    guint8 intern_vis_data[512];
-    gint16 mono_freq[2][256];
-    gboolean mono_freq_calced = FALSE;
-    gint16 mono_pcm[2][512], stereo_pcm[2][512];
-    gboolean mono_pcm_calced = FALSE, stereo_pcm_calced = FALSE;
-    gint i;
-
-    if (! vis || config.vis_type == VIS_OFF)
+    /* "VU meter" */
+    if (config.vis_type != VIS_VOICEPRINT || ! config.player_shaded)
         return;
+
+    guchar data[512];
+
+    gint level = 38 + calc_peak_level (pcm, channels);
+    data[0] = CLAMP (level, 0, 38);
+
+    if (channels >= 2)
+    {
+        level = 38 + calc_peak_level (pcm + 1, channels);
+        data[1] = CLAMP (level, 0, 38);
+    }
+    else
+        data[1] = data[0];
+
+    ui_svis_timeout_func (mainwin_svis, data);
+}
+
+/* convert linear frequency graph to logarithmic one */
+static void make_log_graph (const gfloat * freq, gint bands, gint db_range, gint
+ int_range, guchar * graph)
+{
+    static gint last_bands = 0;
+    static gfloat * xscale = NULL;
+
+    /* conversion table for the x-axis */
+    if (bands != last_bands)
+    {
+        xscale = g_realloc (xscale, sizeof (gfloat) * (bands + 1));
+        for (gint i = 0; i <= bands; i ++)
+            xscale[i] = powf (257, (gfloat) i / bands) - 1;
+
+        last_bands = bands;
+    }
+
+    for (gint i = 0; i < bands; i ++)
+    {
+        /* sum up values in freq array between xscale[i] and xscale[i + 1],
+           including fractional parts */
+        gint a = ceilf (xscale[i]);
+        gint b = floorf (xscale[i + 1]);
+        gfloat sum = 0;
+
+        if (b < a)
+            sum += freq[b] * (xscale[i + 1] - xscale[i]);
+        else
+        {
+            if (a > 0)
+                sum += freq[a - 1] * (a - xscale[i]);
+            for (; a < b; a ++)
+                sum += freq[a];
+            if (b < 256)
+                sum += freq[b] * (xscale[i + 1] - b);
+        }
+
+        /* fudge factor to make the graph have the same overall height as a
+           12-band one no matter how many bands there are */
+        sum = sum * bands / 12;
+
+        /* convert to dB */
+        gfloat val = 20 * log10f (sum);
+
+        /* scale (-db_range, 0.0) to (0.0, int_range) */
+        val = (1.0 + val / db_range) * int_range;
+
+        graph[i] = CLAMP (val, 0, int_range);
+    }
+}
+
+static void render_freq (const gfloat * freq)
+{
+    guchar data[512];
 
     if (config.vis_type == VIS_ANALYZER)
     {
-        /* logarithmic scale - 1 */
-        const gfloat xscale13[14] = {0.00, 0.53, 1.35, 2.60, 4.51, 7.45, 12.0,
-         18.8, 29.4, 45.6, 70.4, 108, 167, 256};
-        const gfloat xscale19[20] = {0.00, 0.34, 0.79, 1.40, 2.22, 3.31, 4.77,
-         6.72, 9.34, 12.9, 17.6, 23.8, 32.3, 43.6, 58.7, 78.9, 106, 142, 191,
-         256};
-        const gfloat xscale37[38] = {0.00, 0.16, 0.35, 0.57, 0.82, 1.12, 1.46,
-         1.86, 2.32, 2.86, 3.48, 4.21, 5.05, 6.03, 7.16, 8.48, 10.0, 11.8, 13.9,
-         16.3, 19.1, 22.3, 26.1, 30.5, 35.6, 41.5, 48.4, 56.4, 65.6, 76.4, 88.9,
-         104, 120, 140, 163, 189, 220, 256};
-        const gfloat xscale75[76] = {0.00, 0.08, 0.16, 0.25, 0.34, 0.45, 0.56,
-         0.68, 0.81, 0.95, 1.10, 1.26, 1.43, 1.62, 1.82, 2.03, 2.27, 2.52, 2.79,
-         3.08, 3.39, 3.73, 4.09, 4.48, 4.90, 5.36, 5.85, 6.37, 6.94, 7.55, 8.20,
-         8.91, 9.67, 10.5, 11.4, 12.3, 13.3, 14.4, 15.6, 16.9, 18.3, 19.8, 21.4,
-         23.1, 24.9, 26.9, 29.1, 31.4, 33.9, 36.5, 39.4, 42.5, 45.9, 49.5, 53.3,
-         57.5, 62.0, 66.9, 72.0, 77.7, 83.7, 90.2, 97.2, 105, 113, 122, 131,
-         141, 152, 164, 177, 190, 205, 221, 238, 256};
-
-        const gfloat * xscale;
-        gint bands, i;
-
         if (config.analyzer_type == ANALYZER_BARS)
         {
             if (config.player_shaded)
-            {
-                bands = 13;
-                xscale = xscale13;
-            }
+                make_log_graph (freq, 13, 40, 8, data);
             else
-            {
-                bands = 19;
-                xscale = xscale19;
-            }
+                make_log_graph (freq, 19, 40, 16, data);
         }
         else
         {
             if (config.player_shaded)
-            {
-                bands = 37;
-                xscale = xscale37;
-            }
+                make_log_graph (freq, 37, 40, 8, data);
             else
-            {
-                bands = 75;
-                xscale = xscale75;
-            }
-        }
-
-        aud_calc_mono_freq (mono_freq, vis->data, vis->nch);
-
-        for (i = 0; i < bands; i ++)
-        {
-            gint a = ceil (xscale[i]);
-            gint b = floor (xscale[i + 1]);
-            gint n = 0;
-
-            if (b < a)
-                n += mono_freq[0][b] * (xscale[i + 1] - xscale[i]);
-            else
-            {
-                if (a > 0)
-                    n += mono_freq[0][a - 1] * (a - xscale[i]);
-                for (; a < b; a ++)
-                    n += mono_freq[0][a];
-                if (b < 256)
-                    n += mono_freq[0][b] * (xscale[i + 1] - b);
-            }
-
-            /* 30 dB range, amplified 10 dB + extra for narrower bands */
-            /* 0.000235 == 1 / 13 / 32767 * 10^(40/20) */
-            n = 10 * log10 (n * bands * 0.000235);
-            intern_vis_data[i] = CLAMP (n, 0, 15);
+                make_log_graph (freq, 75, 40, 16, data);
         }
     }
-    else if(config.vis_type == VIS_VOICEPRINT){
-        if (config.player_shaded) {
-            /* VU */
-            gint vu, val;
-
-            if (!stereo_pcm_calced)
-                aud_calc_stereo_pcm(stereo_pcm, vis->data, vis->nch);
-            vu = 0;
-            for (i = 0; i < 512; i++) {
-                val = abs(stereo_pcm[0][i]);
-                if (val > vu)
-                    vu = val;
-            }
-            intern_vis_data[0] = (vu * 37) >> 15;
-            if (intern_vis_data[0] > 37)
-                intern_vis_data[0] = 37;
-            if (vis->nch == 2) {
-                vu = 0;
-                for (i = 0; i < 512; i++) {
-                    val = abs(stereo_pcm[1][i]);
-                    if (val > vu)
-                        vu = val;
-                }
-                intern_vis_data[1] = (vu * 37) >> 15;
-                if (intern_vis_data[1] > 37)
-                    intern_vis_data[1] = 37;
-            }
-            else
-                intern_vis_data[1] = intern_vis_data[0];
-        }
-        else { /*Voiceprint*/
-            if (!mono_freq_calced)
-                aud_calc_mono_freq(mono_freq, vis->data, vis->nch);
-            memset(intern_vis_data, 0, 256);
-
-            /* For the values [0-16] we use the frequency that's 3/2 as much.
-               If we assume the 512 values calculated by calc_mono_freq to
-               cover 0-22kHz linearly we get a range of
-               [0-16] * 3/2 * 22000/512 = [0-1,031] Hz.
-               Most stuff above that is harmonics and we want to utilize the
-               16 samples we have to the max[tm]
-               */
-            for (i = 0; i < 50 ; i+=3){
-                intern_vis_data[i/3] += (mono_freq[0][i/2] >> 5);
-
-                /*Boost frequencies above 257Hz a little*/
-                //if(i > 4 * 3)
-                //  intern_vis_data[i/3] += 8;
-            }
-        }
-    }
-    else { /* (config.vis_type == VIS_SCOPE) */
-
-        /* Oscilloscope */
-        gint pos, step;
-
-        if (!mono_pcm_calced)
-            aud_calc_mono_pcm(mono_pcm, vis->data, vis->nch);
-
-        step = (vis->length << 8) / 74;
-        for (i = 0, pos = 0; i < 75; i++, pos += step) {
-            intern_vis_data[i] = ((mono_pcm[0][pos >> 8]) >> 12) + 7;
-            if (intern_vis_data[i] == 255)
-                intern_vis_data[i] = 0;
-            else if (intern_vis_data[i] > 12)
-                intern_vis_data[i] = 12;
-            /* Do not see the point of that? (comparison always false) -larne.
-               if (intern_vis_data[i] < 0)
-               intern_vis_data[i] = 0; */
-        }
-    }
+    else if (config.vis_type == VIS_VOICEPRINT && ! config.player_shaded)
+        make_log_graph (freq, 17, 40, 255, data);
+    else
+        return;
 
     if (config.player_shaded)
-        ui_svis_timeout_func(mainwin_svis, intern_vis_data);
+        ui_svis_timeout_func (mainwin_svis, data);
     else
-        ui_vis_timeout_func(mainwin_vis, intern_vis_data);
+        ui_vis_timeout_func (mainwin_vis, data);
 }
 
 void
 ui_main_evlistener_init(void)
 {
-    hook_associate("title change", ui_main_evlistener_title_change, NULL);
     hook_associate("hide seekbar", ui_main_evlistener_hide_seekbar, NULL);
     hook_associate("playback begin", ui_main_evlistener_playback_begin, NULL);
+    hook_associate("playback ready", ui_main_evlistener_playback_begin, NULL);
     hook_associate("playback stop", ui_main_evlistener_playback_stop, NULL);
     hook_associate("playback pause", ui_main_evlistener_playback_pause, NULL);
     hook_associate("playback unpause", ui_main_evlistener_playback_unpause, NULL);
-    hook_associate("playback play file", ui_main_evlistener_playback_play_file, NULL);
-    hook_associate ("visualization clear", vis_clear_cb, NULL);
+    hook_associate ("title change", (HookFunction) title_change, NULL);
     hook_associate ("info change", (HookFunction) info_change, NULL);
-    hook_associate("mainwin set always on top", ui_main_evlistener_mainwin_set_always_on_top, NULL);
-    hook_associate("mainwin show", ui_main_evlistener_mainwin_show, NULL);
-    hook_associate("equalizerwin show", ui_main_evlistener_equalizerwin_show, NULL);
 
     hook_associate("playback seek", (HookFunction) mainwin_update_song_info, NULL);
-    hook_associate ("toggle stop after song", stop_after_song_toggled, NULL);
+
+    hook_associate ("set repeat", repeat_toggled, NULL);
+    hook_associate ("set shuffle", shuffle_toggled, NULL);
+    hook_associate ("set stop_after_current_song", stop_after_song_toggled, NULL);
 }
 
 void
 ui_main_evlistener_dissociate(void)
 {
-    hook_dissociate("title change", ui_main_evlistener_title_change);
     hook_dissociate("hide seekbar", ui_main_evlistener_hide_seekbar);
     hook_dissociate("playback begin", ui_main_evlistener_playback_begin);
+    hook_dissociate("playback ready", ui_main_evlistener_playback_begin);
     hook_dissociate("playback stop", ui_main_evlistener_playback_stop);
     hook_dissociate("playback pause", ui_main_evlistener_playback_pause);
     hook_dissociate("playback unpause", ui_main_evlistener_playback_unpause);
-    hook_dissociate("playback play file", ui_main_evlistener_playback_play_file);
-    hook_dissociate ("visualization clear", vis_clear_cb);
+    hook_dissociate ("title change", (HookFunction) title_change);
     hook_dissociate ("info change", (HookFunction) info_change);
-    hook_dissociate("mainwin set always on top", ui_main_evlistener_mainwin_set_always_on_top);
-    hook_dissociate("mainwin show", ui_main_evlistener_mainwin_show);
-    hook_dissociate("equalizerwin show", ui_main_evlistener_equalizerwin_show);
 
     hook_dissociate("playback seek", (HookFunction) mainwin_update_song_info);
-    hook_dissociate ("toggle stop after song", stop_after_song_toggled);
+
+    hook_dissociate ("set repeat", repeat_toggled);
+    hook_dissociate ("set shuffle", shuffle_toggled);
+    hook_dissociate ("set stop_after_current_song", stop_after_song_toggled);
 }
 
 void start_stop_visual (gboolean exiting)
@@ -364,7 +315,10 @@ void start_stop_visual (gboolean exiting)
     {
         if (! started)
         {
-            aud_vis_runner_add_hook(ui_main_evlistener_visualization_timeout, NULL);
+            aud_vis_func_add (AUD_VIS_TYPE_CLEAR, (VisFunc) vis_clear_cb);
+            aud_vis_func_add (AUD_VIS_TYPE_MONO_PCM, (VisFunc) render_mono_pcm);
+            aud_vis_func_add (AUD_VIS_TYPE_MULTI_PCM, (VisFunc) render_multi_pcm);
+            aud_vis_func_add (AUD_VIS_TYPE_FREQ, (VisFunc) render_freq);
             started = 1;
         }
     }
@@ -372,7 +326,10 @@ void start_stop_visual (gboolean exiting)
     {
         if (started)
         {
-            aud_vis_runner_remove_hook(ui_main_evlistener_visualization_timeout);
+            aud_vis_func_remove ((VisFunc) vis_clear_cb);
+            aud_vis_func_remove ((VisFunc) render_mono_pcm);
+            aud_vis_func_remove ((VisFunc) render_multi_pcm);
+            aud_vis_func_remove ((VisFunc) render_freq);
             started = 0;
         }
     }

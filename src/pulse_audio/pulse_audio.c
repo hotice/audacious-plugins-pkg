@@ -47,10 +47,10 @@ static int volume_valid = 0;
 
 static int do_trigger = 0;
 static int64_t written;
+static int flush_time;
 static int bytes_per_second;
 
 static int connected = 0;
-static int cached_time = 0;
 
 static pa_time_event *volume_time_event = NULL;
 
@@ -68,18 +68,6 @@ if (!mainloop || \
 do { \
     if (!connected) return retval; \
 } while (0);
-
-static const gchar * get_song_name (void)
-{
-    if (! aud_drct_get_playing ()) /* just probing? */
-        return "";
-
-    gchar * title = aud_drct_get_title ();
-    static gchar t[512];
-    snprintf (t, sizeof (t), "%s", title);
-    g_free (title);
-    return t;
-}
 
 static void info_cb(struct pa_context *c, const struct pa_sink_input_info *i, int is_last, void *userdata) {
     assert(c);
@@ -175,33 +163,27 @@ static void stream_latency_update_cb(pa_stream *s, void *userdata) {
     pa_threaded_mainloop_signal(mainloop, 0);
 }
 
-static void pulse_get_volume(int *l, int *r) {
-    pa_cvolume v;
-    int b = 0;
+static void pulse_get_volume (int * l, int * r)
+{
+    * l = * r = 0;
 
-    *l = *r = 100;
+    if (! connected || ! volume_valid)
+        return;
 
-    if (connected) {
-        pa_threaded_mainloop_lock(mainloop);
-        CHECK_DEAD_GOTO(fail, 1);
+    pa_threaded_mainloop_lock (mainloop);
+    CHECK_DEAD_GOTO (fail, 1);
 
-        v = volume;
-        b = volume_valid;
-
-    fail:
-        pa_threaded_mainloop_unlock(mainloop);
-    } else {
-        v = volume;
-        b = volume_valid;
+    if (volume.channels == 2)
+    {
+        * l = (volume.values[0] * 100 + PA_VOLUME_NORM / 2) / PA_VOLUME_NORM;
+        * r = (volume.values[1] * 100 + PA_VOLUME_NORM / 2) / PA_VOLUME_NORM;
     }
+    else
+        * l = * r = (pa_cvolume_avg (& volume) * 100 + PA_VOLUME_NORM / 2) /
+         PA_VOLUME_NORM;
 
-    if (b) {
-        if (v.channels == 2) {
-            *l = (int) ((v.values[0]*100)/PA_VOLUME_NORM);
-            *r = (int) ((v.values[1]*100)/PA_VOLUME_NORM);
-        } else
-            *l = *r = (int) ((pa_cvolume_avg(&v)*100)/PA_VOLUME_NORM);
-    }
+fail:
+    pa_threaded_mainloop_unlock (mainloop);
 }
 
 static void volume_time_cb(pa_mainloop_api *api, pa_time_event *e, const struct timeval *tv, void *userdata) {
@@ -220,21 +202,22 @@ static void volume_time_cb(pa_mainloop_api *api, pa_time_event *e, const struct 
 
 static void pulse_set_volume(int l, int r) {
 
-    if (connected) {
-        pa_threaded_mainloop_lock(mainloop);
-        CHECK_DEAD_GOTO(fail, 1);
-    }
+    if (! connected)
+        return;
+
+    pa_threaded_mainloop_lock (mainloop);
+    CHECK_DEAD_GOTO (fail, 1);
 
     /* sanitize output volumes. */
     l = CLAMP(l, 0, 100);
     r = CLAMP(r, 0, 100);
 
     if (!volume_valid || volume.channels !=  1) {
-        volume.values[0] = ((pa_volume_t) l * PA_VOLUME_NORM)/100;
-        volume.values[1] = ((pa_volume_t) r * PA_VOLUME_NORM)/100;
+        volume.values[0] = ((pa_volume_t) l * PA_VOLUME_NORM + 50) / 100;
+        volume.values[1] = ((pa_volume_t) r * PA_VOLUME_NORM + 50) / 100;
         volume.channels = 2;
     } else {
-        volume.values[0] = ((pa_volume_t) l * PA_VOLUME_NORM)/100;
+        volume.values[0] = ((pa_volume_t) MAX (l, r) * PA_VOLUME_NORM + 50) / 100;
         volume.channels = 1;
     }
 
@@ -251,7 +234,8 @@ fail:
         pa_threaded_mainloop_unlock(mainloop);
 }
 
-static void pulse_pause(short b) {
+static void pulse_pause (gboolean b)
+{
     pa_operation *o = NULL;
     int success = 0;
 
@@ -346,7 +330,7 @@ static void pulse_set_written_time (int time)
     pa_threaded_mainloop_lock (mainloop);
 
     written = time * (int64_t) bytes_per_second / 1000;
-    pa_stream_set_name (stream, get_song_name (), stream_success_cb, NULL);
+    flush_time = time;
 
     pa_threaded_mainloop_unlock (mainloop);
 }
@@ -354,40 +338,24 @@ static void pulse_set_written_time (int time)
 static int pulse_get_output_time (void)
 {
     int time = 0;
-    const pa_timing_info * timing;
-    struct timeval now;
 
     CHECK_CONNECTED(0);
 
     pa_threaded_mainloop_lock(mainloop);
 
-    if ((timing = pa_stream_get_timing_info (stream)) == NULL)
-        goto fail;
+    time = written * (int64_t) 1000 / bytes_per_second;
 
-    gettimeofday (& now, NULL);
+    pa_usec_t usec;
+    int neg;
+    if (pa_stream_get_latency (stream, & usec, & neg) == PA_OK)
+        time -= usec / 1000;
 
-    time = (int) ((written - (timing->write_index - timing->read_index)) *
-     (int64_t) 1000 / bytes_per_second) - (int) (timing->transport_usec / 1000)
-     - (int) (timing->sink_usec / 1000) + (int) ((now.tv_sec -
-     timing->timestamp.tv_sec) * 1000) + (int) ((now.tv_usec -
-     timing->timestamp.tv_usec) / 1000);
+    /* fix for AUDPLUG-308: pa_stream_get_latency() still returns positive even
+     * immediately after a flush; fix the result so that we don't return less
+     * than the flush time */
+    if (time < flush_time)
+        time = flush_time;
 
-#ifdef PA_CHECK_VERSION
-#if PA_CHECK_VERSION (0, 9, 11)
-    if (pa_stream_is_corked(stream))
-    {
-	int delta = time - cached_time;
-	if (delta > 0 && delta < 2000)
-             time = cached_time;
-        else
-             cached_time = time;
-    }
-    else
-#endif
-#endif
-        cached_time = time;
-
-fail:
     pa_threaded_mainloop_unlock(mainloop);
 
     return time;
@@ -432,6 +400,7 @@ static void pulse_flush(int time) {
     CHECK_DEAD_GOTO(fail, 1);
 
     written = time * (int64_t) bytes_per_second / 1000;
+    flush_time = time;
 
     if (!(o = pa_stream_flush(stream, stream_success_cb, &success))) {
         AUDDBG("pa_stream_flush() failed: %s", pa_strerror(pa_context_errno(context)));
@@ -513,6 +482,7 @@ static void pulse_close(void)
     }
 
     volume_time_event = NULL;
+    volume_valid = 0;
 }
 
 static int pulse_open(gint fmt, int rate, int nch) {
@@ -600,7 +570,7 @@ static int pulse_open(gint fmt, int rate, int nch) {
         goto unlock_and_fail;
     }
 
-    if (!(stream = pa_stream_new(context, get_song_name(), &ss, NULL))) {
+    if (!(stream = pa_stream_new(context, "Audacious", &ss, NULL))) {
         ERROR ("Failed to create stream: %s", pa_strerror(pa_context_errno(context)));
         goto unlock_and_fail;
     }
@@ -661,6 +631,7 @@ static int pulse_open(gint fmt, int rate, int nch) {
 
     do_trigger = 0;
     written = 0;
+    flush_time = 0;
     bytes_per_second = FMT_SIZEOF (fmt) * nch * rate;
     connected = 1;
     volume_time_event = NULL;
@@ -683,20 +654,20 @@ fail:
     return FALSE;
 }
 
-static OutputPluginInitStatus pulse_init (void)
+static gboolean pulse_init (void)
 {
     if (! pulse_open (FMT_S16_NE, 44100, 2))
-        return OUTPUT_PLUGIN_INIT_FAIL;
+        return FALSE;
 
     pulse_close ();
-    return OUTPUT_PLUGIN_INIT_FOUND_DEVICES;
+    return TRUE;
 }
 
 static void pulse_about(void) {
     static GtkWidget *dialog;
     audgui_simple_message(& dialog, GTK_MESSAGE_INFO,
             _("About Audacious PulseAudio Output Plugin"),
-            _("Audacious PulseAudio Output Plugin\n\n "
+            "Audacious PulseAudio Output Plugin\n\n "
             "This program is free software; you can redistribute it and/or modify\n"
             "it under the terms of the GNU General Public License as published by\n"
             "the Free Software Foundation; either version 2 of the License, or\n"
@@ -710,11 +681,12 @@ static void pulse_about(void) {
             "You should have received a copy of the GNU General Public License\n"
             "along with this program; if not, write to the Free Software\n"
             "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,\n"
-            "USA."));
+            "USA.");
 }
 
-static OutputPlugin pulse_op = {
-        .description = "PulseAudio Output Plugin",
+AUD_OUTPUT_PLUGIN
+(
+        .name = "PulseAudio",
         .probe_priority = 8,
         .init = pulse_init,
         .about = pulse_about,
@@ -730,8 +702,4 @@ static OutputPlugin pulse_op = {
         .output_time = pulse_get_output_time,
         .written_time = pulse_get_written_time,
         .set_written_time = pulse_set_written_time,
-};
-
-OutputPlugin *pulse_oplist[] = { &pulse_op, NULL };
-
-SIMPLE_OUTPUT_PLUGIN(pulser, pulse_oplist);
+)

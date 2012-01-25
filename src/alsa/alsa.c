@@ -1,6 +1,6 @@
 /*
  * ALSA Output Plugin for Audacious
- * Copyright 2009-2010 John Lindgren
+ * Copyright 2009-2011 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -48,8 +48,9 @@
 #include <alsa/asoundlib.h>
 #include <glib.h>
 
-#include <audacious/audconfig.h>
 #include <audacious/debug.h>
+#include <audacious/misc.h>
+#include <audacious/plugin.h>
 
 #include "alsa.h"
 
@@ -82,7 +83,7 @@ static int alsa_period; /* milliseconds */
 
 static int64_t alsa_written; /* frames */
 static char alsa_prebuffer, alsa_paused;
-static int alsa_paused_time; /* milliseconds */
+static int alsa_paused_delay; /* frames */
 
 static int poll_pipe[2];
 static int poll_count;
@@ -155,8 +156,9 @@ static void * pump (void * unused)
     pthread_mutex_lock (& alsa_mutex);
     pthread_cond_broadcast (& alsa_cond); /* signal thread started */
 
-    gboolean workaround = FALSE;
-    gint slept = 0;
+    char failed = 0;
+    char workaround = 0;
+    int slept = 0;
 
     while (! pump_quit)
     {
@@ -184,6 +186,8 @@ static void * pump (void * unused)
         CHECK_VAL_RECOVER (written, snd_pcm_writei, alsa_handle, (char *)
          alsa_buffer + alsa_buffer_data_start, length);
 
+        failed = 0;
+
         written = snd_pcm_frames_to_bytes (alsa_handle, written);
         alsa_buffer_data_start += written;
         alsa_buffer_data_length -= written;
@@ -204,17 +208,8 @@ static void * pump (void * unused)
 
         if (slept > 4)
         {
-            static gboolean warned = FALSE;
-            if (! warned)
-            {
-                fprintf (stderr, "\n** WARNING **\nAudacious has detected that "
-                 "your ALSA device has a broken timer.  A workaround\nis being "
-                 "used to prevent CPU overload.  Please report this problem to "
-                 "your\nLinux distributor or to the ALSA developers.\n\n");
-                warned = TRUE;
-            }
-
-            workaround = TRUE;
+            AUDDBG ("Activating timer workaround.\n");
+            workaround = 1;
         }
 
         if (workaround && slept)
@@ -230,9 +225,16 @@ static void * pump (void * unused)
         }
 
         pthread_mutex_lock (& alsa_mutex);
+        continue;
+
+    FAILED:
+        if (failed)
+            break;
+
+        failed = 1;
+        CHECK (snd_pcm_prepare, alsa_handle);
     }
 
-FAILED:
     pthread_mutex_unlock (& alsa_mutex);
     return NULL;
 }
@@ -276,17 +278,11 @@ FAILED:
     return delay;
 }
 
-static int get_output_time (void)
-{
-    return (int64_t) (alsa_written - snd_pcm_bytes_to_frames (alsa_handle,
-     alsa_buffer_data_length) - get_delay ()) * 1000 / alsa_rate;
-}
-
-OutputPluginInitStatus alsa_init (void)
+int alsa_init (void)
 {
     alsa_handle = NULL;
     alsa_initted = 0;
-    return OUTPUT_PLUGIN_INIT_FOUND_DEVICES;
+    return 1;
 }
 
 void alsa_soft_init (void)
@@ -375,7 +371,8 @@ int alsa_open_audio (int aud_format, int rate, int channels)
     alsa_channels = channels;
     alsa_rate = rate;
 
-    unsigned int useconds = 1000 * MIN (1000, aud_cfg->output_buffer_size / 2);
+    int total_buffer = aud_get_int (NULL, "output_buffer_size");
+    unsigned int useconds = 1000 * MIN (1000, total_buffer / 2);
     int direction = 0;
     CHECK_NOISY (snd_pcm_hw_params_set_buffer_time_near, alsa_handle, params,
      & useconds, & direction);
@@ -389,8 +386,7 @@ int alsa_open_audio (int aud_format, int rate, int channels)
 
     CHECK_NOISY (snd_pcm_hw_params, alsa_handle, params);
 
-    int soft_buffer = MAX (aud_cfg->output_buffer_size / 2,
-     aud_cfg->output_buffer_size - hard_buffer);
+    int soft_buffer = MAX (total_buffer / 2, total_buffer - hard_buffer);
     AUDDBG ("Buffer: hardware %d ms, software %d ms, period %d ms.\n",
      hard_buffer, soft_buffer, alsa_period);
 
@@ -403,7 +399,7 @@ int alsa_open_audio (int aud_format, int rate, int channels)
     alsa_written = 0;
     alsa_prebuffer = 1;
     alsa_paused = 0;
-    alsa_paused_time = 0;
+    alsa_paused_delay = 0;
 
     if (! poll_setup ())
         goto FAILED;
@@ -567,8 +563,17 @@ int alsa_written_time (void)
 int alsa_output_time (void)
 {
     pthread_mutex_lock (& alsa_mutex);
-    int time = (alsa_prebuffer || alsa_paused) ? alsa_paused_time :
-     get_output_time ();
+
+    int64_t frames = alsa_written - snd_pcm_bytes_to_frames (alsa_handle,
+     alsa_buffer_data_length);
+
+    if (alsa_prebuffer || alsa_paused)
+        frames -= alsa_paused_delay;
+    else
+        frames -= get_delay ();
+
+    int time = frames * 1000 / alsa_rate;
+
     pthread_mutex_unlock (& alsa_mutex);
     return time;
 }
@@ -587,7 +592,7 @@ FAILED:
 
     alsa_written = (int64_t) time * alsa_rate / 1000;
     alsa_prebuffer = 1;
-    alsa_paused_time = time;
+    alsa_paused_delay = 0;
 
     pthread_cond_broadcast (& alsa_cond); /* interrupt period wait */
 
@@ -596,7 +601,7 @@ FAILED:
     pthread_mutex_unlock (& alsa_mutex);
 }
 
-void alsa_pause (short pause)
+void alsa_pause (int pause)
 {
     AUDDBG ("%sause.\n", pause ? "P" : "Unp");
     pthread_mutex_lock (& alsa_mutex);
@@ -606,7 +611,7 @@ void alsa_pause (short pause)
     if (! alsa_prebuffer)
     {
         if (pause)
-            alsa_paused_time = get_output_time ();
+            alsa_paused_delay = get_delay ();
 
         CHECK (snd_pcm_pause, alsa_handle, pause);
     }
@@ -688,6 +693,16 @@ void alsa_get_volume (int * left, int * right)
         CHECK (snd_mixer_selem_get_playback_volume, alsa_mixer_element,
          SND_MIXER_SCHN_MONO, & left_l);
         right_l = left_l;
+
+        if (snd_mixer_selem_has_playback_switch (alsa_mixer_element))
+        {
+            int on = 0;
+            CHECK (snd_mixer_selem_get_playback_switch, alsa_mixer_element,
+             SND_MIXER_SCHN_MONO, & on);
+
+            if (! on)
+                left_l = right_l = 0;
+        }
     }
     else
     {
@@ -695,6 +710,20 @@ void alsa_get_volume (int * left, int * right)
          SND_MIXER_SCHN_FRONT_LEFT, & left_l);
         CHECK (snd_mixer_selem_get_playback_volume, alsa_mixer_element,
          SND_MIXER_SCHN_FRONT_RIGHT, & right_l);
+
+        if (snd_mixer_selem_has_playback_switch (alsa_mixer_element))
+        {
+            int left_on = 0, right_on = 0;
+            CHECK (snd_mixer_selem_get_playback_switch, alsa_mixer_element,
+             SND_MIXER_SCHN_FRONT_LEFT, & left_on);
+            CHECK (snd_mixer_selem_get_playback_switch, alsa_mixer_element,
+             SND_MIXER_SCHN_FRONT_RIGHT, & right_on);
+
+            if (! left_on)
+                left_l = 0;
+            if (! right_on)
+                right_l = 0;
+        }
     }
 
 FAILED:

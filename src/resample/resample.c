@@ -27,9 +27,10 @@ static double ratio;
 static float * buffer = NULL;
 static int buffer_samples = 0;
 
-void resample_init (void)
+int resample_init (void)
 {
     resample_config_load ();
+    return 1;
 }
 
 void resample_cleanup (void)
@@ -65,13 +66,13 @@ void resample_start (int * channels, int * rate)
             break;
         }
     }
-    
+
     if (new_rate == * rate)
         return;
 
     if ((state = src_new (method, * channels, & error)) == NULL)
     {
-        ERROR (error);
+        RESAMPLE_ERROR (error);
         return;
     }
 
@@ -84,7 +85,7 @@ void do_resample (float * * data, int * samples, char finish)
 {
     SRC_DATA d;
     int error;
-    
+
     if (state == NULL || ! * samples)
         return;
 
@@ -93,20 +94,20 @@ void do_resample (float * * data, int * samples, char finish)
         buffer_samples = (int) (* samples * ratio) + 256;
         buffer = realloc (buffer, sizeof (float) * buffer_samples);
     }
-    
+
     d.data_in = * data;
     d.input_frames = * samples / stored_channels;
     d.data_out = buffer;
     d.output_frames = buffer_samples / stored_channels;
     d.src_ratio = ratio;
     d.end_of_input = finish;
-    
+
     if ((error = src_process (state, & d)))
     {
-        ERROR (error);
+        RESAMPLE_ERROR (error);
         return;
     }
-    
+
     * data = buffer;
     * samples = stored_channels * d.output_frames_gen;
 }
@@ -121,7 +122,7 @@ void resample_flush (void)
     int error;
 
     if (state != NULL && (error = src_reset (state)))
-        ERROR (error);
+        RESAMPLE_ERROR (error);
 }
 
 void resample_finish (float * * data, int * samples)

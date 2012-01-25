@@ -18,6 +18,7 @@
  */
 
 #include <stdint.h>
+#include <string.h>
 
 #ifdef DEBUG
 #define NEON_DEBUG
@@ -25,8 +26,9 @@
 
 #include "neon.h"
 
-#include <audacious/configdb.h>
+#include <audacious/misc.h>
 #include <audacious/plugin.h>
+#include <libaudcore/audstrings.h>
 
 #include <ne_socket.h>
 #include <ne_utils.h>
@@ -43,78 +45,16 @@
 #define NEON_ICY_BUFSIZE    (4096)
 #define NEON_RETRY_COUNT 6
 
-
-VFSFile *neon_vfs_fopen_impl(const gchar* path, const gchar* mode);
-gint neon_vfs_fclose_impl(VFSFile* file);
-gint64 neon_vfs_fread_impl (void * ptr, gint64 size, gint64 nmemb, VFSFile *
- file);
-gint64 neon_vfs_fwrite_impl (const void * ptr, gint64 size, gint64 nmemb,
- VFSFile * file);
-gint neon_vfs_getc_impl(VFSFile* file);
-gint neon_vfs_ungetc_impl(gint c, VFSFile* file);
-void neon_vfs_rewind_impl(VFSFile* file);
-gint64 neon_vfs_ftell_impl (VFSFile * file);
-gboolean neon_vfs_feof_impl(VFSFile* file);
-gint neon_vfs_truncate_impl (VFSFile * file, gint64 size);
-gint neon_vfs_fseek_impl (VFSFile * file, gint64 offset, gint whence);
-gchar *neon_vfs_metadata_impl(VFSFile* file, const gchar * field);
-gint64 neon_vfs_fsize_impl (VFSFile * file);
-
-
-VFSConstructor neon_http_const = {
-    "http://",
-    neon_vfs_fopen_impl,
-    neon_vfs_fclose_impl,
-    neon_vfs_fread_impl,
-    neon_vfs_fwrite_impl,
-    neon_vfs_getc_impl,
-    neon_vfs_ungetc_impl,
-    neon_vfs_fseek_impl,
-    neon_vfs_rewind_impl,
-    neon_vfs_ftell_impl,
-    neon_vfs_feof_impl,
-    neon_vfs_truncate_impl,
-    neon_vfs_fsize_impl,
-    neon_vfs_metadata_impl
-};
-
-VFSConstructor neon_https_const = {
-    "https://",
-    neon_vfs_fopen_impl,
-    neon_vfs_fclose_impl,
-    neon_vfs_fread_impl,
-    neon_vfs_fwrite_impl,
-    neon_vfs_getc_impl,
-    neon_vfs_ungetc_impl,
-    neon_vfs_fseek_impl,
-    neon_vfs_rewind_impl,
-    neon_vfs_ftell_impl,
-    neon_vfs_feof_impl,
-    neon_vfs_truncate_impl,
-    neon_vfs_fsize_impl,
-    neon_vfs_metadata_impl
-};
-
-
-/*
- * ----
- */
-
-static void neon_plugin_init(void) {
+static gboolean neon_plugin_init(void) {
 
     gint ret;
 
     if (0 != (ret = ne_sock_init())) {
         _ERROR("Could not initialize neon library: %d\n", ret);
-        return;
+        return FALSE;
     }
 
-    vfs_register_transport(&neon_http_const);
-
-    if (0 != ne_has_support(NE_FEATURE_SSL)) {
-        _DEBUG("neon compiled with thread-safe SSL, enabling https:// transport");
-        vfs_register_transport(&neon_https_const);
-    }
+    return TRUE;
 }
 
 /*
@@ -124,13 +64,6 @@ static void neon_plugin_init(void) {
 static void neon_plugin_fini(void) {
     ne_sock_exit();
 }
-
-DECLARE_PLUGIN(neon, neon_plugin_init, neon_plugin_fini)
-
-
-/*
- * ========
- */
 
 static struct neon_handle* handle_init(void) {
 
@@ -213,7 +146,6 @@ static void parse_icy(struct icy_metadata* m, gchar* metadata, gsize len) {
 
     gchar* p;
     gchar* tstart;
-    gchar* tend;
     gchar name[NEON_ICY_BUFSIZE];
     gchar value[NEON_ICY_BUFSIZE];
     gint state;
@@ -225,7 +157,6 @@ static void parse_icy(struct icy_metadata* m, gchar* metadata, gsize len) {
     name[0] = '\0';
     value[0] = '\0';
     tstart = metadata;
-    tend = metadata;
     while ((pos < len) && (*p != '\0')) {
         switch (state) {
             case 1:
@@ -240,9 +171,7 @@ static void parse_icy(struct icy_metadata* m, gchar* metadata, gsize len) {
                     g_strlcpy(name, tstart, NEON_ICY_BUFSIZE);
                     _DEBUG("Found tag name: %s", name);
                     state = 2;
-                } else {
-                    tend = p;
-                };
+                }
                 break;
             case 2:
                 /*
@@ -252,7 +181,7 @@ static void parse_icy(struct icy_metadata* m, gchar* metadata, gsize len) {
                     /*
                      * Leading ' of value
                      */
-                    tend = tstart = p + 1;
+                    tstart = p + 1;
                     state = 3;
                     value[0] = '\0';
                 }
@@ -270,8 +199,6 @@ static void parse_icy(struct icy_metadata* m, gchar* metadata, gsize len) {
                     _DEBUG("Found tag value: %s", value);
                     add_icy(m, name, value);
                     state = 4;
-                } else {
-                    tend = p;
                 }
                 break;
             case 4:
@@ -282,7 +209,7 @@ static void parse_icy(struct icy_metadata* m, gchar* metadata, gsize len) {
                     /*
                      * Next tag name starts after this char
                      */
-                    tend = tstart = p + 1;
+                    tstart = p + 1;
                     state = 1;
                     name[0] = '\0';
                     value[0] = '\0';
@@ -470,35 +397,17 @@ static void handle_headers(struct neon_handle* h) {
  * -----
  */
 
-static int neon_proxy_auth_cb(void *userdata, const char *realm, int attempt, char *username, char *password) {
+static int neon_proxy_auth_cb (void * userdata, const char * realm, int attempt,
+ char * username, char * password)
+{
+    gchar * value = aud_get_string (NULL, "proxy_user");
+    g_strlcpy (username, value, NE_ABUFSIZ);
+    g_free (value);
 
-    mcs_handle_t *db;
-    gchar *value = NULL;
+    value = aud_get_string (NULL, "proxy_pass");
+    g_strlcpy (password, value, NE_ABUFSIZ);
+    g_free (value);
 
-    if ((db = aud_cfg_db_open()) == NULL) {
-        _DEBUG("<%p> configdb failed to open!", userdata);
-        return -1;
-    }
-
-    aud_cfg_db_get_string(db, NULL, "proxy_user", &value);
-    if (!value) {
-        _DEBUG("<%p> proxy_auth requested but no proxy_user", userdata);
-        aud_cfg_db_close(db);
-        return -1;
-    }
-    g_strlcpy(username, value, NE_ABUFSIZ);
-    value = NULL;
-
-    aud_cfg_db_get_string(db, NULL, "proxy_pass", &value);
-    if (!value) {
-        _DEBUG("<%p> proxy_auth requested but no proxy_pass", userdata);
-        aud_cfg_db_close(db);
-        return -1;
-    }
-    g_strlcpy(password, value, NE_ABUFSIZ);
-    value = NULL;
-
-    aud_cfg_db_close(db);
     return attempt;
 }
 
@@ -574,9 +483,6 @@ static int open_request(struct neon_handle* handle, gulong startbyte) {
                 handle_headers(handle);
                 return 0;
             }
-            else
-                goto ERROR;
-
             break;
 
         case NE_REDIRECT:
@@ -596,22 +502,19 @@ static int open_request(struct neon_handle* handle, gulong startbyte) {
             ne_uri_copy(handle->purl, rediruri);
             return 1;
             break;
-
-        default:
-        ERROR:
-            /* Something went wrong. */
-            _ERROR ("<%p> Could not open URL: %d (%d)", (void *) handle, ret,
-             status->code);
-
-            if (ret)
-                _ERROR ("<%p> neon error string: %s", (void *) handle,
-                 ne_get_error (handle->session));
-
-            ne_request_destroy(handle->request);
-            handle->request = NULL;
-            return -1;
-            break;
     }
+
+    /* Something went wrong. */
+    _ERROR ("<%p> Could not open URL: %d (%d)", (void *) handle, ret,
+     status->code);
+
+    if (ret)
+        _ERROR ("<%p> neon error string: %s", (void *) handle,
+         ne_get_error (handle->session));
+
+    ne_request_destroy(handle->request);
+    handle->request = NULL;
+    return -1;
 }
 
 /*
@@ -621,44 +524,17 @@ static int open_request(struct neon_handle* handle, gulong startbyte) {
 static gint open_handle(struct neon_handle* handle, gulong startbyte) {
 
     gint ret;
-    mcs_handle_t* db;
     gchar* proxy_host = NULL;
-    gchar* proxy_port_s = NULL;
-    gchar* endptr;
     guint proxy_port = 0;
-    gboolean use_proxy, proxy_use_auth;
 
-    db = aud_cfg_db_open();
-    if (FALSE == aud_cfg_db_get_bool(db, NULL, "use_proxy", &use_proxy)) {
-        use_proxy = FALSE;
-    }
+    gboolean use_proxy = aud_get_bool (NULL, "use_proxy");
+    gboolean proxy_use_auth = aud_get_bool (NULL, "proxy_use_auth");
 
-    if (FALSE == aud_cfg_db_get_bool(db, NULL, "proxy_use_auth", &proxy_use_auth)) {
-        proxy_use_auth = FALSE;
+    if (use_proxy)
+    {
+        proxy_host = aud_get_string (NULL, "proxy_host");
+        proxy_port = aud_get_int (NULL, "proxy_port");
     }
-
-    if (use_proxy) {
-        if (FALSE == aud_cfg_db_get_string(db, NULL, "proxy_host", &proxy_host)) {
-            _ERROR ("<%p> Could not read proxy host, disabling proxy use",
-             (void *) handle);
-            use_proxy = FALSE;
-        }
-        if (FALSE == aud_cfg_db_get_string(db, NULL, "proxy_port", &proxy_port_s)) {
-            _ERROR ("<%p> Could not read proxy port, disabling proxy use",
-             (void *) handle);
-            use_proxy = FALSE;
-        }
-        proxy_port = strtoul(proxy_port_s, &endptr, 10);
-        if (!((*proxy_port_s != '\0') && (*endptr == '\0') && (proxy_port < 65536))) {
-            /*
-             * Invalid data
-             */
-            _ERROR ("<%p> Invalid proxy port, disabling proxy use", (void *)
-             handle);
-            use_proxy = FALSE;
-        }
-    }
-    aud_cfg_db_close(db);
 
     handle->redircount = 0;
 
@@ -706,11 +582,16 @@ static gint open_handle(struct neon_handle* handle, gulong startbyte) {
         _DEBUG("<%p> Creating request", handle);
         ret = open_request(handle, startbyte);
 
-        if (0 == ret) {
+        if (ret == 0)
+        {
+            g_free (proxy_host);
             return 0;
-        } else if (-1 == ret) {
+        }
+        else if (ret == -1)
+        {
             ne_session_destroy(handle->session);
             handle->session = NULL;
+            g_free (proxy_host);
             return -1;
         }
 
@@ -726,6 +607,7 @@ static gint open_handle(struct neon_handle* handle, gulong startbyte) {
     _ERROR ("<%p> Redirect count exceeded for URL %s", (void *) handle,
      handle->url);
 
+    g_free (proxy_host);
     return 1;
 }
 
@@ -827,47 +709,33 @@ static gpointer reader_thread(void* data) {
     return NULL;
 }
 
+
 /*
  * -----
  */
 
-VFSFile* neon_vfs_fopen_impl(const gchar* path, const gchar* mode) {
-    VFSFile* file;
+void * neon_vfs_fopen_impl (const gchar * path, const gchar * mode)
+{
     struct neon_handle* handle;
 
     _DEBUG("Trying to open '%s' with neon", path);
 
-    if (NULL == (file = g_new0(VFSFile, 1))) {
-        _ERROR("Could not allocate memory for filehandle");
-        return NULL;
-    }
-
     if (NULL == (handle = handle_init())) {
         _ERROR("Could not allocate memory for neon handle");
-        g_free(file);
         return NULL;
     }
 
     _DEBUG("Allocated new handle: %p", handle);
 
-    if (NULL == (handle->url = g_strdup(path))) {
-        _ERROR ("<%p> Could not copy URL string", (void *) handle);
-        handle_free(handle);
-        g_free(file);
-        return NULL;
-    }
+    handle->url = g_strdup (path);
 
     if (0 != open_handle(handle, 0)) {
         _ERROR ("<%p> Could not open URL", (void *) handle);
         handle_free(handle);
-        g_free(file);
         return NULL;
     }
 
-    file->handle = handle;
-    file->base = &neon_http_const;
-
-    return file;
+    return handle;
 }
 
 /*
@@ -876,7 +744,7 @@ VFSFile* neon_vfs_fopen_impl(const gchar* path, const gchar* mode) {
 
 gint neon_vfs_fclose_impl(VFSFile* file) {
 
-    struct neon_handle* h = (struct neon_handle *)file->handle;
+    struct neon_handle* h = (struct neon_handle *)vfs_get_handle (file);
 
     if (NULL != h->reader) {
         kill_reader(h);
@@ -904,7 +772,7 @@ gint neon_vfs_fclose_impl(VFSFile* file) {
 static gint64 neon_fread_real (void * ptr_, gint64 size, gint64 nmemb,
  VFSFile * file)
 {
-    struct neon_handle* h = (struct neon_handle*)file->handle;
+    struct neon_handle* h = (struct neon_handle*)vfs_get_handle (file);
     gint belem;
     gint relem;
     gint ret;
@@ -1140,7 +1008,7 @@ gint64 neon_vfs_fread_impl (void * buffer, gint64 size, gint64 count,
 gint64 neon_vfs_fwrite_impl (const void * ptr, gint64 size, gint64 nmemb,
  VFSFile * file)
 {
-    _ERROR ("<%p> NOT IMPLEMENTED", (void *) file->handle);
+    _ERROR ("<%p> NOT IMPLEMENTED", (void *) vfs_get_handle (file));
 
     return 0;
 }
@@ -1153,7 +1021,7 @@ gint neon_vfs_getc_impl(VFSFile* file) {
   unsigned char c;
 
     if (1 != neon_vfs_fread_impl(&c, 1, 1, file)) {
-        _ERROR ("<%p> Could not getc()!", (void *) file->handle);
+        _ERROR ("<%p> Could not getc()!", (void *) vfs_get_handle (file));
         return -1;
     }
 
@@ -1165,26 +1033,14 @@ gint neon_vfs_getc_impl(VFSFile* file) {
  */
 
 gint neon_vfs_ungetc_impl(gint c, VFSFile* stream) {
-    _ERROR ("<%p> NOT IMPLEMENTED", (void *) stream->handle);
+    _ERROR ("<%p> NOT IMPLEMENTED", (void *) vfs_get_handle (stream));
 
     return 0;
 }
 
-/*
- * -----
- */
-
-void neon_vfs_rewind_impl(VFSFile* file) {
-    (void)neon_vfs_fseek_impl(file, 0L, SEEK_SET);
-}
-
-/*
- * -----
- */
-
 gint64 neon_vfs_ftell_impl (VFSFile * file)
 {
-    struct neon_handle* h = (struct neon_handle *)file->handle;
+    struct neon_handle* h = (struct neon_handle *)vfs_get_handle (file);
 
     _DEBUG("<%p> Current file position: %ld", h, h->pos);
 
@@ -1197,7 +1053,7 @@ gint64 neon_vfs_ftell_impl (VFSFile * file)
 
 gboolean neon_vfs_feof_impl(VFSFile* file) {
 
-    struct neon_handle* h = (struct neon_handle*)file->handle;
+    struct neon_handle* h = (struct neon_handle*)vfs_get_handle (file);
 
     _DEBUG("<%p> EOF status: %s", h, h->eof?"TRUE":"FALSE");
 
@@ -1210,7 +1066,7 @@ gboolean neon_vfs_feof_impl(VFSFile* file) {
 
 gint neon_vfs_truncate_impl (VFSFile * file, gint64 size)
 {
-    _ERROR ("<%p> NOT IMPLEMENTED", (void *) file->handle);
+    _ERROR ("<%p> NOT IMPLEMENTED", (void *) vfs_get_handle (file));
 
     return 0;
 }
@@ -1221,7 +1077,7 @@ gint neon_vfs_truncate_impl (VFSFile * file, gint64 size)
 
 gint neon_vfs_fseek_impl (VFSFile * file, gint64 offset, gint whence)
 {
-    struct neon_handle* h = (struct neon_handle*)file->handle;
+    struct neon_handle* h = (struct neon_handle*)vfs_get_handle (file);
     glong newpos;
     glong content_length;
 
@@ -1318,31 +1174,28 @@ gint neon_vfs_fseek_impl (VFSFile * file, gint64 offset, gint whence)
     return 0;
 }
 
+void neon_vfs_rewind_impl(VFSFile* file) {
+    (void)neon_vfs_fseek_impl(file, 0L, SEEK_SET);
+}
+
 /*
  * -----
  */
 
 gchar *neon_vfs_metadata_impl(VFSFile* file, const gchar* field) {
 
-    struct neon_handle* h = (struct neon_handle*)file->handle;
+    struct neon_handle* h = (struct neon_handle*)vfs_get_handle (file);
 
     _DEBUG("<%p> Field name: %s", h, field);
 
-    if (neon_strcmp(field, "track-name")) {
-        return g_strdup(h->icy_metadata.stream_title);
-    }
-
-    if (neon_strcmp(field, "stream-name")) {
-        return g_strdup(h->icy_metadata.stream_name);
-    }
-
-    if (neon_strcmp(field, "content-type")) {
-        return g_strdup(h->icy_metadata.stream_contenttype);
-    }
-
-    if (neon_strcmp(field, "content-bitrate")) {
-        return g_strdup_printf("%d", h->icy_metadata.stream_bitrate * 1000);
-    }
+    if (! strcmp (field, "track-name"))
+        return str_to_utf8 (h->icy_metadata.stream_title);
+    if (! strcmp (field, "stream-name"))
+        return str_to_utf8 (h->icy_metadata.stream_name);
+    if (! strcmp (field, "content-type"))
+        return str_to_utf8 (h->icy_metadata.stream_contenttype);
+    if (! strcmp (field, "content-bitrate"))
+        return g_strdup_printf ("%d", h->icy_metadata.stream_bitrate * 1000);
 
     return NULL;
 }
@@ -1353,7 +1206,7 @@ gchar *neon_vfs_metadata_impl(VFSFile* file, const gchar* field) {
 
 gint64 neon_vfs_fsize_impl (VFSFile * file)
 {
-    struct neon_handle* h = (struct neon_handle*)file->handle;
+    struct neon_handle* h = (struct neon_handle*)vfs_get_handle (file);
 
     if (-1 == h->content_length) {
         _DEBUG("<%p> Unknown content length", h);
@@ -1362,3 +1215,30 @@ gint64 neon_vfs_fsize_impl (VFSFile * file)
 
     return (h->content_start + h->content_length);
 }
+
+static const gchar * const neon_schemes[] = {"http", "https", NULL};
+
+static VFSConstructor constructor = {
+ .vfs_fopen_impl = neon_vfs_fopen_impl,
+ .vfs_fclose_impl = neon_vfs_fclose_impl,
+ .vfs_fread_impl = neon_vfs_fread_impl,
+ .vfs_fwrite_impl = neon_vfs_fwrite_impl,
+ .vfs_getc_impl = neon_vfs_getc_impl,
+ .vfs_ungetc_impl = neon_vfs_ungetc_impl,
+ .vfs_fseek_impl = neon_vfs_fseek_impl,
+ .vfs_rewind_impl = neon_vfs_rewind_impl,
+ .vfs_ftell_impl = neon_vfs_ftell_impl,
+ .vfs_feof_impl = neon_vfs_feof_impl,
+ .vfs_ftruncate_impl = neon_vfs_truncate_impl,
+ .vfs_fsize_impl = neon_vfs_fsize_impl,
+ .vfs_get_metadata_impl = neon_vfs_metadata_impl
+};
+
+AUD_TRANSPORT_PLUGIN
+(
+ .name = "Neon HTTP/HTTPS Support",
+ .schemes = neon_schemes,
+ .init = neon_plugin_init,
+ .cleanup = neon_plugin_fini,
+ .vtable = & constructor
+)

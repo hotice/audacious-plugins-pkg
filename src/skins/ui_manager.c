@@ -1,5 +1,5 @@
 /*  Audacious - Cross-platform multimedia player
- *  Copyright (C) 2005-2007  Audacious development team.
+ *  Copyright (C) 2005-2011  Audacious development team.
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,28 +17,45 @@
  *  Audacious or using our public API to be a derived work.
  */
 
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
-
-#include "ui_manager.h"
-#include "actions-mainwin.h"
-#include "actions-playlist.h"
-#include "actions-equalizer.h"
-
-/* TODO ui_main.h is only included because ui_manager.c needs the values of
-   TimerMode enum; move that enum elsewhere so we can get rid of this include */
-#include "ui_main.h"
-
-#if 0
-#include "sync-menu.h"
-#endif
-#include "plugin.h"
-
+#include <audacious/drct.h>
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
+
+#include "actions-equalizer.h"
+#include "actions-mainwin.h"
+#include "actions-playlist.h"
+#include "config.h"
+#include "skins_cfg.h"
+#include "ui_main.h"
+#include "ui_manager.h"
+#include "ui_vis.h"
+
+static GtkWidget * ui_manager_get_popup_menu (GtkUIManager * self, const gchar *
+ path);
+
+GtkActionGroup *toggleaction_group_others;
+GtkActionGroup *radioaction_group_anamode; /* Analyzer mode */
+GtkActionGroup *radioaction_group_anatype; /* Analyzer type */
+GtkActionGroup *radioaction_group_scomode; /* Scope mode */
+GtkActionGroup *radioaction_group_vprmode; /* Voiceprint mode */
+GtkActionGroup *radioaction_group_wshmode; /* WindowShade VU mode */
+GtkActionGroup *radioaction_group_anafoff; /* Analyzer Falloff */
+GtkActionGroup *radioaction_group_peafoff; /* Peak Falloff */
+GtkActionGroup *radioaction_group_vismode; /* Visualization mode */
+GtkActionGroup *radioaction_group_viewtime; /* View time (remaining/elapsed) */
+
+static GtkActionGroup *action_group_playback;
+static GtkActionGroup *action_group_visualization;
+static GtkActionGroup *action_group_view;
+static GtkActionGroup *action_group_others;
+static GtkActionGroup *action_group_playlist;
+static GtkActionGroup *action_group_playlist_add;
+static GtkActionGroup *action_group_playlist_select;
+static GtkActionGroup *action_group_playlist_delete;
+static GtkActionGroup *action_group_playlist_sort;
+static GtkActionGroup *action_group_equalizer;
 
 static GtkUIManager *ui_manager = NULL;
 static GList * attached_menus = NULL;
@@ -88,12 +105,6 @@ static GtkToggleActionEntry toggleaction_entries_others[] = {
 
     { "roll up equalizer", NULL , N_("Roll up Equalizer"), "<Ctrl><Alt>W",
       N_("Roll up Equalizer"), G_CALLBACK(action_roll_up_equalizer) , FALSE },
-
-    { "view scaled", NULL , N_("Scale"), "<Ctrl>D",
-      N_("DoubleSize"), G_CALLBACK(action_view_scaled) , FALSE },
-
-    { "view easy move", NULL , N_("Easy Move"), "<Ctrl>E",
-      N_("Easy Move"), G_CALLBACK(action_view_easymove) , FALSE }
 };
 
 
@@ -165,19 +176,19 @@ static GtkActionEntry action_entries_playback[] = {
     { "playback", NULL, N_("Playback") },
 
     { "playback play", GTK_STOCK_MEDIA_PLAY , N_("Play"), "X",
-      N_("Play"), G_CALLBACK(action_playback_play) },
+      N_("Play"), G_CALLBACK(aud_drct_play) },
 
     { "playback pause", GTK_STOCK_MEDIA_PAUSE , N_("Pause"), "C",
-      N_("Pause"), G_CALLBACK(action_playback_pause) },
+      N_("Pause"), G_CALLBACK(aud_drct_pause) },
 
     { "playback stop", GTK_STOCK_MEDIA_STOP , N_("Stop"), "V",
-      N_("Stop"), G_CALLBACK(action_playback_stop) },
+      N_("Stop"), G_CALLBACK(aud_drct_stop) },
 
     { "playback previous", GTK_STOCK_MEDIA_PREVIOUS , N_("Previous"), "Z",
-      N_("Previous"), G_CALLBACK(action_playback_previous) },
+      N_("Previous"), G_CALLBACK(aud_drct_pl_prev) },
 
     { "playback next", GTK_STOCK_MEDIA_NEXT , N_("Next"), "B",
-      N_("Next"), G_CALLBACK(action_playback_next) }
+      N_("Next"), G_CALLBACK(aud_drct_pl_next) }
 };
 
 
@@ -209,28 +220,24 @@ static GtkActionEntry action_entries_playlist[] = {
       N_("Delete Playlist"), G_CALLBACK(action_playlist_delete) },
 
         {"playlist load", GTK_STOCK_OPEN, N_("Import Playlist"), "O",
-          N_("Loads a playlist file into the selected playlist."), G_CALLBACK(action_playlist_load_list) },
+          N_("Loads a playlist file into the selected playlist."), (GCallback)
+          audgui_import_playlist},
 
         {"playlist save", GTK_STOCK_SAVE, N_("Export Playlist"), "<Shift>S",
-          N_("Saves the selected playlist."), G_CALLBACK(action_playlist_save_list) },
-
-        { "playlist save all", GTK_STOCK_SAVE, N_("Save All Playlists"),
-         "<Alt>S", N_("Saves all the playlists that are open. Note that this "
-         "is done automatically when Audacious quits."),
-         action_playlist_save_all_playlists},
+          N_("Saves the selected playlist."), (GCallback) audgui_export_playlist},
 
         { "playlist refresh", GTK_STOCK_REFRESH, N_("Refresh List"), "F5",
           N_("Refreshes metadata associated with a playlist entry."),
           G_CALLBACK(action_playlist_refresh_list) },
 
-        { "playlist manager", AUD_STOCK_PLAYLIST , N_("List Manager"), "P",
-          N_("Opens the playlist manager."),
-          G_CALLBACK(action_open_list_manager) }
-};
+ {"playlist manager", AUD_STOCK_PLAYLIST, N_("Playlist Manager"), "P", NULL, (GCallback) audgui_playlist_manager},
+ {"queue manager", AUD_STOCK_QUEUETOGGLE, N_("Queue Manager"), "<Ctrl>U", NULL, (GCallback) audgui_queue_manager_show}};
 
 static GtkActionEntry action_entries_view[] = {
  {"view", NULL, N_("View")},
- {"iface menu", NULL, N_("Interface")}};
+ {"iface menu", NULL, N_("Interface")},
+ {"iface prefs", GTK_STOCK_PREFERENCES, N_("Interface Preferences ..."), NULL,
+  NULL, (GCallback) skins_configure}};
 
 static GtkActionEntry action_entries_playlist_add[] = {
         { "playlist add url", GTK_STOCK_NETWORK, N_("Add Internet Address..."), "<Ctrl>H",
@@ -377,13 +384,13 @@ static GtkActionEntry action_entries_others[] = {
     { "plugins-menu", AUD_STOCK_PLUGIN, N_("Plugin Services") },
 
     { "current track info", GTK_STOCK_INFO , N_("View Track Details"), "I",
-      N_("View track details"), G_CALLBACK(action_current_track_info) },
+      N_("View track details"), G_CALLBACK(audgui_infowin_show_current) },
 
     { "playlist track info", GTK_STOCK_INFO , N_("View Track Details"), "<Alt>I",
       N_("View track details"), G_CALLBACK(action_playlist_track_info) },
 
     { "about audacious", GTK_STOCK_DIALOG_INFO , N_("About Audacious"), NULL,
-      N_("About Audacious"), G_CALLBACK(action_about_audacious) },
+      N_("About Audacious"), G_CALLBACK(audgui_show_about_window) },
 
     { "play file", GTK_STOCK_OPEN , N_("Play File"), "L",
       N_("Load and play a file"), G_CALLBACK(action_play_file) },
@@ -394,10 +401,10 @@ static GtkActionEntry action_entries_others[] = {
     { "plugins", NULL , N_("Plugin services") },
 
     { "preferences", GTK_STOCK_PREFERENCES , N_("Preferences"), "<Ctrl>P",
-      N_("Open preferences window"), G_CALLBACK(action_preferences) },
+      N_("Open preferences window"), G_CALLBACK(aud_show_prefs_window) },
 
     { "quit", GTK_STOCK_QUIT , N_("_Quit"), NULL,
-      N_("Quit Audacious"), G_CALLBACK(action_quit) },
+      N_("Quit Audacious"), G_CALLBACK(aud_drct_quit) },
 
     { "ab set", NULL , N_("Set A-B"), "A",
       N_("Set A-B"), G_CALLBACK(action_ab_set) },
@@ -405,14 +412,11 @@ static GtkActionEntry action_entries_others[] = {
     { "ab clear", NULL , N_("Clear A-B"), "<Shift>A",
       N_("Clear A-B"), G_CALLBACK(action_ab_clear) },
 
-    { "jump to playlist start", GTK_STOCK_GOTO_TOP , N_("Jump to Playlist Start"), "<Ctrl>Z",
-      N_("Jump to Playlist Start"), G_CALLBACK(action_jump_to_playlist_start) },
-
     { "jump to file", GTK_STOCK_JUMP_TO , N_("Jump to File"), "J",
-      N_("Jump to File"), G_CALLBACK(action_jump_to_file) },
+      N_("Jump to File"), G_CALLBACK(audgui_jump_to_track) },
 
     { "jump to time", GTK_STOCK_JUMP_TO , N_("Jump to Time"), "<Ctrl>J",
-      N_("Jump to Time"), G_CALLBACK(action_jump_to_time) },
+      N_("Jump to Time"), (GCallback) audgui_jump_to_time},
 
     { "queue toggle", AUD_STOCK_QUEUETOGGLE , N_("Queue Toggle"), "Q",
       N_("Enables/disables the entry in the playlist's queue."),
@@ -486,7 +490,7 @@ static GtkActionGroup *
 ui_manager_new_action_group( const gchar * group_name )
 {
   GtkActionGroup *group = gtk_action_group_new( group_name );
-  gtk_action_group_set_translation_domain( group , PACKAGE_NAME );
+  gtk_action_group_set_translation_domain (group, PACKAGE);
   return group;
 }
 
@@ -622,17 +626,17 @@ ui_manager_init ( void )
   return;
 }
 
-#ifdef GDK_WINDOWING_QUARTZ
-static GtkWidget *carbon_menubar;
-#endif
-
 void
 ui_manager_create_menus ( void )
 {
+  const gchar * data = aud_get_path (AUD_PATH_DATA_DIR);
+  gchar * path;
   GError *gerr = NULL;
 
   /* attach xml menu definitions */
-  gtk_ui_manager_add_ui_from_file( ui_manager , DATA_DIR "/ui/mainwin.ui" , &gerr );
+  path = g_strdup_printf ("%s/ui/mainwin.ui", data);
+  gtk_ui_manager_add_ui_from_file (ui_manager, path, & gerr);
+  g_free (path);
 
   if ( gerr != NULL )
   {
@@ -641,21 +645,9 @@ ui_manager_create_menus ( void )
     return;
   }
 
-#ifdef GDK_WINDOWING_QUARTZ
-  gtk_ui_manager_add_ui_from_file( ui_manager , DATA_DIR "/ui/carbon-menubar.ui" , &gerr );
-
-  if ( gerr != NULL )
-  {
-    g_critical( "Error creating UI<ui/carbon-menubar.ui>: %s" , gerr->message );
-    g_error_free( gerr );
-    return;
-  }
-
-  carbon_menubar = ui_manager_get_popup_menu( ui_manager , "/carbon-menubar/main-menu" );
-  sync_menu_takeover_menu(GTK_MENU_SHELL(carbon_menubar));
-#endif
-
-  gtk_ui_manager_add_ui_from_file( ui_manager , DATA_DIR "/ui/playlist.ui" , &gerr );
+  path = g_strdup_printf ("%s/ui/playlist.ui", data);
+  gtk_ui_manager_add_ui_from_file (ui_manager, path, & gerr);
+  g_free (path);
 
   if ( gerr != NULL )
   {
@@ -664,7 +656,9 @@ ui_manager_create_menus ( void )
     return;
   }
 
-  gtk_ui_manager_add_ui_from_file( ui_manager , DATA_DIR "/ui/equalizer.ui" , &gerr );
+  path = g_strdup_printf ("%s/ui/equalizer.ui", data);
+  gtk_ui_manager_add_ui_from_file (ui_manager, path, & gerr);
+  g_free (path);
 
   if ( gerr != NULL )
   {
@@ -688,30 +682,32 @@ static GtkWidget * create_menu (gint id)
     templates[UI_MENUS] =
     {
         {"/mainwin-menus/main-menu", "/mainwin-menus/main-menu/plugins-menu",
-         AUDACIOUS_MENU_MAIN},
+         AUD_MENU_MAIN},
         {"/mainwin-menus/main-menu/playback", NULL, 0},
         {"/mainwin-menus/main-menu/playlist", NULL, 0},
         {"/mainwin-menus/songname-menu", NULL, 0},
         {"/mainwin-menus/main-menu/view", NULL, 0},
         {"/mainwin-menus/main-menu/visualization", NULL, 0},
         {"/playlist-menus/add-menu", "/playlist-menus/add-menu/plugins-menu",
-         AUDACIOUS_MENU_PLAYLIST_ADD},
+         AUD_MENU_PLAYLIST_ADD},
         {"/playlist-menus/del-menu", "/playlist-menus/del-menu/plugins-menu",
-         AUDACIOUS_MENU_PLAYLIST_REMOVE},
+         AUD_MENU_PLAYLIST_REMOVE},
         {"/playlist-menus/select-menu", "/playlist-menus/select-menu/"
-         "plugins-menu", AUDACIOUS_MENU_PLAYLIST_SELECT},
+         "plugins-menu", AUD_MENU_PLAYLIST_SELECT},
         {"/playlist-menus/misc-menu", "/playlist-menus/misc-menu/plugins-menu",
-         AUDACIOUS_MENU_PLAYLIST_MISC},
+         AUD_MENU_PLAYLIST_MISC},
         {"/playlist-menus/playlist-menu", "/playlist-menus/playlist-menu/"
-         "plugins-menu", AUDACIOUS_MENU_PLAYLIST},
+         "plugins-menu", AUD_MENU_PLAYLIST},
         {"/playlist-menus/playlist-rightclick-menu", "/playlist-menus/"
-         "playlist-rightclick-menu/plugins-menu", AUDACIOUS_MENU_PLAYLIST_RCLICK},
+         "playlist-rightclick-menu/plugins-menu", AUD_MENU_PLAYLIST_RCLICK},
         {"/equalizer-menus/preset-menu", NULL, 0},
     };
 
     if (menus[id] == NULL)
     {
         menus[id] = ui_manager_get_popup_menu(ui_manager, templates[id].name);
+        g_signal_connect (menus[id], "destroy", (GCallback)
+         gtk_widget_destroyed, & menus[id]);
 
         if (templates[id].plug_name != NULL)
         {
@@ -750,9 +746,8 @@ ui_manager_get_accel_group ( void )
   return gtk_ui_manager_get_accel_group( ui_manager );
 }
 
-
-GtkWidget *
-ui_manager_get_popup_menu ( GtkUIManager * self , const gchar * path )
+static GtkWidget * ui_manager_get_popup_menu (GtkUIManager * self, const gchar *
+ path)
 {
   GtkWidget *menu_item = gtk_ui_manager_get_widget( self , path );
 
@@ -850,4 +845,3 @@ ui_manager_destroy( void )
     g_object_unref(G_OBJECT(action_group_equalizer));
     g_object_unref(G_OBJECT(ui_manager));
 }
-

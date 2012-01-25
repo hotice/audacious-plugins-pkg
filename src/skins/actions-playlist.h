@@ -17,14 +17,10 @@
  *  Audacious or using our public API to be a derived work.
  */
 
-#ifndef AUDACIOUS_ACTIONS_PLAYLIST_H
-#define AUDACIOUS_ACTIONS_PLAYLIST_H
+#ifndef SKINS_ACTIONS_PLAYLIST_H
+#define SKINS_ACTIONS_PLAYLIST_H
 
-void action_playlist_load_list(void);
-void action_playlist_save_list(void);
-void action_playlist_save_all_playlists (void);
 void action_playlist_refresh_list(void);
-void action_open_list_manager(void);
 
 void action_playlist_prev(void);
 void action_playlist_new(void);
@@ -74,4 +70,7 @@ void action_playlist_sort_selected_by_track_number(void);
 void action_playlist_track_info(void);
 void action_queue_toggle(void);
 
-#endif /* AUDACIOUS_ACTIONS_PLAYLIST_H */
+void action_show_playlist_editor(GtkToggleAction*);
+void action_roll_up_playlist_editor(GtkToggleAction*);
+
+#endif /* SKINS_ACTIONS_PLAYLIST_H */

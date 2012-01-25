@@ -34,7 +34,7 @@ enum
     STATE_STOPPING,
 };
 
-int crossfade_length = 3; /* seconds */
+int crossfade_length; /* seconds */
 
 static char state = STATE_OFF;
 static int current_channels = 0, current_rate = 0;
@@ -60,10 +60,11 @@ static void reset (void)
     output_size = 0;
 }
 
-void crossfade_init (void)
+int crossfade_init (void)
 {
     AUDDBG ("Init.\n");
     crossfade_config_load ();
+    return 1;
 }
 
 void crossfade_cleanup (void)

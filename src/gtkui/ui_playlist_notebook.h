@@ -27,10 +27,14 @@
 GtkNotebook *ui_playlist_get_notebook(void);
 GtkWidget *ui_playlist_notebook_new();
 void ui_playlist_notebook_create_tab(gint playlist);
-void ui_playlist_notebook_destroy_tab(gint playlist);
 void ui_playlist_notebook_edit_tab_title(GtkWidget *ebox);
 void ui_playlist_notebook_populate(void);
-void ui_playlist_notebook_update(gpointer hook_data, gpointer user_data);
-void ui_playlist_notebook_add_tab_label_markup(gint playlist, gboolean new_title);
+void ui_playlist_notebook_empty (void);
+void ui_playlist_notebook_update (void * data, void * user);
+void ui_playlist_notebook_activate (void * data, void * user);
+void ui_playlist_notebook_set_playing (void * data, void * user);
+void ui_playlist_notebook_position (void * data, void * user);
+
+void playlist_show_headers (gboolean show);
 
 #endif

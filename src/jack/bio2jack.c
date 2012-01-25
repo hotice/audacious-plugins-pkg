@@ -138,8 +138,6 @@ typedef struct jack_driver_s
   unsigned long bytes_per_jack_output_frame;    /* (num_output_channels * bits_per_channel) / 8 */
   unsigned long bytes_per_jack_input_frame;     /* (num_input_channels * bits_per_channel) / 8 */
 
-  unsigned long latencyMS;      /* latency in ms between writing and actual audio output of the written data */
-
   long clientBytesInJack;       /* number of INPUT bytes(from the client of bio2jack) we wrote to jack(not necessary the number of bytes we wrote to jack) */
   long jack_buffer_size;        /* size of the buffer jack will pass in to the process callback */
 
@@ -266,7 +264,7 @@ TimeValDifference(struct timeval *start, struct timeval *end)
    trying to trace mutexes it's more important to know *who* called us than just that
    we were called.  This uses from pre-processor trickery so that the fprintf is actually
    placed in the function making the getDriver call.  Thus, the __FUNCTION__ and __LINE__
-   macros will actually reference our caller, rather than getDriver.  The reason the 
+   macros will actually reference our caller, rather than getDriver.  The reason the
    fprintf call is passes as a parameter is because this macro has to still return a
    jack_driver_t* and we want to log both before *and* after the getDriver call for
    easier detection of blocked calls.
@@ -1012,11 +1010,11 @@ JACK_OpenDevice(jack_driver_t * drv)
 
   /* try to become a client of the JACK server */
   TRACE("client name '%s'\n", our_client_name);
-  if((drv->client = jack_client_new(our_client_name)) == 0)
+  if((drv->client = jack_client_open(our_client_name, JackNullOption | JackNoStartServer, NULL)) == 0)
   {
     /* try once more */
     TRACE("trying once more to jack_client_new");
-    if((drv->client = jack_client_new(our_client_name)) == 0)
+    if((drv->client = jack_client_open(our_client_name, JackNullOption | JackNoStartServer, NULL)) == 0)
     {
       ERR("jack server not running?\n");
       free(our_client_name);
@@ -1455,7 +1453,7 @@ JACK_Reset(int deviceID)
  * deviceID is set to the opened device
  * if client is non-zero and in_use is FALSE then just set in_use to TRUE
  *
- * return value is zero upon success, non-zero upon failure 
+ * return value is zero upon success, non-zero upon failure
  *
  * if ERR_RATE_MISMATCH (*rate) will be updated with the jack servers rate
  */
@@ -1571,7 +1569,7 @@ JACK_OpenEx(int *deviceID, unsigned int bits_per_channel,
   drv->jack_output_port_flags = jack_port_flags | JackPortIsInput;      /* port must be input(ie we can put data into it), so mask this in */
   drv->jack_input_port_flags = jack_port_flags | JackPortIsOutput;      /* port must be output(ie we can get data from it), so mask this in */
 
-  /* check that we have the correct number of port names 
+  /* check that we have the correct number of port names
      FIXME?: not sure how we should handle output ports vs input ports....
    */
   if((jack_port_name_count > 1)
@@ -1701,29 +1699,6 @@ JACK_OpenEx(int *deviceID, unsigned int bits_per_channel,
 
   DEBUG("sizeof(sample_t) == %d\n", sizeof(sample_t));
 
-  int periodSize = jack_get_buffer_size(drv->client);
-  int periods = 0;
-  /* FIXME: maybe we should keep different latency values for input vs output? */
-  if(drv->num_output_channels > 0)
-  {
-    periods = jack_port_get_total_latency(drv->client,
-                                          drv->output_port[0]) / periodSize;
-    drv->latencyMS = periodSize * periods * 1000 / (drv->jack_sample_rate *
-                                                    (drv->bits_per_channel / 8 *
-                                                     drv->num_output_channels));
-  }
-  else if(drv->num_input_channels > 0)
-  {
-    periods = jack_port_get_total_latency(drv->client,
-                                          drv->input_port[0]) / periodSize;
-    drv->latencyMS =
-      periodSize * periods * 1000 / (drv->jack_sample_rate *
-                                     (drv->bits_per_channel / 8 *
-                                      drv->num_input_channels));
-  }
-
-  TRACE("drv->latencyMS == %ldms\n", drv->latencyMS);
-
   *deviceID = drv->deviceID;    /* set the deviceID for the caller */
   releaseDriver(drv);
   pthread_mutex_unlock(&device_mutex);
@@ -1810,7 +1785,7 @@ JACK_Write(int deviceID, unsigned char *data, unsigned long bytes)
   TRACE("frames free == %ld, bytes = %lu\n", frames_free, bytes);
 
   TRACE("state = '%s'\n", DEBUGSTATE(drv->state));
-  /* if we are currently STOPPED we should start playing now... 
+  /* if we are currently STOPPED we should start playing now...
      do this before the check for bytes == 0 since some clients like
      to write 0 bytes the first time out */
   if(drv->state == STOPPED)
@@ -2264,8 +2239,6 @@ JACK_GetBytesFreeSpace(int deviceID)
   return_val = JACK_GetBytesFreeSpaceFromDriver(drv);
   releaseDriver(drv);
 
-  if(return_val < 0) return_val = 0;
-
   TRACE("deviceID(%d), retval == %ld\n", deviceID, return_val);
 
   return return_val;
@@ -2311,7 +2284,9 @@ JACK_GetPositionFromDriver(jack_driver_t * drv, enum pos_enum position,
   long elapsedMS;
   double sec2msFactor = 1000;
 
+#if TRACE_ENABLE
   char *type_str = "UNKNOWN type";
+#endif
 
   /* if we are reset we should return a position of 0 */
   if(drv->state == RESET)
@@ -2322,15 +2297,21 @@ JACK_GetPositionFromDriver(jack_driver_t * drv, enum pos_enum position,
 
   if(type == WRITTEN)
   {
+#if TRACE_ENABLE
     type_str = "WRITTEN";
+#endif
     return_val = drv->client_bytes;
   } else if(type == WRITTEN_TO_JACK)
   {
+#if TRACE_ENABLE
     type_str = "WRITTEN_TO_JACK";
+#endif
     return_val = drv->written_client_bytes;
   } else if(type == PLAYED)       /* account for the elapsed time for the played_bytes */
   {
+#if TRACE_ENABLE
     type_str = "PLAYED";
+#endif
     return_val = drv->played_client_bytes;
     gettimeofday(&now, 0);
 
@@ -2607,23 +2588,13 @@ JACK_GetJackOutputLatency(int deviceID)
   long return_val = 0;
 
   if(drv->client && drv->num_output_channels)
-    return_val = jack_port_get_total_latency(drv->client, drv->output_port[0]);
-
-  TRACE("got latency of %ld frames\n", return_val);
-
-  releaseDriver(drv);
-  return return_val;
-}
-
-/* Get the latency, in frames, of jack */
-long
-JACK_GetJackInputLatency(int deviceID)
-{
-  jack_driver_t *drv = getDriver(deviceID);
-  long return_val = 0;
-
-  if(drv->client && drv->num_input_channels)
-    return_val = jack_port_get_total_latency(drv->client, drv->input_port[0]);
+  {
+    /* Disclaimer: I have no experience with JACK and don't know if this is
+     * correct. -jlindgren */
+    jack_latency_range_t range;
+    jack_port_get_latency_range(drv->output_port[0], JackPlaybackLatency, & range);
+    return_val = (range.min + range.max) / 2;
+  }
 
   TRACE("got latency of %ld frames\n", return_val);
 

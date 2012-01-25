@@ -1,20 +1,20 @@
 /*
- * OSS4 Output Plugin for Audacious
- * Copyright 2010 Michał Lipski <tallica@o2.pl>
+ * utils.c
+ * Copyright 2010-2011 Michał Lipski <tallica@o2.pl>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
  *
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
+ * the use of this software.
  */
 
 #include "oss.h"
@@ -30,7 +30,9 @@ gchar *oss_format_to_text(gint format)
     }
     table[] =
     {
+#ifdef AFMT_FLOAT
         {AFMT_FLOAT,  "AFMT_FLOAT"},
+#endif
         {AFMT_S8,     "AFMT_S8"},
         {AFMT_U8,     "AFMT_U8"},
         {AFMT_S16_LE, "AFMT_S16_LE"},
@@ -65,7 +67,9 @@ gint oss_convert_aud_format(gint aud_format)
     }
     table[] =
     {
+#ifdef AFMT_FLOAT
         {FMT_FLOAT,  AFMT_FLOAT},
+#endif
         {FMT_S8,     AFMT_S8},
         {FMT_U8,     AFMT_U8},
         {FMT_S16_LE, AFMT_S16_LE},
@@ -113,9 +117,11 @@ gint oss_format_to_bits(gint format)
         case AFMT_S32_BE:
             bits = 32;
             break;
+#ifdef AFMT_FLOAT
         case AFMT_FLOAT:
             bits = sizeof(float) * 8;
             break;
+#endif
         default:
             bits = 8;
     }
@@ -130,7 +136,7 @@ gint oss_frames_to_bytes(gint frames)
 
 gint oss_bytes_to_frames(gint bytes)
 {
-	return bytes * 8 / oss_data->channels / oss_data->bits_per_sample;
+    return bytes * 8 / oss_data->channels / oss_data->bits_per_sample;
 }
 
 gint oss_calc_bitrate(void)
@@ -147,26 +153,38 @@ gchar *oss_describe_error(void)
     }
     table[] =
     {
-        {EINVAL, "The ioctl call is not supported by current OSS version.\n"},
-        {EACCES, "You do not have permissions to access the device.\n"},
-        {EBUSY,  "The device is busy. There is some other application using it.\n"},
-        {ENXIO,  "OSS has not detected any supported sound hardware in your system.\n"},
+        {EINVAL, "The ioctl call is not supported by current OSS version."},
+        {EACCES, "You do not have permissions to access the device."},
+        {EBUSY,  "The device is busy. There is some other application using it."},
+        {ENXIO,  "OSS has not detected any supported sound hardware in your system."},
         {ENODEV, "The device file was found in /dev but OSS is not loaded. You need to "
-                 "load it by executing the soundon command.\n"},
+                 "load it by executing the soundon command."},
         {ENOSPC, "Your system cannot allocate memory for the device buffers. Reboot your "
-                 "machine and try again.\n"},
+                 "machine and try again."},
         {ENOENT, "The device file is missing from /dev. Perhaps you have not installed "
-                 "and started Open Sound System yet.\n"},
+                 "and started Open Sound System yet."},
     };
 
     gint count;
     for (count = 0; count < G_N_ELEMENTS(table); count++)
     {
         if (table[count].error == errno)
-            return g_strdup(table[count].text);
+            return table[count].text;
     }
 
-    return g_strdup_printf("Unknown OSS error (%d)\n", errno);
+    return strerror(errno);
+}
+
+gint oss_probe_for_adev(oss_sysinfo *sysinfo)
+{
+    gint num;
+    if ((num = sysinfo->numaudios) < 1)
+    {
+        errno = ENXIO;
+        return -1;
+    }
+
+    return num;
 }
 
 gboolean oss_hardware_present(void)
@@ -174,32 +192,36 @@ gboolean oss_hardware_present(void)
     gint mixerfd;
     oss_sysinfo sysinfo;
 
-    if ((mixerfd = open(DEFAULT_MIXER, O_RDWR, 0)) == -1)
-        goto FAILED;
+    CHECK_NOISY(mixerfd = open, DEFAULT_MIXER, O_RDWR, 0);
+    CHECK(ioctl, mixerfd, SNDCTL_SYSINFO, &sysinfo);
+    CHECK_NOISY(oss_probe_for_adev, &sysinfo);
 
-    if (ioctl(mixerfd, SNDCTL_SYSINFO, &sysinfo) == -1)
-        goto FAILED;
+    close(mixerfd);
+    return TRUE;
 
-    if (sysinfo.numaudios > 0)
-    {
-        close(mixerfd);
-        return TRUE;
-    }
-    else
-    {
-        errno = ENXIO;
-        goto FAILED;
-    }
-
-    FAILED:
-        SHOW_ERROR_MSG;
-        close(mixerfd);
-        return FALSE;
+FAILED:
+    close(mixerfd);
+    return FALSE;
 }
 
-void oss_show_error(const gchar *message)
+gint oss_show_error(gpointer message)
 {
     static GtkWidget *dialog = NULL;
 
     audgui_simple_message (&dialog, GTK_MESSAGE_ERROR, _("OSS4 error"), message);
+    g_free(message);
+
+    return 0;
+}
+
+void oss_error(const gchar * format, ...)
+{
+    va_list args;
+    gchar *message;
+
+    va_start(args, format);
+    message = g_strdup_vprintf(format, args);
+    va_end(args);
+
+    g_timeout_add(0, oss_show_error, message);
 }

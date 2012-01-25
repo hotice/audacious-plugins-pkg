@@ -13,52 +13,51 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
-#include <audacious/configdb.h>
+#include <audacious/gtk-compat.h>
 #include <audacious/i18n.h>
+#include <audacious/misc.h>
 #include <audacious/plugin.h>
 
 #define CON_CFGID "console"
 
-AudaciousConsoleConfig audcfg = {
-    180,
-    FALSE,
-    32000,
-    0,
-    0,
-    FALSE,
-    0,
-    FALSE
-};
+AudaciousConsoleConfig audcfg;
 
+static const gchar * const console_defaults[] = {
+ "loop_length", "180",
+ "resample", "FALSE",
+ "resample_rate", "32000",
+ "treble", "0",
+ "bass", "0",
+ "ignore_spc_length", "FALSE",
+ "echo", "0",
+ "inc_spc_reverb", "FALSE",
+ NULL};
 
 // TODO: add UI for echo
-void console_cfg_load( void )
+void console_cfg_load (void)
 {
-    mcs_handle_t *db = aud_cfg_db_open();
-    aud_cfg_db_get_int(db, CON_CFGID, "loop_length", &audcfg.loop_length);
-    aud_cfg_db_get_bool(db, CON_CFGID, "resample", &audcfg.resample);
-    aud_cfg_db_get_int(db, CON_CFGID, "resample_rate", &audcfg.resample_rate);
-    aud_cfg_db_get_int(db, CON_CFGID, "treble", &audcfg.treble);
-    aud_cfg_db_get_int(db, CON_CFGID, "bass", &audcfg.bass);
-    aud_cfg_db_get_bool(db, CON_CFGID, "ignore_spc_length", &audcfg.ignore_spc_length);
-    aud_cfg_db_get_int(db, CON_CFGID, "echo", &audcfg.echo);
-    aud_cfg_db_get_bool(db, CON_CFGID, "inc_spc_reverb", &audcfg.inc_spc_reverb);
-    aud_cfg_db_close(db);
+    aud_config_set_defaults (CON_CFGID, console_defaults);
+
+    audcfg.loop_length = aud_get_int (CON_CFGID, "loop_length");
+    audcfg.resample = aud_get_bool (CON_CFGID, "resample");
+    audcfg.resample_rate = aud_get_int (CON_CFGID, "resample_rate");
+    audcfg.treble = aud_get_int (CON_CFGID, "treble");
+    audcfg.bass = aud_get_int (CON_CFGID, "bass");
+    audcfg.ignore_spc_length = aud_get_bool (CON_CFGID, "ignore_spc_length");
+    audcfg.echo = aud_get_int (CON_CFGID, "echo");
+    audcfg.inc_spc_reverb = aud_get_bool (CON_CFGID, "inc_spc_reverb");
 }
 
-
-void console_cfg_save( void )
+void console_cfg_save (void)
 {
-    mcs_handle_t *db = aud_cfg_db_open();
-    aud_cfg_db_set_int(db, CON_CFGID, "loop_length", audcfg.loop_length);
-    aud_cfg_db_set_bool(db, CON_CFGID, "resample", audcfg.resample);
-    aud_cfg_db_set_int(db, CON_CFGID, "resample_rate", audcfg.resample_rate);
-    aud_cfg_db_set_int(db, CON_CFGID, "treble", audcfg.treble);
-    aud_cfg_db_set_int(db, CON_CFGID, "bass", audcfg.bass);
-    aud_cfg_db_set_bool(db, CON_CFGID, "ignore_spc_length", audcfg.ignore_spc_length);
-    aud_cfg_db_set_int(db, CON_CFGID, "echo", audcfg.echo);
-    aud_cfg_db_set_bool(db, CON_CFGID, "inc_spc_reverb", audcfg.inc_spc_reverb);
-    aud_cfg_db_close(db);
+    aud_set_int (CON_CFGID, "loop_length", audcfg.loop_length);
+    aud_set_bool (CON_CFGID, "resample", audcfg.resample);
+    aud_set_int (CON_CFGID, "resample_rate", audcfg.resample_rate);
+    aud_set_int (CON_CFGID, "treble", audcfg.treble);
+    aud_set_int (CON_CFGID, "bass", audcfg.bass);
+    aud_set_bool (CON_CFGID, "ignore_spc_length", audcfg.ignore_spc_length);
+    aud_set_int (CON_CFGID, "echo", audcfg.echo);
+    aud_set_bool (CON_CFGID, "inc_spc_reverb", audcfg.inc_spc_reverb);
 }
 
 
@@ -268,11 +267,9 @@ void console_cfg_ui(void)
     gtk_container_add( GTK_CONTAINER(hbuttonbox) , button_ok );
     gtk_box_pack_start( GTK_BOX(configwin_vbox) , hbuttonbox , FALSE , FALSE , 0 );
 
-#if GTK_CHECK_VERSION (2, 12, 0)
     gtk_widget_set_tooltip_text( configwin_gen_playback_deflen_spbt ,
                                  _("The default song length, expressed in seconds, is used for songs "
                                  "that do not provide length information (i.e. looping tracks)."));
-#endif
 
     gtk_widget_show_all( configwin );
 }
