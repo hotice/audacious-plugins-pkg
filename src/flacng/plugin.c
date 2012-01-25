@@ -1,7 +1,7 @@
 /*
  *  A FLAC decoder plugin for the Audacious Media Player
  *  Copyright (C) 2005 Ralf Ertzinger
- *  Copyright (C) 2010 Michał Lipski <tallica@o2.pl>
+ *  Copyright (C) 2010-2011 Michał Lipski <tallica@o2.pl>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
+#include <string.h>
+
 #include <audacious/debug.h>
 #include <audacious/i18n.h>
 #include <libaudgui/libaudgui.h>
@@ -25,68 +27,29 @@
 
 #include "flacng.h"
 
-#include "tools.h"
-#include "seekable_stream_callbacks.h"
-#include "version.h"
-
-FLAC__StreamDecoder *test_decoder;
 FLAC__StreamDecoder *main_decoder;
-callback_info *test_info;
 callback_info *main_info;
-gboolean plugin_initialized = FALSE;
 static GMutex *seek_mutex;
 static GCond *seek_cond;
 static gint seek_value;
+static gboolean stop_flag = FALSE;
 
-static void flac_init(void)
+static gboolean flac_init (void)
 {
     FLAC__StreamDecoderInitStatus ret;
-
-    /* Callback structure and decoder for file test purposes */
-
-    if ((test_info = init_callback_info()) == NULL)
-    {
-        ERROR("Could not initialize the test callback structure!\n");
-        return;
-    }
-
-    if ((test_decoder = FLAC__stream_decoder_new()) == NULL)
-    {
-        ERROR("Could not create the test FLAC decoder instance!\n");
-        return;
-    }
-
-    FLAC__stream_decoder_set_metadata_respond(test_decoder, FLAC__METADATA_TYPE_VORBIS_COMMENT);
-
-    if (FLAC__STREAM_DECODER_INIT_STATUS_OK != (ret = FLAC__stream_decoder_init_stream(
-        test_decoder,
-        read_callback,
-        seek_callback,
-        tell_callback,
-        length_callback,
-        eof_callback,
-        write_callback,
-        metadata_callback,
-        error_callback,
-        test_info)))
-    {
-        ERROR("Could not initialize the test FLAC decoder: %s(%d)\n",
-            FLAC__StreamDecoderInitStatusString[ret], ret);
-        return;
-    }
 
     /* Callback structure and decoder for main decoding loop */
 
     if ((main_info = init_callback_info()) == NULL)
     {
-        ERROR("Could not initialize the main callback structure!\n");
-        return;
+        FLACNG_ERROR("Could not initialize the main callback structure!\n");
+        return FALSE;
     }
 
     if ((main_decoder = FLAC__stream_decoder_new()) == NULL)
     {
-        ERROR("Could not create the main FLAC decoder instance!\n");
-        return;
+        FLACNG_ERROR("Could not create the main FLAC decoder instance!\n");
+        return FALSE;
     }
 
     if (FLAC__STREAM_DECODER_INIT_STATUS_OK != (ret = FLAC__stream_decoder_init_stream(
@@ -101,16 +64,16 @@ static void flac_init(void)
         error_callback,
         main_info)))
     {
-        ERROR("Could not initialize the main FLAC decoder: %s(%d)\n",
+        FLACNG_ERROR("Could not initialize the main FLAC decoder: %s(%d)\n",
             FLAC__StreamDecoderInitStatusString[ret], ret);
-        return;
+        return FALSE;
     }
 
     seek_mutex = g_mutex_new();
     seek_cond = g_cond_new();
 
     AUDDBG("Plugin initialized.\n");
-    plugin_initialized = TRUE;
+    return TRUE;
 }
 
 static void flac_cleanup(void)
@@ -120,11 +83,6 @@ static void flac_cleanup(void)
 
     FLAC__stream_decoder_delete(main_decoder);
     clean_callback_info(main_info);
-
-    FLAC__stream_decoder_delete(test_decoder);
-    clean_callback_info(test_info);
-
-    plugin_initialized = FALSE;
 }
 
 gboolean flac_is_our_fd(const gchar *filename, VFSFile *fd)
@@ -165,7 +123,7 @@ static void squeeze_audio(gint32* src, void* dst, guint count, guint res)
             break;
 
         default:
-            ERROR("Can not convert to %d bps\n", res);
+            FLACNG_ERROR("Can not convert to %d bps\n", res);
     }
 }
 
@@ -180,25 +138,22 @@ static gboolean flac_play (InputPlayback * playback, const gchar * filename,
     struct stream_info stream_info;
     guint sample_count;
     gpointer play_buffer = NULL;
-
-    if (!plugin_initialized)
-    {
-        ERROR("Plugin not initialized!\n");
-        return FALSE;
-    }
+    gboolean error = FALSE;
 
     main_info->fd = file;
 
     if (read_metadata(main_decoder, main_info) == FALSE)
     {
-        ERROR("Could not prepare file for playing!\n");
+        FLACNG_ERROR("Could not prepare file for playing!\n");
+        error = TRUE;
         goto ERR_NO_CLOSE;
     }
 
     if (main_info->stream.channels > MAX_SUPPORTED_CHANNELS)
     {
-        ERROR("This number of channels (%d) is currently not supported, stream not handled by this plugin.\n",
+        FLACNG_ERROR("This number of channels (%d) is currently not supported, stream not handled by this plugin.\n",
             main_info->stream.channels);
+        error = TRUE;
         goto ERR_NO_CLOSE;
     }
 
@@ -207,14 +162,16 @@ static gboolean flac_play (InputPlayback * playback, const gchar * filename,
         main_info->stream.bits_per_sample != 24 &&
         main_info->stream.bits_per_sample != 32)
     {
-        ERROR("This number of bits (%d) is currently not supported, stream not handled by this plugin.\n",
+        FLACNG_ERROR("This number of bits (%d) is currently not supported, stream not handled by this plugin.\n",
             main_info->stream.bits_per_sample);
+        error = TRUE;
         goto ERR_NO_CLOSE;
     }
 
     if ((play_buffer = g_malloc0(BUFFER_SIZE_BYTE)) == NULL)
     {
-        ERROR("Could not allocate conversion buffer\n");
+        FLACNG_ERROR("Could not allocate conversion buffer\n");
+        error = TRUE;
         goto ERR_NO_CLOSE;
     }
 
@@ -222,7 +179,7 @@ static gboolean flac_play (InputPlayback * playback, const gchar * filename,
      (main_info->stream.bits_per_sample), main_info->stream.samplerate,
      main_info->stream.channels))
     {
-        ERROR("Could not open output plugin!\n");
+        error = TRUE;
         goto ERR_NO_CLOSE;
     }
 
@@ -230,9 +187,9 @@ static gboolean flac_play (InputPlayback * playback, const gchar * filename,
         playback->output->pause (TRUE);
 
     seek_value = (start_time > 0) ? start_time : -1;
-    playback->playing = TRUE;
+    stop_flag = FALSE;
 
-    playback->set_params(playback, NULL, 0, main_info->bitrate,
+    playback->set_params(playback, main_info->bitrate,
         main_info->stream.samplerate, main_info->stream.channels);
     playback->set_pb_ready(playback);
 
@@ -242,55 +199,15 @@ static gboolean flac_play (InputPlayback * playback, const gchar * filename,
 
     playback->set_gain_from_playlist(playback);
 
-    while (playback->playing)
+    while (1)
     {
-        if (stop_time >= 0 && playback->output->written_time () >= stop_time)
-            goto DRAIN;
-
-        /* Try to decode a single frame of audio */
-        if (FLAC__stream_decoder_process_single(main_decoder) == FALSE)
-        {
-            ERROR("Error while decoding!\n");
-            goto CLEANUP;
-        }
-
-        /* Maybe the metadata changed midstream. Check. */
-        if (main_info->metadata_changed)
-        {
-            /* Samplerate and channels are important */
-            if (stream_info.samplerate != main_info->stream.samplerate)
-            {
-                ERROR("Samplerate changed midstream (now: %d, was: %d). This is not supported yet.\n",
-                    main_info->stream.samplerate, stream_info.samplerate);
-                goto CLEANUP;
-            }
-
-            if (stream_info.channels != main_info->stream.channels)
-            {
-                ERROR("Number of channels changed midstream (now: %d, was: %d). This is not supported yet.\n",
-                    main_info->stream.channels, stream_info.channels);
-                goto CLEANUP;
-            }
-
-            main_info->metadata_changed = FALSE;
-        }
-
-        /* Compare the frame metadata to the current stream metadata */
-        if (main_info->stream.samplerate != main_info->frame.samplerate)
-        {
-            ERROR("Frame samplerate mismatch (stream: %d, frame: %d)!\n",
-                main_info->stream.samplerate, main_info->frame.samplerate);
-            goto CLEANUP;
-        }
-
-        if (main_info->stream.channels != main_info->frame.channels)
-        {
-            ERROR("Frame channel mismatch (stream: %d, frame: %d)!\n",
-                main_info->stream.channels, main_info->frame.channels);
-            goto CLEANUP;
-        }
-
         g_mutex_lock(seek_mutex);
+
+        if (stop_flag)
+        {
+            g_mutex_unlock(seek_mutex);
+            break;
+        }
 
         if (seek_value >= 0)
         {
@@ -302,6 +219,54 @@ static gboolean flac_play (InputPlayback * playback, const gchar * filename,
         }
 
         g_mutex_unlock(seek_mutex);
+
+        /* Try to decode a single frame of audio */
+        if (FLAC__stream_decoder_process_single(main_decoder) == FALSE)
+        {
+            FLACNG_ERROR("Error while decoding!\n");
+            error = TRUE;
+            goto CLEANUP;
+        }
+
+        /* Maybe the metadata changed midstream. Check. */
+        if (main_info->metadata_changed)
+        {
+            /* Samplerate and channels are important */
+            if (stream_info.samplerate != main_info->stream.samplerate)
+            {
+                FLACNG_ERROR("Samplerate changed midstream (now: %d, was: %d). This is not supported yet.\n",
+                    main_info->stream.samplerate, stream_info.samplerate);
+                error = TRUE;
+                goto CLEANUP;
+            }
+
+            if (stream_info.channels != main_info->stream.channels)
+            {
+                FLACNG_ERROR("Number of channels changed midstream (now: %d, was: %d). This is not supported yet.\n",
+                    main_info->stream.channels, stream_info.channels);
+                error = TRUE;
+                goto CLEANUP;
+            }
+
+            main_info->metadata_changed = FALSE;
+        }
+
+        /* Compare the frame metadata to the current stream metadata */
+        if (main_info->stream.samplerate != main_info->frame.samplerate)
+        {
+            FLACNG_ERROR("Frame samplerate mismatch (stream: %d, frame: %d)!\n",
+                main_info->stream.samplerate, main_info->frame.samplerate);
+            error = TRUE;
+            goto CLEANUP;
+        }
+
+        if (main_info->stream.channels != main_info->frame.channels)
+        {
+            FLACNG_ERROR("Frame channel mismatch (stream: %d, frame: %d)!\n",
+                main_info->stream.channels, main_info->frame.channels);
+            error = TRUE;
+            goto CLEANUP;
+        }
 
         /*
          * If the frame decoded was an audio frame we now
@@ -317,10 +282,10 @@ static gboolean flac_play (InputPlayback * playback, const gchar * filename,
         read_pointer = main_info->output_buffer;
         elements_left = main_info->buffer_used;
 
-        while (playback->playing && elements_left != 0)
+        while (!stop_flag && elements_left != 0)
         {
             if (stop_time >= 0 && playback->output->written_time () >= stop_time)
-                goto DRAIN;
+                goto CLEANUP;
 
             sample_count = MIN(OUTPUT_BLOCK_SIZE, elements_left);
 
@@ -343,18 +308,15 @@ static gboolean flac_play (InputPlayback * playback, const gchar * filename,
         {
             /* Yes. Drain the output buffer and stop playing. */
             AUDDBG("End of stream reached, draining output buffer\n");
-
-DRAIN:
-            while (playback->output->buffer_playing() && playback->playing)
-                g_usleep(20000);
-
             goto CLEANUP;
         }
     }
 
 CLEANUP:
+    while (playback->output->buffer_playing())
+        g_usleep(20000);
+
     g_mutex_lock(seek_mutex);
-    playback->playing = FALSE;
     g_cond_signal(seek_cond); /* wake up any waiting request */
     g_mutex_unlock(seek_mutex);
 
@@ -363,24 +325,22 @@ CLEANUP:
     AUDDBG("Audio device closed.\n");
 
 ERR_NO_CLOSE:
-    if (play_buffer)
-        g_free(play_buffer);
-
+    g_free(play_buffer);
     reset_info(main_info);
 
     if (FLAC__stream_decoder_flush(main_decoder) == FALSE)
-        ERROR("Could not flush decoder state!\n");
+        FLACNG_ERROR("Could not flush decoder state!\n");
 
-    return ! playback->error;
+    return ! error;
 }
 
 static void flac_stop(InputPlayback *playback)
 {
     g_mutex_lock(seek_mutex);
 
-    if (playback->playing)
+    if (!stop_flag)
     {
-        playback->playing = FALSE;
+        stop_flag = TRUE;
         playback->output->abort_write();
         g_cond_signal(seek_cond);
     }
@@ -388,21 +348,21 @@ static void flac_stop(InputPlayback *playback)
     g_mutex_unlock (seek_mutex);
 }
 
-static void flac_pause(InputPlayback *playback, gshort pause)
+static void flac_pause(InputPlayback *playback, gboolean pause)
 {
     g_mutex_lock(seek_mutex);
 
-    if (playback->playing)
+    if (!stop_flag)
         playback->output->pause(pause);
 
     g_mutex_unlock(seek_mutex);
 }
 
-static void flac_seek (InputPlayback * playback, gulong time)
+static void flac_seek (InputPlayback * playback, gint time)
 {
     g_mutex_lock(seek_mutex);
 
-    if (playback->playing)
+    if (!stop_flag)
     {
         seek_value = time;
         playback->output->abort_write();
@@ -413,202 +373,22 @@ static void flac_seek (InputPlayback * playback, gulong time)
     g_mutex_unlock(seek_mutex);
 }
 
-static Tuple *flac_probe_for_tuple(const gchar *filename, VFSFile *fd)
-{
-    AUDDBG("Probe for tuple.\n");
-    Tuple *tuple = NULL;
-
-    g_mutex_lock(test_info->mutex);
-
-    test_info->fd = fd;
-
-    if (read_metadata(test_decoder, test_info))
-        tuple = get_tuple_from_file(filename, test_info);
-    else
-        ERROR("Could not read metadata tuple for file <%s>\n", filename);
-
-    reset_info(test_info);
-    g_mutex_unlock(test_info->mutex);
-
-    return tuple;
-}
-
 static void flac_aboutbox(void)
 {
-    static GtkWidget* about_window;
-    gchar *about_text;
+    static GtkWidget * window = NULL;
 
-    if (about_window) {
-        gtk_window_present(GTK_WINDOW(about_window));
-        return;
-    }
-
-    about_text = g_strjoin("", _("FLAC Audio Plugin "), _VERSION,
-			       _("\n\nOriginal code by\n"
-                               "Ralf Ertzinger <ralf@skytale.net>\n"
-                               "\n"
-                               "http://www.skytale.net/projects/bmp-flac2/"), NULL);
-
-    audgui_simple_message (& about_window, GTK_MESSAGE_INFO,
-     _("About FLAC Audio Plugin"), about_text);
-
-    g_free(about_text);
+    audgui_simple_message(& window, GTK_MESSAGE_INFO, _("About FLAC Audio Plugin"),
+        _("\n\nOriginal code by\n"
+          "Ralf Ertzinger <ralf@skytale.net>\n\n"
+          "http://www.skytale.net/projects/bmp-flac2/")
+);
 }
-
-static void insert_str_tuple_to_vc (FLAC__StreamMetadata * vc_block,
- const Tuple * tuple, gint tuple_name, gchar * field_name)
-{
-    FLAC__StreamMetadata_VorbisComment_Entry entry;
-    gchar *str;
-    gchar *val = (gchar *) tuple_get_string(tuple, tuple_name, NULL);
-
-    if (val == NULL)
-        return;
-
-    str  = g_strdup_printf("%s=%s", field_name, val);
-    entry.entry = (FLAC__byte *) str;
-    entry.length = strlen(str);
-    FLAC__metadata_object_vorbiscomment_replace_comment(vc_block, entry, false, true);
-    g_free(str);
-}
-
-static void insert_int_tuple_to_vc (FLAC__StreamMetadata * vc_block,
- const Tuple * tuple, gint tuple_name, gchar * field_name)
-{
-    FLAC__StreamMetadata_VorbisComment_Entry entry;
-    gchar *str;
-    gint val = tuple_get_int(tuple, tuple_name, NULL);
-
-    if (val <= 0)
-        return;
-
-    if (FIELD_TRACK_NUMBER == tuple_name)
-        str  = g_strdup_printf("%s=%.2d", field_name, val);
-    else
-        str  = g_strdup_printf("%s=%d", field_name, val);
-
-    entry.entry = (FLAC__byte *) str;
-    entry.length = strlen(str);
-    FLAC__metadata_object_vorbiscomment_replace_comment(vc_block, entry, false, true);
-    g_free(str);
-}
-
-gboolean flac_update_song_tuple (const Tuple * tuple, VFSFile * fd)
-{
-    AUDDBG("Update song tuple.\n");
-    FLAC__Metadata_SimpleIterator *iter;
-    FLAC__StreamMetadata *vc_block;
-    gchar *filename;
-    FLAC__bool ret;
-
-    if (fd != NULL)
-        filename = g_filename_from_uri(fd->uri, NULL, NULL);
-    else
-        return FALSE;
-
-    iter = FLAC__metadata_simple_iterator_new();
-    g_return_val_if_fail(iter != NULL, FALSE);
-
-    ret = FLAC__metadata_simple_iterator_init(iter, filename, false, false);
-
-    if (!ret)
-    {
-        FLAC__metadata_simple_iterator_delete(iter);
-        return FALSE;
-    }
-
-    while (FLAC__metadata_simple_iterator_get_block_type(iter) != FLAC__METADATA_TYPE_VORBIS_COMMENT)
-    {
-        if (!FLAC__metadata_simple_iterator_next(iter))
-            break;
-    }
-
-    if (FLAC__metadata_simple_iterator_get_block_type(iter) == FLAC__METADATA_TYPE_VORBIS_COMMENT)
-        vc_block = FLAC__metadata_simple_iterator_get_block(iter);
-    else
-        vc_block = FLAC__metadata_object_new(FLAC__METADATA_TYPE_VORBIS_COMMENT);
-
-    insert_str_tuple_to_vc(vc_block, tuple, FIELD_TITLE, "TITLE");
-    insert_str_tuple_to_vc(vc_block, tuple, FIELD_ARTIST, "ARTIST");
-    insert_str_tuple_to_vc(vc_block, tuple, FIELD_ALBUM, "ALBUM");
-    insert_str_tuple_to_vc(vc_block, tuple, FIELD_GENRE, "GENRE");
-    insert_str_tuple_to_vc(vc_block, tuple, FIELD_COMMENT, "COMMENT");
-
-    insert_int_tuple_to_vc(vc_block, tuple, FIELD_YEAR, "DATE");
-    insert_int_tuple_to_vc(vc_block, tuple, FIELD_TRACK_NUMBER, "TRACKNUMBER");
-
-    if (FLAC__metadata_simple_iterator_get_block_type(iter) == FLAC__METADATA_TYPE_VORBIS_COMMENT)
-        ret = FLAC__metadata_simple_iterator_set_block(iter, vc_block, true);
-    else
-        ret = FLAC__metadata_simple_iterator_insert_block_after(iter, vc_block, true);
-
-    FLAC__metadata_simple_iterator_delete(iter);
-    FLAC__metadata_object_delete(vc_block);
-
-    if (!ret)
-        return FALSE;
-    else
-        return TRUE;
-}
-
-#ifdef FLAC__METADATA_TYPE_PICTURE
-static gboolean flac_get_image(const gchar *filename, VFSFile *fd, void **data, gint *length)
-{
-    AUDDBG("Probe for song image.\n");
-
-    FLAC__Metadata_SimpleIterator *iter;
-    FLAC__StreamMetadata *metadata = NULL;
-    FLAC__bool ret;
-    gboolean has_image = FALSE;
-
-    if (fd != NULL)
-        filename = g_filename_from_uri(fd->uri, NULL, NULL);
-    else
-        return FALSE;
-
-    iter = FLAC__metadata_simple_iterator_new();
-    g_return_val_if_fail(iter != NULL, FALSE);
-
-    ret = FLAC__metadata_simple_iterator_init(iter, filename, false, false);
-
-    if (!ret)
-        goto CLEANUP;
-
-    while (FLAC__metadata_simple_iterator_get_block_type(iter) != FLAC__METADATA_TYPE_PICTURE)
-    {
-        if (!FLAC__metadata_simple_iterator_next(iter))
-            break;
-    }
-
-    if (FLAC__metadata_simple_iterator_get_block_type(iter) == FLAC__METADATA_TYPE_PICTURE)
-    {
-        metadata = FLAC__metadata_simple_iterator_get_block(iter);
-
-        if (metadata->data.picture.type == FLAC__STREAM_METADATA_PICTURE_TYPE_FRONT_COVER)
-        {
-            AUDDBG("FLAC__STREAM_METADATA_PICTURE_TYPE_FRONT_COVER found.");
-
-            *data = g_memdup(metadata->data.picture.data, metadata->data.picture.data_length);
-            *length = (guint32) metadata->data.picture.data_length;
-            has_image = TRUE;
-            goto CLEANUP;
-        }
-    }
-
-CLEANUP:
-    FLAC__metadata_simple_iterator_delete(iter);
-
-    if (metadata)
-        FLAC__metadata_object_delete(metadata);
-
-    return has_image;
-}
-#endif
 
 static const gchar *flac_fmts[] = { "flac", "fla", NULL };
 
-InputPlugin flac_ip = {
-    .description = "FLACng Audio Plugin",
+AUD_INPUT_PLUGIN
+(
+    .name = "FLAC",
     .init = flac_init,
     .cleanup = flac_cleanup,
     .about = flac_aboutbox,
@@ -618,14 +398,8 @@ InputPlugin flac_ip = {
     .mseek = flac_seek,
     .probe_for_tuple = flac_probe_for_tuple,
     .is_our_file_from_vfs = flac_is_our_fd,
-    .vfs_extensions = flac_fmts,
+    .extensions = flac_fmts,
     .update_song_tuple = flac_update_song_tuple,
-#ifdef FLAC__METADATA_TYPE_PICTURE
     .get_song_image = flac_get_image,
-#endif
     .priority = 1
-};
-
-InputPlugin *flac_iplist[] = { &flac_ip, NULL };
-
-SIMPLE_INPUT_PLUGIN (flacng, flac_iplist)
+)

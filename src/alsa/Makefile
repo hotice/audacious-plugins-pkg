@@ -9,6 +9,6 @@ include ../../extra.mk
 
 plugindir := ${plugindir}/${OUTPUT_PLUGIN_DIR}
 
-CFLAGS += -std=gnu99 ${PLUGIN_CFLAGS} ${GTK_CFLAGS} ${ALSA_CFLAGS}
-CPPFLAGS += -I../..
-LIBS += ${GTK_LIBS} ${ALSA_LIBS}
+CFLAGS += ${PLUGIN_CFLAGS}
+CPPFLAGS += ${PTHREAD_CFLAGS} ${GTK_CFLAGS} ${ALSA_CFLAGS} -I../..
+LIBS += ${PTHREAD_LIBS} ${GTK_LIBS} ${ALSA_LIBS}

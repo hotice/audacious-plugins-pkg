@@ -73,8 +73,6 @@
 				<menuitem action="playback previous" />
 				<menuitem action="playback next" />
 				<separator />
-				<menuitem action="jump to playlist start" />
-				<separator />
 				<menuitem action="ab set" />
 				<menuitem action="ab clear" />
 				<separator />
@@ -92,16 +90,15 @@
 				<separator />
 				<menuitem action="playlist load" />
 				<menuitem action="playlist save" />
-				<menuitem action="playlist save all" />
 				<separator />
 				<menuitem action="playlist manager" />
+				<menuitem action="queue manager" />
 				<separator />
 				<menuitem action="playlist refresh" />
-				<separator />
-<!--				<menuitem action="playlist delete" /> -->
 			</menu>
 			<menu action="view">
 				<menuitem action="iface menu" />
+				<menuitem action="iface prefs" />
 				<separator />
 				<menuitem action="show player" />
 				<menuitem action="show playlist editor" />
@@ -117,9 +114,6 @@
 				<menuitem action="roll up player" />
 				<menuitem action="roll up playlist editor" />
 				<menuitem action="roll up equalizer" />
-				<separator />
-				<menuitem action="view scaled" />
-				<menuitem action="view easy move" />
 			</menu>
 			<separator />
 			<menuitem action="plugins-menu" />

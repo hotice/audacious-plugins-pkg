@@ -25,7 +25,7 @@
 #include <audacious/i18n.h>
 #include <FLAC/all.h>
 
-#define ERROR(...) do { \
+#define FLACNG_ERROR(...) do { \
     printf("flacng: " __VA_ARGS__); \
 } while (0)
 
@@ -60,45 +60,37 @@ struct frame_info {
     guint channels;
 };
 
-/*
- * Information about the stream content, from the metadata
- */
-struct stream_comment {
-    gchar* artist;
-    gchar* album;
-    gchar* title;
-    gchar* tracknumber;
-    gchar* genre;
-    gchar* date;
-    gchar* comment;
-};
-
-/*
- * Replaygain information, from the metadata
- */
-struct stream_replaygain {
-    gboolean has_rg;
-    gchar* track_gain;
-    gchar* track_peak;
-    gchar* album_gain;
-    gchar* album_peak;
-};
-
-
 typedef struct callback_info {
-    GMutex* mutex;
-    FLAC__StreamMetadata *metadata;
     gint32* output_buffer;
     gint32* write_pointer;
     guint buffer_free;
     guint buffer_used;
     VFSFile* fd;
     struct stream_info stream;
-    struct stream_comment comment;
-    struct stream_replaygain replaygain;
     gboolean metadata_changed;
     struct frame_info frame;
     gint bitrate;
 } callback_info;
+
+/* metadata.c */
+gboolean flac_update_song_tuple(const Tuple *tuple, VFSFile *fd);
+gboolean flac_get_image(const gchar *filename, VFSFile *fd, void **data, gint64 *length);
+Tuple *flac_probe_for_tuple(const gchar *filename, VFSFile *fd);
+
+/* seekable_stream_callbacks.c */
+FLAC__StreamDecoderReadStatus read_callback(const FLAC__StreamDecoder *decoder, FLAC__byte buffer[], size_t *bytes, void *client_data);
+FLAC__StreamDecoderSeekStatus seek_callback(const FLAC__StreamDecoder *decoder, FLAC__uint64 absolute_byte_offset, void *client_data);
+FLAC__StreamDecoderTellStatus tell_callback(const FLAC__StreamDecoder *decoder, FLAC__uint64 *absolute_byte_offset, void *client_data);
+FLAC__bool eof_callback(const FLAC__StreamDecoder *decoder, void *client_data);
+FLAC__StreamDecoderLengthStatus length_callback(const FLAC__StreamDecoder *decoder, FLAC__uint64 *stream_length, void *client_data);
+FLAC__StreamDecoderWriteStatus write_callback(const FLAC__StreamDecoder *decoder, const FLAC__Frame *frame, const FLAC__int32 * const buffer[], void *client_data);
+void error_callback(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderErrorStatus status, void *client_data);
+void metadata_callback(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *metadata, void *client_data);
+
+/* tools.c */
+callback_info* init_callback_info(void);
+void clean_callback_info(callback_info* info);
+void reset_info(callback_info* info);
+gboolean read_metadata(FLAC__StreamDecoder* decoder, callback_info* info);
 
 #endif

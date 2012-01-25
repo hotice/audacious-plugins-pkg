@@ -33,60 +33,50 @@ static void strip_char (gchar * text, gchar c)
     gchar a;
 
     while ((a = * text ++))
-    {
         if (a != c)
             * set ++ = a;
-    }
 
     * set = 0;
 }
 
-static gchar * read_win_text (const gchar * path)
+static gchar * read_win_text (VFSFile * file)
 {
-    void * raw;
-    gint64 size;
-
-    vfs_file_get_contents (path, & raw, & size);
-
-    if (raw == NULL)
+    gint64 size = vfs_fsize (file);
+    if (size < 1)
         return NULL;
 
-    gchar * text = g_convert (raw, size, "UTF-8", "ISO-8859-1", NULL, NULL, NULL);
+    gchar * raw = g_malloc (size + 1);
+    size = vfs_fread (raw, 1, size, file);
+    raw[size] = 0;
+
+    strip_char (raw, '\r');
+    gchar * text = str_to_utf8 (raw);
     g_free (raw);
-    strip_char (text, '\r');
     return text;
 }
 
 static gchar * split_line (gchar * line)
 {
     gchar * feed = strchr (line, '\n');
-
-    if (feed == NULL)
+    if (! feed)
         return NULL;
 
     * feed = 0;
     return feed + 1;
 }
 
-static gchar * convert_path (gchar * path, const gchar * base)
+static gboolean playlist_load_m3u (const gchar * path, VFSFile * file,
+ gchar * * title, Index * filenames, Index * tuples)
 {
-    if (strstr (path, "://") != NULL)
-        return g_strdup (path);
+    gchar * text = read_win_text (file);
+    if (! text)
+        return FALSE;
 
-    return aud_construct_uri (path, base);
-}
-
-static void playlist_load_m3u (const gchar * path, gint at)
-{
-    gchar * text = read_win_text (path);
-
-    if (text == NULL)
-        return;
+    * title = NULL;
 
     gchar * parse = text;
-    struct index * add = index_new ();
 
-    while (1)
+    while (parse)
     {
         gchar * next = split_line (parse);
 
@@ -99,81 +89,37 @@ static void playlist_load_m3u (const gchar * path, gint at)
         if (* parse == '#')
             goto NEXT;
 
-        gchar * s = convert_path (parse, path);
+        gchar * s = aud_construct_uri (parse, path);
+        if (s)
+            index_append (filenames, str_get (s));
 
-        if (s != NULL)
-            index_append (add, s);
+        g_free (s);
 
 NEXT:
         parse = next;
     }
 
-    aud_playlist_entry_insert_batch (aud_playlist_get_active (), at, add, NULL);
     g_free (text);
+    return TRUE;
 }
 
-static void
-playlist_save_m3u(const gchar *filename, gint pos)
+static gboolean playlist_save_m3u (const gchar * path, VFSFile * file,
+ const gchar * title, Index * filenames, Index * tuples)
 {
-    gint playlist = aud_playlist_get_active ();
-    gint entries = aud_playlist_entry_count (playlist);
-    gchar *outstr = NULL;
-    VFSFile *file;
-    gchar *fn = NULL;
-    gint count;
+    gint count = index_count (filenames);
 
-    g_return_if_fail(filename != NULL);
+    for (gint i = 0; i < count; i ++)
+        vfs_fprintf (file, "%s\n", (const gchar *) index_get (filenames, i));
 
-    fn = g_filename_to_uri(filename, NULL, NULL);
-    file = vfs_fopen(fn ? fn : filename, "wb");
-    g_free(fn);
-    g_return_if_fail(file != NULL);
-
-    for (count = pos; count < entries; count ++)
-    {
-        const gchar * filename = aud_playlist_entry_get_filename (playlist,
-         count);
-        const gchar * title = aud_playlist_entry_get_title (playlist, count,
-         FALSE);
-        gint seconds = aud_playlist_entry_get_length (playlist, count, FALSE) /
-         1000;
-
-        if (title != NULL)
-        {
-            outstr = g_locale_from_utf8 (title, -1, NULL, NULL, NULL);
-
-            if(outstr) {
-                vfs_fprintf(file, "#EXTINF:%d,%s\n", seconds, outstr);
-                g_free(outstr);
-                outstr = NULL;
-            }
-            else
-                vfs_fprintf (file, "#EXTINF:%d,%s\n", seconds, title);
-        }
-
-        fn = g_filename_from_uri (filename, NULL, NULL);
-        vfs_fprintf (file, "%s\n", fn != NULL ? fn : filename);
-        g_free(fn);
-    }
-
-    vfs_fclose(file);
+    return TRUE;
 }
 
-PlaylistContainer plc_m3u = {
-	.name = "M3U Playlist Format",
-	.ext = "m3u",
-	.plc_read = playlist_load_m3u,
-	.plc_write = playlist_save_m3u,
-};
+static const gchar * const m3u_exts[] = {"m3u", "m3u8", NULL};
 
-static void init(void)
-{
-	aud_playlist_container_register(&plc_m3u);
-}
-
-static void cleanup(void)
-{
-	aud_playlist_container_unregister(&plc_m3u);
-}
-
-DECLARE_PLUGIN (m3u, init, cleanup, NULL, NULL, NULL, NULL, NULL, NULL)
+AUD_PLAYLIST_PLUGIN
+(
+ .name = "M3U Playlist Format",
+ .extensions = m3u_exts,
+ .load = playlist_load_m3u,
+ .save = playlist_save_m3u
+)

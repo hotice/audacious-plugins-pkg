@@ -20,13 +20,10 @@
  *  Audacious or using our public API to be a derived work.
  */
 
-#ifndef AUDACIOUS_UI_MAIN_H
-#define AUDACIOUS_UI_MAIN_H
+#ifndef SKINS_UI_MAIN_H
+#define SKINS_UI_MAIN_H
 
 #include <gtk/gtk.h>
-
-#include "ui_vis.h"
-#include "ui_svis.h"
 
 /* yes, main window size is fixed */
 #define MAINWIN_WIDTH            (gint)275
@@ -34,67 +31,13 @@
 #define MAINWIN_TITLEBAR_HEIGHT  (gint)14
 #define MAINWIN_SHADED_WIDTH     MAINWIN_WIDTH
 #define MAINWIN_SHADED_HEIGHT    MAINWIN_TITLEBAR_HEIGHT
-#define MAINWIN_SCALE_FACTOR     (config.scaled ? config.scale_factor : 1)
-
-#define MAINWIN_DEFAULT_POS_X    20
-#define MAINWIN_DEFAULT_POS_Y    20
-
-#define MAINWIN_DEFAULT_FONT     "Sans Bold 9"
-
 
 typedef enum {
     TIMER_ELAPSED,
     TIMER_REMAINING
 } TimerMode;
 
-enum {
-    MAINWIN_GENERAL_ABOUT,
-
-    MAINWIN_GENERAL_PLAYFILE,
-    MAINWIN_GENERAL_PLAYLOCATION,
-
-    MAINWIN_GENERAL_FILEINFO,
-    MAINWIN_GENERAL_PREFS,
-
-    MAINWIN_GENERAL_SHOWMWIN,
-    MAINWIN_GENERAL_SHOWPLWIN,
-
-    MAINWIN_GENERAL_FOCUSMWIN,
-    MAINWIN_GENERAL_FOCUSPLWIN,
-
-    MAINWIN_GENERAL_SHOWEQWIN,
-    MAINWIN_GENERAL_EXIT,
-
-    MAINWIN_GENERAL_PREV,
-    MAINWIN_GENERAL_PLAY,
-    MAINWIN_GENERAL_PAUSE,
-    MAINWIN_GENERAL_STOP,
-    MAINWIN_GENERAL_NEXT,
-    MAINWIN_GENERAL_STOPFADE,
-    MAINWIN_GENERAL_BACK5SEC,
-    MAINWIN_GENERAL_FWD5SEC,
-    MAINWIN_GENERAL_START,
-    MAINWIN_GENERAL_BACK10,
-    MAINWIN_GENERAL_FWD10,
-    MAINWIN_GENERAL_JTT,
-    MAINWIN_GENERAL_JTF,
-    MAINWIN_GENERAL_QUEUE,
-    MAINWIN_GENERAL_CQUEUE,
-    MAINWIN_GENERAL_VOLUP,
-    MAINWIN_GENERAL_VOLDOWN,
-    MAINWIN_GENERAL_SETAB,
-    MAINWIN_GENERAL_CLEARAB,
-
-    MAINWIN_GENERAL_NEXT_PL,
-    MAINWIN_GENERAL_PREV_PL,
-    MAINWIN_GENERAL_NEW_PL
-};
-
 extern GtkWidget *mainwin;
-extern GtkWidget *err;
-
-extern gboolean mainwin_moving;
-extern gboolean mainwin_focus;
 
 extern GtkWidget *mainwin_eq, *mainwin_pl;
 extern GtkWidget *mainwin_info;
@@ -113,18 +56,8 @@ extern GtkWidget *mainwin_position, *mainwin_sposition;
 
 void mainwin_create(void);
 void mainwin_unhook (void);
-void ui_main_set_initial_volume(void);
 
-void mainwin_lock_info_text(const gchar * text);
-void mainwin_release_info_text(void);
 void mainwin_play_pushed(void);
-void mainwin_stop_pushed(void);
-void mainwin_eject_pushed(void);
-
-void mainwin_rev_pushed(void);
-void mainwin_rev_release(void);
-void mainwin_fwd_pushed(void);
-void mainwin_fwd_release(void);
 
 void mainwin_adjust_volume_motion(gint v);
 void mainwin_adjust_volume_release(void);
@@ -133,32 +66,18 @@ void mainwin_adjust_balance_release(void);
 void mainwin_set_volume_slider(gint percent);
 void mainwin_set_balance_slider(gint percent);
 
-void mainwin_vis_set_type(VisType mode);
-
 void mainwin_refresh_hints(void);
 void mainwin_set_song_title (const gchar * title);
 void mainwin_set_song_info(gint rate, gint freq, gint nch);
 void mainwin_clear_song_info(void);
-void mainwin_set_noplaylistadvance(gboolean no_advance);
 
-void mainwin_set_sticky (gboolean sticky);
-void mainwin_set_always_on_top(gboolean always);
 void mainwin_set_shape (void);
-void mainwin_set_volume_diff(gint diff);
-void mainwin_set_balance_diff(gint diff);
 
 void mainwin_show(gboolean);
-void mainwin_move(gint x, gint y);
-void mainwin_shuffle_pushed(gboolean toggled);
-void mainwin_repeat_pushed(gboolean toggled);
 void mainwin_disable_seekbar(void);
-void mainwin_set_title(const gchar * text);
-void mainwin_minimize_cb(void);
-void mainwin_general_menu_callback(gpointer cb_data,
-                                   guint action,
-                                   GtkWidget * widget);
 
 void mainwin_update_song_info (void);
+void mainwin_show_status_message (const gchar * message);
 void mainwin_enable_status_message (gboolean enable);
 
 void mainwin_drag_data_received(GtkWidget * widget,
@@ -173,17 +92,8 @@ void mainwin_drag_data_received(GtkWidget * widget,
 void mainwin_setup_menus(void);
 gboolean change_timer_mode_cb(GtkWidget *widget, GdkEventButton *event);
 
-void mainwin_jump_to_file(void);
-void mainwin_jump_to_time(void);
-
-void mainwin_ewmh_activate(void);
-
-void mainwin_show_visibility_warning(void);
-
 /* widget should be null if called manually. */
 gboolean mainwin_keypress (GtkWidget * widget, GdkEventKey * event,
  void * unused);
 
-void ui_main_check_theme_engine(void);
-
-#endif /* AUDACIOUS_UI_MAIN_H */
+#endif /* SKINS_UI_MAIN_H */

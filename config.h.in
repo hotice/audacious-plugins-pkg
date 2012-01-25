@@ -3,21 +3,6 @@
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
-/* Define to 1 if your system is a PowerPC. */
-#undef ARCH_POWERPC
-
-/* Config dir to use */
-#undef BMP_RCPATH
-
-/* Path to OSS DSP, really just a data pipe, default is /dev/dsp. */
-#undef DEV_DSP
-
-/* Path to OSS mixer, default is /dev/mixer. */
-#undef DEV_MIXER
-
-/* Define to disable per user plugin directory */
-#undef DISABLE_USER_PLUGIN_DIR
-
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 #undef ENABLE_NLS
@@ -31,33 +16,23 @@
 /* Define if Vorbis output part should be built */
 #undef FILEWRITER_VORBIS
 
-/* Define to 1 if your system has AltiVec. */
-#undef HAVE_ALTIVEC
+/* Define to 1 if you have the MacOS X function CFLocaleCopyCurrent in the
+   CoreFoundation framework. */
+#undef HAVE_CFLOCALECOPYCURRENT
 
-/* Define to 1 if your system has an altivec.h file. */
-#undef HAVE_ALTIVEC_H
-
-/* Define to 1 if you have the <Carbon/Carbon.h> header file. */
-#undef HAVE_CARBON_CARBON_H
-
-/* Define to 1 if you have the <CoreServices/CoreServices.h> header file. */
-#undef HAVE_CORESERVICES_CORESERVICES_H
+/* Define to 1 if you have the MacOS X function CFPreferencesCopyAppValue in
+   the CoreFoundation framework. */
+#undef HAVE_CFPREFERENCESCOPYAPPVALUE
 
 /* Define if the GNU dcgettext() function is already present or preinstalled.
    */
 #undef HAVE_DCGETTEXT
 
-/* Define to 1 if you have the <fcntl.h> header file. */
-#undef HAVE_FCNTL_H
+/* Define to 1 if you have the `fcntl' function. */
+#undef HAVE_FCNTL
 
-/* Define to 1 if you have the <fnmatch.h> header file. */
-#undef HAVE_FNMATCH_H
-
-/* Define to 1 if you have the <fts.h> header file. */
-#undef HAVE_FTS_H
-
-/* Define to 1 if you have the `getmntinfo' function. */
-#undef HAVE_GETMNTINFO
+/* Define to 1 if you have the `fsync' function. */
+#undef HAVE_FSYNC
 
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT
@@ -65,26 +40,14 @@
 /* Define if you have HardSID for libSIDPlay 2 */
 #undef HAVE_HARDSID_BUILDER
 
-/* Define if you have the iconv() function. */
+/* Define if you have the iconv() function and it works. */
 #undef HAVE_ICONV
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* indidaces if libmtp 0.3.0 is installed */
-#undef HAVE_LIBMTP_030
-
-/* Define to 1 if you have the <limits.h> header file. */
-#undef HAVE_LIMITS_H
-
-/* Define to 1 if you have the <linux/joystick.h> header file. */
-#undef HAVE_LINUX_JOYSTICK_H
-
-/* Define to 1 if you have the `lrintf' function. */
-#undef HAVE_LRINTF
-
-/* Define to 1 if you have the <machine/soundcard.h> header file. */
-#undef HAVE_MACHINE_SOUNDCARD_H
+/* Define to 1 if you have the <libsmbclient.h> header file. */
+#undef HAVE_LIBSMBCLIENT_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
@@ -92,23 +55,11 @@
 /* Define to 1 if you have the `mkdtemp' function. */
 #undef HAVE_MKDTEMP
 
-/* Define if you have the FreeBSD newpcm driver */
-#undef HAVE_NEWPCM
-
 /* Whether we have ne_set_connect_timeout */
 #undef HAVE_NE_SET_CONNECT_TIMEOUT
 
-/* Define if the OSS output plugin should be built */
-#undef HAVE_OSS
-
-/* Define if the OSS4 output plugin should be built */
-#undef HAVE_OSS4
-
 /* Define if you have reSID for libSIDPlay 2 */
 #undef HAVE_RESID_BUILDER
-
-/* Set to 1 if you have libsamplerate. */
-#undef HAVE_SAMPLERATE
 
 /* Define if you have and want to use libSIDPlay1 */
 #undef HAVE_SIDPLAY1
@@ -123,17 +74,8 @@
    */
 #undef HAVE_SIDPLAY2_DISTORTION
 
-/* Define if you have snd_device_name_hint */
-#undef HAVE_SND_DEVICE_NAME_HINT
-
 /* Define to 1 if you have the <soundcard.h> header file. */
 #undef HAVE_SOUNDCARD_H
-
-/* Define to 1 if your system has SSE2 */
-#undef HAVE_SSE2
-
-/* Define to 1 if you have the `statvfs' function. */
-#undef HAVE_STATVFS
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
@@ -147,15 +89,6 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
-/* Whether we have strnlen */
-#undef HAVE_STRNLEN
-
-/* Define to 1 if you have the `strtoul' function. */
-#undef HAVE_STRTOUL
-
-/* Define to 1 if you have the <sys/ioctl.h> header file. */
-#undef HAVE_SYS_IOCTL_H
-
 /* Define to 1 if you have the <sys/soundcard.h> header file. */
 #undef HAVE_SYS_SOUNDCARD_H
 
@@ -165,14 +98,17 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
 
+/* Define to 1 if you have the <sys/wait.h> header file. */
+#undef HAVE_SYS_WAIT_H
+
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
-/* Define to 1 if you have the <wchar.h> header file. */
-#undef HAVE_WCHAR_H
-
 /* X Composite extension available */
 #undef HAVE_XCOMPOSITE
+
+/* Define to 1 if you have the <zlib.h> header file. */
+#undef HAVE_ZLIB_H
 
 /* Name of package */
 #undef PACKAGE
@@ -198,15 +134,6 @@
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
-/* Define to symbol prefix, if any */
-#undef SYMBOL_PREFIX
-
-/* Define if character set detection enabled */
-#undef USE_CHARDET
-
-/* Define if D-Bus support enabled */
-#undef USE_DBUS
-
 /* Define if building with IPv6 support */
 #undef USE_IPV6
 
@@ -224,3 +151,9 @@
 #  undef WORDS_BIGENDIAN
 # endif
 #endif
+
+/* Number of bits in a file offset, on hosts where this is settable. */
+#undef _FILE_OFFSET_BITS
+
+/* Define for large files, on AIX-style hosts. */
+#undef _LARGE_FILES

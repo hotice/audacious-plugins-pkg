@@ -1,4 +1,4 @@
-/*  
+/*
    XMMS-SID - SIDPlay input plugin for X MultiMedia System (XMMS)
 
    Main header file
@@ -146,14 +146,13 @@ extern InputPlugin    xs_plugin_ip;
 
 /* Plugin function prototypes
  */
-void        xs_init(void);
+gboolean    xs_init(void);
 void        xs_reinit(void);
 void        xs_close(void);
 gboolean    xs_play_file(InputPlayback *, const gchar *, VFSFile *, gint, gint, gboolean);
 void        xs_stop(InputPlayback *);
-void        xs_pause(InputPlayback *, short);
+void xs_pause (InputPlayback * p, gboolean pause);
 gint        xs_get_time(InputPlayback *);
-Tuple *     xs_get_song_tuple(const gchar *);
 Tuple *     xs_probe_for_tuple(const gchar *, xs_file_t *);
 void        xs_about(void);
 

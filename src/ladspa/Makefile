@@ -1,12 +1,15 @@
 PLUGIN = ladspa${PLUGIN_SUFFIX}
 
-SRCS = ladspa.c
+SRCS = effect.c \
+       loaded-list.c \
+       plugin.c \
+       plugin-list.c
 
 include ../../buildsys.mk
 include ../../extra.mk
 
 plugindir := ${plugindir}/${EFFECT_PLUGIN_DIR}
 
+CPPFLAGS += -I../.. ${PTHREAD_CFLAGS} ${GTK_CFLAGS}
 CFLAGS += ${PLUGIN_CFLAGS}
-CPPFLAGS += ${PLUGIN_CPPFLAGS} ${MOWGLI_CFLAGS} ${GTK_CFLAGS} ${GLIB_CFLAGS}  -I../..
-LIBS += ${GTK_LIBS} ${GLIB_LIBS} -ldl
+LIBS += -lm ${PTHREAD_LIBS} ${GTK_LIBS}

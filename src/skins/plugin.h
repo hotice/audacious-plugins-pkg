@@ -23,18 +23,6 @@
 
 #include <glib.h>
 
-#include <audacious/interface.h>
-#include <audacious/plugin.h>
-
-#include "skins_cfg.h"
-#include "ui_main.h"
-#include "ui_equalizer.h"
-#include "ui_playlist.h"
-#include "ui_skin.h"
-
-#define PACKAGE "audacious-plugins"
-#define PACKAGE_NAME "audacious-plugins"
-
 enum {
     SKINS_PATH_USER_SKIN_DIR,
     SKINS_PATH_SKIN_THUMB_DIR,
@@ -42,11 +30,5 @@ enum {
 };
 
 extern gchar *skins_paths[];
-extern Interface skins_interface;
-
-gboolean skins_init(InterfaceCbs *cbs);
-gboolean skins_cleanup(void);
-void skins_about(void);
-void show_preferences_window(gboolean show);
 
 #endif

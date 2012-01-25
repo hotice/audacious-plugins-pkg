@@ -25,13 +25,13 @@
 
 #include "compressor.h"
 
-/* What is a "normal" target volume?  Replay Gain stuff claims to use 89 dB, but
- * what does that translate to in our PCM range?  Does anybody even know? */
-float compressor_target = 0.5, compressor_range = 0.5;
+double compressor_center, compressor_range;
 
+/* Response time adjustments.  Maybe this should be adjustable.  Or maybe that
+ * would just be confusing.  I don't know. */
 #define CHUNK_TIME 0.2 /* seconds */
-#define CHUNKS 15
-#define DECAY 0.05
+#define CHUNKS 5
+#define DECAY 0.3
 
 static float * buffer, * output, * peaks;
 static int output_size;
@@ -60,25 +60,30 @@ static void buffer_append (float * * data, int * length)
     * length -= writable;
 }
 
-static inline float FMAX (float a, float b)
-{
-    return a > b ? a : b;
-}
+/* I used to find the maximum sample and take that as the peak, but that doesn't
+ * work well on badly clipped tracks.  Now, I use the highly sophisticated
+ * method of averaging the absolute value of the samples and multiplying by 6, a
+ * number proved by experiment (on exactly three files) to best approximate the
+ * actual peak. */
 
 static float calc_peak (float * data, int length)
 {
-    gfloat peak = 0.0;
+    if (! length)
+        return 0;
 
-    while (length --)
-        peak = FMAX (peak, * data ++);
+    float sum = 0;
 
-    return peak;
+    float * end = data + length;
+    while (data < end)
+        sum += fabsf (* data ++);
+
+    return sum / length * 6;
 }
 
 static void do_ramp (float * data, int length, float peak_a, float peak_b)
 {
-    float a = powf (peak_a / compressor_target, compressor_range - 1);
-    float b = powf (peak_b / compressor_target, compressor_range - 1);
+    float a = powf (peak_a / compressor_center, compressor_range - 1);
+    float b = powf (peak_b / compressor_center, compressor_range - 1);
     int count;
 
     for (count = 0; count < length; count ++)
@@ -110,6 +115,11 @@ static void reset (void)
 
 #define IN_RING(i) ((ring_at + i) % CHUNKS)
 #define GET_PEAK(i) peaks[IN_RING (i)]
+
+static inline float FMAX (float a, float b)
+{
+    return a > b ? a : b;
+}
 
 static void do_compress (float * * data, int * samples, char finish)
 {
@@ -175,7 +185,7 @@ static void do_compress (float * * data, int * samples, char finish)
     * samples = output_filled;
 }
 
-void compressor_init (void)
+int compressor_init (void)
 {
     compressor_config_load ();
 
@@ -183,6 +193,8 @@ void compressor_init (void)
     output = NULL;
     output_size = 0;
     peaks = NULL;
+
+    return 1;
 }
 
 void compressor_cleanup (void)

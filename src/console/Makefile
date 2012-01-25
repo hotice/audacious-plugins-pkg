@@ -42,6 +42,7 @@ SRCS = Ay_Apu.cxx              \
        Spc_Cpu.cxx             \
        Spc_Dsp.cxx             \
        Spc_Emu.cxx             \
+       Spc_Filter.cxx          \
        Vfs_File.cxx            \
        Vgm_Emu.cxx             \
        Vgm_Emu_Impl.cxx        \
@@ -61,5 +62,5 @@ LD = ${CXX}
 
 CFLAGS += ${PLUGIN_CFLAGS}
 CXXFLAGS += ${PLUGIN_CFLAGS}
-CPPFLAGS += ${PLUGIN_CPPFLAGS} ${MOWGLI_CFLAGS} ${GTK_CFLAGS} ${GLIB_CFLAGS} ${ARCH_DEFINES} -I../..
-LIBS += ${GTK_LIBS} ${GLIB_LIBS}  -lz ${MOWGLI_LIBS}
+CPPFLAGS += ${PLUGIN_CPPFLAGS} ${GTK_CFLAGS} ${GLIB_CFLAGS} -I../..
+LIBS += ${GTK_LIBS} ${GLIB_LIBS}  -lz

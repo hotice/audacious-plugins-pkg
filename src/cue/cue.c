@@ -1,7 +1,7 @@
 /*
  * Audacious: A cross-platform multimedia player
  * Copyright (c) 2009 William Pitcock <nenolod@dereferenced.org>
- * Copyright (c) 2010 John Lindgren <john.lindgren@tds.net>
+ * Copyright (c) 2010-2011 John Lindgren <john.lindgren@tds.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,25 +18,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-/* #define AUD_DEBUG 1 */
-
 #include <glib.h>
 #include <string.h>
-#include <glib.h>
-#include <glib/gprintf.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/errno.h>
-
-#include <audacious/debug.h>
 #include <audacious/misc.h>
-#include <audacious/playlist.h>
 #include <audacious/plugin.h>
+#include <libaudcore/audstrings.h>
 
 #include <libcue/libcue.h>
 
@@ -67,47 +54,51 @@ tuple_attach_cdtext(Tuple *tuple, Track *track, gint tuple_type, gint pti)
     if (text == NULL)
         return;
 
-    tuple_associate_string(tuple, tuple_type, NULL, text);
+    tuple_set_str(tuple, tuple_type, NULL, text);
 }
 
-static void playlist_load_cue (const gchar * cue_filename, gint at)
+static gboolean playlist_load_cue (const gchar * cue_filename, VFSFile * file,
+ gchar * * title, Index * filenames, Index * tuples)
 {
-    void * buffer;
-    gint64 size;
-    vfs_file_get_contents (cue_filename, & buffer, & size);
-    if (buffer == NULL)
-        return;
+    gint64 size = vfs_fsize (file);
+    gchar * buffer = g_malloc (size + 1);
+    size = vfs_fread (buffer, 1, size, file);
+    buffer[size] = 0;
 
-    buffer = g_realloc (buffer, size + 1);
-    ((gchar *) buffer)[size] = 0;
-
-    Cd * cd = cue_parse_string (buffer);
+    gchar * text = str_to_utf8 (buffer);
     g_free (buffer);
+    g_return_val_if_fail (text, FALSE);
+
+    * title = NULL;
+
+    Cd * cd = cue_parse_string (text);
+    g_free (text);
     if (cd == NULL)
-        return;
+        return FALSE;
 
     gint tracks = cd_get_ntrack (cd);
     if (tracks == 0)
-        return;
-
-    struct index * filenames = index_new ();
-    struct index * tuples = index_new ();
+        return FALSE;
 
     Track * current = cd_get_track (cd, 1);
-    g_return_if_fail (current != NULL);
-    gchar * filename = aud_construct_uri (track_get_filename (current),
+    g_return_val_if_fail (current != NULL, FALSE);
+    gchar * track_filename = track_get_filename (current);
+    g_return_val_if_fail (track_filename != NULL, FALSE);
+    gchar * filename = aud_construct_uri (track_filename,
      cue_filename);
 
     Tuple * base_tuple = NULL;
+    gboolean base_tuple_scanned = FALSE;
 
     for (gint track = 1; track <= tracks; track ++)
     {
-        g_return_if_fail (current != NULL);
-        g_return_if_fail (filename != NULL);
+        g_return_val_if_fail (current != NULL, FALSE);
+        g_return_val_if_fail (filename != NULL, FALSE);
 
-        if (base_tuple == NULL)
+        if (base_tuple == NULL && ! base_tuple_scanned)
         {
-            InputPlugin * decoder = aud_file_find_decoder (filename, TRUE);
+            base_tuple_scanned = TRUE;
+            PluginHandle * decoder = aud_file_find_decoder (filename, FALSE);
             if (decoder != NULL)
                 base_tuple = aud_file_read_tuple (filename, decoder);
         }
@@ -121,67 +112,52 @@ static void playlist_load_cue (const gchar * cue_filename, gint at)
 
         Tuple * tuple = (base_tuple != NULL) ? tuple_copy (base_tuple) :
          tuple_new_from_filename (filename);
-        tuple_associate_int (tuple, FIELD_TRACK_NUMBER, NULL, track);
+        tuple_set_int (tuple, FIELD_TRACK_NUMBER, NULL, track);
 
         gint begin = (gint64) track_get_start (current) * 1000 / 75;
-        tuple_associate_int (tuple, FIELD_SEGMENT_START, NULL, begin);
+        tuple_set_int (tuple, FIELD_SEGMENT_START, NULL, begin);
 
         if (last_track)
         {
             if (base_tuple != NULL && tuple_get_value_type (base_tuple,
              FIELD_LENGTH, NULL) == TUPLE_INT)
-                tuple_associate_int (tuple, FIELD_LENGTH, NULL, tuple_get_int
+                tuple_set_int (tuple, FIELD_LENGTH, NULL, tuple_get_int
                  (base_tuple, FIELD_LENGTH, NULL) - begin);
         }
         else
         {
             gint length = (gint64) track_get_length (current) * 1000 / 75;
-            tuple_associate_int (tuple, FIELD_LENGTH, NULL, length);
-            tuple_associate_int (tuple, FIELD_SEGMENT_END, NULL, begin + length);
+            tuple_set_int (tuple, FIELD_LENGTH, NULL, length);
+            tuple_set_int (tuple, FIELD_SEGMENT_END, NULL, begin + length);
         }
 
         for (gint i = 0; i < G_N_ELEMENTS (pti_map); i ++)
             tuple_attach_cdtext (tuple, current, pti_map[i].tuple_type,
              pti_map[i].pti);
 
-        index_append (filenames, filename);
+        index_append (filenames, str_get (filename));
         index_append (tuples, tuple);
 
         current = next;
+        g_free (filename);
         filename = next_filename;
 
         if (last_track && base_tuple != NULL)
         {
-            tuple_free (base_tuple);
+            tuple_unref (base_tuple);
             base_tuple = NULL;
+            base_tuple_scanned = FALSE;
         }
     }
 
-    aud_playlist_entry_insert_batch (aud_playlist_get_active (), at, filenames,
-     tuples);
+    return TRUE;
 }
 
-static void
-playlist_save_cue(const gchar *filename, gint pos)
-{
-    AUDDBG("todo\n");
-}
+static const gchar * const cue_exts[] = {"cue", NULL};
 
-PlaylistContainer plc_cue = {
-    .name = "cue Playlist Format",
-    .ext = "cue",
-    .plc_read = playlist_load_cue,
-    .plc_write = playlist_save_cue,
-};
-
-static void init(void)
-{
-    aud_playlist_container_register(&plc_cue);
-}
-
-static void cleanup(void)
-{
-    aud_playlist_container_unregister(&plc_cue);
-}
-
-DECLARE_PLUGIN(cue, init, cleanup, NULL, NULL, NULL, NULL, NULL, NULL);
+AUD_PLAYLIST_PLUGIN
+(
+ .name = "Cue Sheet Support",
+ .extensions = cue_exts,
+ .load = playlist_load_cue
+)

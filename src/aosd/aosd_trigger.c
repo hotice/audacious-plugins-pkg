@@ -19,6 +19,7 @@
 */
 
 #include <glib.h>
+#include <string.h>
 
 #include <audacious/drct.h>
 #include <audacious/i18n.h>
@@ -140,7 +141,6 @@ aosd_trigger_start ( aosd_cfg_osd_trigger_t * cfg_trigger )
   }
   /* When called, this hook will display the text of the user pointer
      or the current playing song, if NULL */
-  hook_register("aosd toggle");
   hook_associate( "aosd toggle" , aosd_trigger_func_hook_cb , NULL );
   return;
 }
@@ -186,7 +186,7 @@ aosd_trigger_func_pb_start_onoff(gboolean turn_on)
 static void
 aosd_trigger_func_pb_start_cb(gpointer hook_data, gpointer user_data)
 {
-    gchar *title = aud_drct_pl_get_title(aud_drct_pl_get_pos());
+    char * title = aud_drct_get_title ();
 
     if (title != NULL)
     {
@@ -200,8 +200,8 @@ aosd_trigger_func_pb_start_cb(gpointer hook_data, gpointer user_data)
             g_free(utf8_title_markup);
         }
         g_free(utf8_title);
+        str_unref (title);
     }
-    return;
 }
 
 typedef struct
@@ -245,10 +245,8 @@ aosd_trigger_func_pb_titlechange_cb ( gpointer plentry_gp , gpointer prevs_gp )
     aosd_pb_titlechange_prevs_t *prevs = prevs_gp;
     gint playlist = aud_playlist_get_playing();
     gint pl_entry = aud_playlist_get_position(playlist);
-    const gchar * pl_entry_filename = aud_playlist_entry_get_filename (playlist,
-     pl_entry);
-    const gchar * pl_entry_title = aud_playlist_entry_get_title (playlist,
-     pl_entry, FALSE);
+    gchar * pl_entry_filename = aud_playlist_entry_get_filename (playlist, pl_entry);
+    gchar * pl_entry_title = aud_playlist_entry_get_title (playlist, pl_entry, FALSE);
 
     /* same filename but title changed, useful to detect http stream song changes */
 
@@ -291,6 +289,9 @@ aosd_trigger_func_pb_titlechange_cb ( gpointer plentry_gp , gpointer prevs_gp )
         g_free(prevs->filename);
       prevs->filename = g_strdup(pl_entry_filename);
     }
+
+    str_unref (pl_entry_filename);
+    str_unref (pl_entry_title);
   }
 }
 
@@ -387,7 +388,6 @@ aosd_trigger_func_pb_pauseoff_cb ( gpointer unused1 , gpointer unused2 )
 {
   gint active = aud_playlist_get_active();
   gint pos = aud_playlist_get_position(active);
-  const gchar * title;
   gchar *utf8_title, *utf8_title_markup;
   gint time_cur, time_tot;
   gint time_cur_m, time_cur_s, time_tot_m, time_tot_s;
@@ -399,14 +399,13 @@ aosd_trigger_func_pb_pauseoff_cb ( gpointer unused1 , gpointer unused2 )
   time_tot_s = time_tot % 60;
   time_tot_m = (time_tot - time_tot_s) / 60;
 
-  title = aud_playlist_entry_get_title (active, pos, FALSE);
-  utf8_title = aosd_trigger_utf8convert( title );
+  utf8_title = aud_playlist_entry_get_title (active, pos, FALSE);
   utf8_title_markup = g_markup_printf_escaped(
     "<span font_desc='%s'>%s (%i:%02i/%i:%02i)</span>" ,
     global_config->osd->text.fonts_name[0] , utf8_title , time_cur_m , time_cur_s , time_tot_m , time_tot_s );
   aosd_osd_display( utf8_title_markup , global_config->osd , FALSE );
   g_free( utf8_title_markup );
-  g_free( utf8_title );
+  str_unref (utf8_title);
   return;
 }
 
@@ -423,7 +422,7 @@ aosd_trigger_func_hook_cb ( gpointer markup_text , gpointer unused )
     aosd_osd_display( markup_text , global_config->osd , FALSE );
   } else {
     /* Display currently playing song */
-    aosd_trigger_func_pb_start_cb ( GINT_TO_POINTER(aud_drct_pl_get_pos()), NULL );
+    aosd_trigger_func_pb_start_cb (NULL, NULL);
   }
   return;
 }

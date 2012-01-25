@@ -2,6 +2,7 @@
  * Audacious: A cross-platform multimedia player
  * Copyright (c) 2006 William Pitcock, Tony Vroon, George Averill,
  *                    Giacomo Lozito, Derek Pomery and Yoshiki Yazawa.
+ * Copyright (c) 2011 John Lindgren
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +32,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/errno.h>
 
 #include <audacious/debug.h>
 #include <audacious/misc.h>
@@ -41,35 +41,25 @@
 
 #include "util.h"
 
-static void
-playlist_load_pls(const gchar * filename, gint pos)
+static gboolean playlist_load_pls (const gchar * filename, VFSFile * file,
+ gchar * * title, Index * filenames, Index * tuples)
 {
     gint i, count;
     gchar line_key[16];
     gchar * line;
-    gchar *uri = NULL;
-    struct index * add;
 
-    g_return_if_fail(filename != NULL);
+    INIFile * inifile = open_ini_file (file);
 
-    if (!str_has_suffix_nocase(filename, ".pls"))
-        return;
-
-    uri = g_filename_to_uri(filename, NULL, NULL);
-
-    INIFile *inifile = open_ini_file(uri ? uri : filename);
-    g_free(uri); uri = NULL;
+    * title = NULL;
 
     if (!(line = read_ini_string(inifile, "playlist", "NumberOfEntries")))
     {
         close_ini_file(inifile);
-        return;
+        return FALSE;
     }
 
     count = atoi(line);
     g_free(line);
-
-    add = index_new ();
 
     for (i = 1; i <= count; i++) {
         g_snprintf(line_key, sizeof(line_key), "File%d", i);
@@ -79,36 +69,28 @@ playlist_load_pls(const gchar * filename, gint pos)
             g_free(line);
 
             if (uri != NULL)
-                index_append (add, uri);
+                index_append (filenames, str_get (uri));
+
+            g_free (uri);
         }
     }
 
     close_ini_file(inifile);
-
-    aud_playlist_entry_insert_batch (aud_playlist_get_active (), pos, add, NULL);
+    return TRUE;
 }
 
-static void
-playlist_save_pls(const gchar *filename, gint pos)
+static gboolean playlist_save_pls (const gchar * filename, VFSFile * file,
+ const gchar * title, Index * filenames, Index * tuples)
 {
-    gint playlist = aud_playlist_get_active ();
-    gint entries = aud_playlist_entry_count (playlist);
-    gchar *uri = g_filename_to_uri(filename, NULL, NULL);
-    VFSFile *file = vfs_fopen(uri, "wb");
+    gint entries = index_count (filenames);
     gint count;
 
-    AUDDBG("filename=%s\n", filename);
-    AUDDBG("uri=%s\n", uri);
-
-    g_return_if_fail(file != NULL);
-
     vfs_fprintf(file, "[playlist]\n");
-    vfs_fprintf(file, "NumberOfEntries=%d\n", entries - pos);
+    vfs_fprintf(file, "NumberOfEntries=%d\n", entries);
 
-    for (count = pos; count < entries; count ++)
+    for (count = 0; count < entries; count ++)
     {
-        const gchar * filename = aud_playlist_entry_get_filename (playlist,
-         count);
+        const gchar * filename = index_get (filenames, count);
         gchar *fn;
 
         if (vfs_is_remote (filename))
@@ -116,28 +98,19 @@ playlist_save_pls(const gchar *filename, gint pos)
         else
             fn = g_filename_from_uri (filename, NULL, NULL);
 
-        vfs_fprintf (file, "File%d=%s\n", 1 + pos + count, fn);
+        vfs_fprintf (file, "File%d=%s\n", 1 + count, fn);
         g_free(fn);
     }
 
-    vfs_fclose(file);
+    return TRUE;
 }
 
-PlaylistContainer plc_pls = {
-    .name = "Winamp .pls Playlist Format",
-    .ext = "pls",
-    .plc_read = playlist_load_pls,
-    .plc_write = playlist_save_pls,
-};
+static const gchar * const pls_exts[] = {"pls", NULL};
 
-static void init(void)
-{
-    aud_playlist_container_register(&plc_pls);
-}
-
-static void cleanup(void)
-{
-    aud_playlist_container_unregister(&plc_pls);
-}
-
-DECLARE_PLUGIN (pls, init, cleanup, NULL, NULL, NULL, NULL, NULL, NULL)
+AUD_PLAYLIST_PLUGIN
+(
+ .name = "PLS Playlist Format",
+ .extensions = pls_exts,
+ .load = playlist_load_pls,
+ .save = playlist_save_pls
+)

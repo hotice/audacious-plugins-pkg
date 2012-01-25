@@ -1,6 +1,7 @@
 /*
  *  A FLAC decoder plugin for the Audacious Media Player
  *  Copyright (C) 2005 Ralf Ertzinger
+ *  Copyright (C) 2010 Michał Lipski <tallica@o2.pl>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -24,8 +25,6 @@
 #include <audacious/debug.h>
 
 #include "flacng.h"
-#include "tools.h"
-#include "seekable_stream_callbacks.h"
 
 FLAC__StreamDecoderReadStatus read_callback(const FLAC__StreamDecoder *decoder, FLAC__byte buffer[], size_t *bytes, void *client_data)
 {
@@ -34,7 +33,7 @@ FLAC__StreamDecoderReadStatus read_callback(const FLAC__StreamDecoder *decoder, 
 
     if (info->fd == NULL)
     {
-        ERROR("Trying to read data from an uninitialized file!\n");
+        FLACNG_ERROR("Trying to read data from an uninitialized file!\n");
         return FLAC__STREAM_DECODER_READ_STATUS_ABORT;
     }
 
@@ -47,7 +46,7 @@ FLAC__StreamDecoderReadStatus read_callback(const FLAC__StreamDecoder *decoder, 
     switch (read)
     {
         case -1:
-            ERROR("Error while reading from stream!\n");
+            FLACNG_ERROR("Error while reading from stream!\n");
             return FLAC__STREAM_DECODER_READ_STATUS_ABORT;
 
         case 0:
@@ -65,7 +64,7 @@ FLAC__StreamDecoderSeekStatus seek_callback(const FLAC__StreamDecoder *decoder, 
 
     if (vfs_fseek(info->fd, offset, SEEK_SET) != 0)
     {
-        ERROR("Could not seek to %lld!\n", (long long)offset);
+        FLACNG_ERROR("Could not seek to %lld!\n", (long long)offset);
         return FLAC__STREAM_DECODER_SEEK_STATUS_ERROR;
     }
 
@@ -78,7 +77,7 @@ FLAC__StreamDecoderTellStatus tell_callback(const FLAC__StreamDecoder *decoder, 
 
     if ((*offset = vfs_ftell(info->fd)) == -1)
     {
-        ERROR("Could not tell current position!\n");
+        FLACNG_ERROR("Could not tell current position!\n");
         return FLAC__STREAM_DECODER_TELL_STATUS_ERROR;
     }
 
@@ -127,7 +126,7 @@ FLAC__StreamDecoderWriteStatus write_callback(const FLAC__StreamDecoder *decoder
      */
     if (info->buffer_free < (frame->header.blocksize * frame->header.channels))
     {
-        ERROR("BUG! Too much data decoded from stream!\n");
+        FLACNG_ERROR("BUG! Too much data decoded from stream!\n");
         return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
     }
 
@@ -136,7 +135,7 @@ FLAC__StreamDecoderWriteStatus write_callback(const FLAC__StreamDecoder *decoder
         frame->header.bits_per_sample != 24 &&
         frame->header.bits_per_sample != 32)
     {
-        ERROR("Unsupported bitrate found in stream: %d!\n", frame->header.bits_per_sample);
+        FLACNG_ERROR("Unsupported bitrate found in stream: %d!\n", frame->header.bits_per_sample);
         return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
     }
 
@@ -164,92 +163,37 @@ FLAC__StreamDecoderWriteStatus write_callback(const FLAC__StreamDecoder *decoder
 
 void error_callback(const FLAC__StreamDecoder *decoder, FLAC__StreamDecoderErrorStatus status, void *client_data)
 {
-    ERROR("FLAC decoder error callback was called: %d\n", status);
+    FLACNG_ERROR("FLAC decoder error callback was called: %d\n", status);
 }
 
 void metadata_callback(const FLAC__StreamDecoder *decoder, const FLAC__StreamMetadata *metadata, void *client_data)
 {
     callback_info *info = (callback_info*) client_data;
-    gint i;
-    FLAC__StreamMetadata *metadata_copy;
-    FLAC__StreamMetadata_VorbisComment_Entry *entry;
-    gchar *key;
-    gchar *value;
     gsize size;
 
-    switch (metadata->type)
+    if (metadata->type == FLAC__METADATA_TYPE_STREAMINFO)
     {
-        case FLAC__METADATA_TYPE_STREAMINFO:
-            /* Basic stream information. Sample rate, channels and stuff  */
-            AUDDBG("FLAC__METADATA_TYPE_STREAMINFO found.\n");
+        info->stream.samples = metadata->data.stream_info.total_samples;
+        AUDDBG("total_samples=%lld\n", (long long) metadata->data.stream_info.total_samples);
 
-            info->stream.samples = metadata->data.stream_info.total_samples;
-            AUDDBG("total_samples=%lld\n", (long long) metadata->data.stream_info.total_samples);
+        info->stream.bits_per_sample = metadata->data.stream_info.bits_per_sample;
+        AUDDBG("bits_per_sample=%d\n", metadata->data.stream_info.bits_per_sample);
 
-            info->stream.bits_per_sample = metadata->data.stream_info.bits_per_sample;
-            AUDDBG("bits_per_sample=%d\n", metadata->data.stream_info.bits_per_sample);
+        info->stream.channels = metadata->data.stream_info.channels;
+        AUDDBG("channels=%d\n", metadata->data.stream_info.channels);
 
-            info->stream.channels = metadata->data.stream_info.channels;
-            AUDDBG("channels=%d\n", metadata->data.stream_info.channels);
+        info->stream.samplerate = metadata->data.stream_info.sample_rate;
+        AUDDBG("sample_rate=%d\n", metadata->data.stream_info.sample_rate);
 
-            info->stream.samplerate = metadata->data.stream_info.sample_rate;
-            AUDDBG("sample_rate=%d\n", metadata->data.stream_info.sample_rate);
+        size = vfs_fsize(info->fd);
 
-            size = vfs_fsize(info->fd);
+        if (size == -1 || info->stream.samples == 0)
+            info->bitrate = 0;
+        else
+            info->bitrate = 8 * size * (gint64) info->stream.samplerate / info->stream.samples;
 
-            if (size == -1 || info->stream.samples == 0)
-                info->bitrate = 0;
-            else
-                info->bitrate = 8 * size * (gint64) info->stream.samplerate / info->stream.samples;
+        AUDDBG("bitrate=%d\n", info->bitrate);
 
-            AUDDBG("bitrate=%d\n", info->bitrate);
-
-            info->metadata_changed = TRUE;
-            break;
-
-        case FLAC__METADATA_TYPE_VORBIS_COMMENT:
-            /*
-             * We will possibly need to modify some of the entries
-             * in the metadata field, so we make a copy of it
-             * first.
-             * The original structure must not be modified.
-             */
-            metadata_copy = FLAC__metadata_object_clone(metadata);
-
-            /* A vorbis type comment field. */
-            AUDDBG("FLAC__METADATA_TYPE_VORBIS_COMMENT found.\n");
-            AUDDBG("Vorbis comment contains %d fields\n", metadata_copy->data.vorbis_comment.num_comments);
-            AUDDBG("Vendor string: %s\n", metadata_copy->data.vorbis_comment.vendor_string.entry);
-
-            /* Enumerate the comment entries */
-            entry = metadata_copy->data.vorbis_comment.comments;
-
-            for (i = 0; i < metadata_copy->data.vorbis_comment.num_comments; i++, entry++)
-            {
-                /*
-                 * Try and parse the comment.
-                 * If FLAC__metadata_object_vorbiscomment_entry_to_name_value_pair() succeeds,
-                 * it allocates memory for the key and value which we have to take
-                 * care of.
-                 */
-                if (FLAC__metadata_object_vorbiscomment_entry_to_name_value_pair(*entry, &key, &value) == false)
-                    AUDDBG("Could not parse comment\n");
-                else
-                {
-                    add_comment(info, key, value);
-                    g_free(key);
-                    g_free(value);
-                }
-            }
-
-            /* Free our metadata copy */
-            FLAC__metadata_object_delete(metadata_copy);
-
-            info->metadata_changed = TRUE;
-            break;
-
-        default:
-            break;
+        info->metadata_changed = TRUE;
     }
-    return;
 }

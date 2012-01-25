@@ -23,29 +23,27 @@
 #include <audacious/debug.h>
 #include "libnotify-aosd_common.h"
 
-// The pointers to the functions of the plugin
-GeneralPlugin plugin_gp = {
-    .description = PLUGIN_NAME " " PLUGIN_VERSION,
+AUD_GENERAL_PLUGIN
+(
+    .name = "Desktop Notifications",
     .init = plugin_init,
     .about = plugin_about,
     .cleanup = plugin_cleanup
-};
-
-GeneralPlugin *plugin_gplist[] = {&plugin_gp, NULL};
-SIMPLE_GENERAL_PLUGIN(libnotifyaosd, plugin_gplist);
+)
 
 short plugin_active = 0;
 
-void plugin_init() {
+gboolean plugin_init (void)
+{
 	AUDDBG("started!\n");
 	if(!osd_init()) {
 		AUDDBG("osd_init failed!\n");
-  		return;
+  		return FALSE;
 	}
 	event_init();
 
 	plugin_active = 1;
-	AUDDBG("done!\n");
+	return TRUE;
 }
 
 

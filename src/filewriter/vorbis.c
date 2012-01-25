@@ -27,7 +27,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <audacious/configdb.h>
+#include <audacious/gtk-compat.h>
+#include <audacious/misc.h>
 
 static void vorbis_init(write_output_callback write_output_func);
 static void vorbis_configure(void);
@@ -46,8 +47,6 @@ FileWriter vorbis_plugin =
     .format_required = FMT_FLOAT,
 };
 
-static float v_base_quality = 0.5;
-
 static ogg_stream_state os;
 static ogg_page og;
 static ogg_packet op;
@@ -57,16 +56,31 @@ static vorbis_block vb;
 static vorbis_info vi;
 static vorbis_comment vc;
 
+static const gchar * const vorbis_defaults[] = {
+ "base_quality", "0.5",
+ NULL};
+
+static gdouble v_base_quality;
+
 static void vorbis_init(write_output_callback write_output_func)
 {
-    mcs_handle_t *db = aud_cfg_db_open();
+    aud_config_set_defaults ("filewriter_vorbis", vorbis_defaults);
 
-    aud_cfg_db_get_float(db, "filewriter_vorbis", "base_quality", &v_base_quality);
-
-    aud_cfg_db_close(db);
+    v_base_quality = aud_get_double ("filewriter_vorbis", "base_quality");
 
     if (write_output_func)
         write_output=write_output_func;
+}
+
+static void add_string_from_tuple (vorbis_comment * vc, const char * name,
+ const Tuple * tuple, gint field)
+{
+    gchar * val = tuple_get_str (tuple, field, NULL);
+    if (! val)
+        return;
+
+    vorbis_comment_add_tag (vc, name, val);
+    str_unref (val);
 }
 
 static gint vorbis_open(void)
@@ -82,22 +96,15 @@ static gint vorbis_open(void)
 
     if (tuple)
     {
-        const gchar *scratch;
         gchar tmpstr[32];
         gint scrint;
 
-        if ((scratch = tuple_get_string(tuple, FIELD_TITLE, NULL)))
-            vorbis_comment_add_tag(&vc, "title", (gchar *) scratch);
-        if ((scratch = tuple_get_string(tuple, FIELD_ARTIST, NULL)))
-            vorbis_comment_add_tag(&vc, "artist", (gchar *) scratch);
-        if ((scratch = tuple_get_string(tuple, FIELD_ALBUM, NULL)))
-            vorbis_comment_add_tag(&vc, "album", (gchar *) scratch);
-        if ((scratch = tuple_get_string(tuple, FIELD_GENRE, NULL)))
-            vorbis_comment_add_tag(&vc, "genre", (gchar *) scratch);
-        if ((scratch = tuple_get_string(tuple, FIELD_DATE, NULL)))
-            vorbis_comment_add_tag(&vc, "date", (gchar *) scratch);
-        if ((scratch = tuple_get_string(tuple, FIELD_COMMENT, NULL)))
-            vorbis_comment_add_tag(&vc, "comment", (gchar *) scratch);
+        add_string_from_tuple (& vc, "title", tuple, FIELD_TITLE);
+        add_string_from_tuple (& vc, "artist", tuple, FIELD_ARTIST);
+        add_string_from_tuple (& vc, "album", tuple, FIELD_ALBUM);
+        add_string_from_tuple (& vc, "genre", tuple, FIELD_GENRE);
+        add_string_from_tuple (& vc, "date", tuple, FIELD_DATE);
+        add_string_from_tuple (& vc, "comment", tuple, FIELD_COMMENT);
 
         if ((scrint = tuple_get_int(tuple, FIELD_TRACK_NUMBER, NULL)))
         {
@@ -205,23 +212,16 @@ static void vorbis_close(void)
 /* configuration stuff */
 static GtkWidget *configure_win = NULL;
 static GtkWidget *quality_frame, *quality_vbox, *quality_hbox1, *quality_spin, *quality_label;
-static GtkObject *quality_adj;
+static GtkAdjustment * quality_adj;
 
 static void quality_change(GtkAdjustment *adjustment, gpointer user_data)
 {
-    if (gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(quality_spin)))
-        v_base_quality = gtk_spin_button_get_value_as_float(GTK_SPIN_BUTTON(quality_spin)) / 10;
-    else
-        v_base_quality = 0.0;
+    v_base_quality = gtk_spin_button_get_value ((GtkSpinButton *) quality_spin) / 10;
 }
 
 static void configure_ok_cb(gpointer data)
 {
-    mcs_handle_t *db = aud_cfg_db_open();
-
-    aud_cfg_db_set_float(db, "filewrite_vorbis", "base_quality", v_base_quality);
-
-    aud_cfg_db_close(db);
+    aud_set_double ("filewrite_vorbis", "base_quality", v_base_quality);
 
     gtk_widget_hide(configure_win);
 }
@@ -261,7 +261,7 @@ static void vorbis_configure(void)
         gtk_misc_set_alignment(GTK_MISC(quality_label), 0, 0.5);
         gtk_box_pack_start(GTK_BOX(quality_hbox1), quality_label, TRUE, TRUE, 0);
 
-        quality_adj = gtk_adjustment_new(5, 0, 10, 0.1, 1, 1);
+        quality_adj = (GtkAdjustment *) gtk_adjustment_new (5, 0, 10, 0.1, 1, 0);
         quality_spin = gtk_spin_button_new(GTK_ADJUSTMENT(quality_adj), 1, 2);
         gtk_box_pack_start(GTK_BOX(quality_hbox1), quality_spin, TRUE, TRUE, 0);
         g_signal_connect(G_OBJECT(quality_adj), "value-changed", G_CALLBACK(quality_change), NULL);
@@ -271,17 +271,16 @@ static void vorbis_configure(void)
         /* buttons */
         bbox = gtk_hbutton_box_new();
         gtk_button_box_set_layout(GTK_BUTTON_BOX(bbox), GTK_BUTTONBOX_END);
-        gtk_button_box_set_spacing(GTK_BUTTON_BOX(bbox), 5);
         gtk_box_pack_start(GTK_BOX(vbox), bbox, FALSE, FALSE, 0);
 
         button = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-        g_signal_connect_swapped(G_OBJECT(button), "clicked", G_CALLBACK(gtk_widget_hide), GTK_OBJECT(configure_win));
+        g_signal_connect_swapped (button, "clicked", (GCallback)
+         gtk_widget_hide, configure_win);
         gtk_box_pack_start(GTK_BOX(bbox), button, TRUE, TRUE, 0);
 
         button = gtk_button_new_from_stock(GTK_STOCK_OK);
         g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(configure_ok_cb), NULL);
         gtk_box_pack_start(GTK_BOX(bbox), button, TRUE, TRUE, 0);
-        gtk_widget_grab_default(button);
     }
 
     gtk_widget_show_all(configure_win);

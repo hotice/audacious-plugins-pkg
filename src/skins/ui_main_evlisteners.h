@@ -20,16 +20,15 @@
 
 #include <glib.h>
 
-#ifndef AUDACIOUS_UI_MAIN_EVLISTENERS_H
-#define AUDACIOUS_UI_MAIN_EVLISTENERS_H
+#ifndef SKINS_UI_MAIN_EVLISTENERS_H
+#define SKINS_UI_MAIN_EVLISTENERS_H
 
 void ui_main_evlistener_init(void);
 void ui_main_evlistener_dissociate(void);
 
 void ui_main_evlistener_playback_begin (void * hook_data, void * user_data);
 void ui_main_evlistener_playback_pause (void * hook_data, void * user_data);
-void info_change (void);
 
 void start_stop_visual (gboolean exiting);
 
-#endif /* AUDACIOUS_UI_MAIN_EVLISTENERS_H */
+#endif /* SKINS_UI_MAIN_EVLISTENERS_H */

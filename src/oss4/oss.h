@@ -1,20 +1,20 @@
 /*
- * OSS4 Output Plugin for Audacious
- * Copyright 2010 Michał Lipski <tallica@o2.pl>
+ * oss.h
+ * Copyright 2010-2011 Michał Lipski <tallica@o2.pl>
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
  *
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
+ * the use of this software.
  */
 
 #ifndef AUDACIOUS_OSS4_H
@@ -22,9 +22,12 @@
 
 #include "config.h"
 
+#include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <glib.h>
 #include <errno.h>
+#include <string.h>
 #include <sys/ioctl.h>
 
 #ifdef HAVE_SYS_SOUNDCARD_H
@@ -36,33 +39,47 @@
 #include <audacious/plugin.h>
 #include <audacious/i18n.h>
 #include <audacious/debug.h>
+#include <audacious/misc.h>
 
-#define ERROR(...) fprintf(stderr, "OSS4: " __VA_ARGS__)
-
-#ifdef DEBUG
-    #define DEBUG_MSG \
-    do { \
-        oss_message = oss_describe_error(); \
-        AUDDBG("%s", oss_message); \
-        g_free(oss_message); \
-    } while (0)
-#else
-    #define DEBUG_MSG do { } while (0)
-#endif
-
-#define ERROR_MSG \
+#define ERROR(...) \
 do { \
-    oss_message = oss_describe_error(); \
-    ERROR("%s", oss_message); \
-    g_free(oss_message); \
+    fprintf(stderr, "OSS4 %s:%d [%s]: ", __FILE__, __LINE__, __FUNCTION__); \
+    fprintf(stderr, __VA_ARGS__); \
 } while (0)
 
-#define SHOW_ERROR_MSG \
+#define ERROR_NOISY(...) \
 do { \
-    oss_message = oss_describe_error(); \
-    oss_show_error(oss_message); \
-    ERROR("%s", oss_message); \
-    g_free(oss_message); \
+    oss_error(__VA_ARGS__); \
+    ERROR(__VA_ARGS__); \
+} while (0) \
+
+#define DESCRIBE_ERROR ERROR("%s\n", oss_describe_error())
+#define DESCRIBE_ERROR_NOISY ERROR_NOISY("%s\n", oss_describe_error())
+
+#define CHECK(function, ...) \
+do { \
+    int error = function(__VA_ARGS__); \
+    if (error < 0) { \
+        DESCRIBE_ERROR; \
+        goto FAILED; \
+    } \
+} while (0)
+
+#define CHECK_NOISY(function, ...) \
+do { \
+    int error = function(__VA_ARGS__); \
+    if (error < 0) { \
+        DESCRIBE_ERROR_NOISY; \
+        goto FAILED; \
+    } \
+} while (0)
+
+#define CHECK_VAL(value, function, ...) \
+do { \
+    if (!(value)) { \
+        function(__VA_ARGS__); \
+        goto FAILED; \
+    } \
 } while (0)
 
 #define DEFAULT_MIXER "/dev/mixer"
@@ -77,39 +94,25 @@ typedef struct
     gint bits_per_sample;
 } oss_data_t;
 
-typedef struct
-{
-    gchar *device;
-    gboolean use_alt_device;
-    gchar *alt_device;
-    gint volume;
-    gboolean save_volume;
-    gboolean cookedmode;
-} oss_cfg_t;
-
 extern oss_data_t *oss_data;
-extern oss_cfg_t *oss_cfg;
-extern gchar *oss_message;
 
 /* oss.c */
-OutputPluginInitStatus oss_init(void);
+gboolean oss_init(void);
 void oss_cleanup(void);
 gint oss_open_audio(gint aud_format, gint rate, gint channels);
 void oss_close_audio(void);
 void oss_write_audio(void *data, gint length);
-gint oss_buffer_playing(void);
+void oss_drain(void);
 gint oss_buffer_free(void);
 void oss_set_written_time(gint time);
 gint oss_written_time(void);
 gint oss_output_time(void);
 void oss_flush(gint time);
-void oss_pause(gshort pause);
+void oss_pause(gboolean pause);
 void oss_get_volume(gint *left, gint *right);
 void oss_set_volume(gint left, gint right);
 
 /* configure.c */
-void oss_config_load(void);
-void oss_config_save(void);
 void oss_configure(void);
 
 /* plugin.c */
@@ -123,7 +126,9 @@ gint oss_frames_to_bytes(gint frames);
 gint oss_bytes_to_frames(gint bytes);
 gint oss_calc_bitrate(void);
 gchar *oss_describe_error(void);
+gint oss_probe_for_adev(oss_sysinfo *sysinfo);
 gboolean oss_hardware_present(void);
-void oss_show_error(const gchar *message);
+gint oss_show_error(gpointer message);
+void oss_error(const gchar *format, ...);
 
 #endif

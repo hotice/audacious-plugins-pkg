@@ -2,7 +2,9 @@
  * some functions for MP4 files
 */
 
-#include "config.h"
+#include <glib.h>
+#include <stdlib.h>
+
 #include "mp4ff.h"
 #include "neaacdec.h"
 #include <audacious/plugin.h>
@@ -35,21 +37,22 @@ const gchar *mpeg4AudioNames[] = {
 };
 
 
-gint getAACTrack(mp4ff_t *infile)
+gint getAACTrack (mp4ff_t * infile)
 {
-    gint i, rc, numTracks = mp4ff_total_tracks(infile);
+    gint i, rc, numTracks = mp4ff_total_tracks (infile);
     for (i = 0; i < numTracks; i++)
     {
         guint8 *buff = NULL;
         guint32 buff_size = 0;
         mp4AudioSpecificConfig mp4ASC;
 
-        mp4ff_get_decoder_config(infile, i, &buff, &buff_size);
+        mp4ff_get_decoder_config (infile, i, &buff, &buff_size);
         if (buff != NULL)
         {
-            rc = AudioSpecificConfig(buff, buff_size, &mp4ASC);
-            free(buff);
-            if (rc < 0) continue;
+            rc = AudioSpecificConfig (buff, buff_size, &mp4ASC);
+            free (buff);
+            if (rc < 0)
+                continue;
             return i;
         }
     }

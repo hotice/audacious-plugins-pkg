@@ -20,58 +20,21 @@
  *  Audacious or using our public API to be a derived work.
  */
 
-#ifndef AUDACIOUS_UI_PLAYLIST_H
-#define AUDACIOUS_UI_PLAYLIST_H
+#ifndef SKINS_UI_PLAYLIST_H
+#define SKINS_UI_PLAYLIST_H
 
-#include <glib.h>
+#include <gtk/gtk.h>
 
-#include "ui_main.h"
-#include <audacious/plugin.h>
-#include "skins_cfg.h"
-
-#define PLAYLISTWIN_FRAME_TOP_HEIGHT    20
-#define PLAYLISTWIN_FRAME_BOTTOM_HEIGHT 38
-#define PLAYLISTWIN_FRAME_LEFT_WIDTH    12
-#define PLAYLISTWIN_FRAME_RIGHT_WIDTH   19
-
-#define PLAYLISTWIN_MIN_WIDTH           MAINWIN_WIDTH
-#define PLAYLISTWIN_MIN_HEIGHT          MAINWIN_HEIGHT
-#define PLAYLISTWIN_WIDTH_SNAP          25
-#define PLAYLISTWIN_HEIGHT_SNAP         29
-#define PLAYLISTWIN_SHADED_HEIGHT       MAINWIN_SHADED_HEIGHT
-#define PLAYLISTWIN_WIDTH               config.playlist_width
-#define PLAYLISTWIN_HEIGHT \
-    (config.playlist_shaded ? PLAYLISTWIN_SHADED_HEIGHT : config.playlist_height)
-
-#define PLAYLISTWIN_DEFAULT_WIDTH       275
-#define PLAYLISTWIN_DEFAULT_HEIGHT      232
-#define PLAYLISTWIN_DEFAULT_POS_X       295
-#define PLAYLISTWIN_DEFAULT_POS_Y       20
-
-#define PLAYLISTWIN_DEFAULT_FONT        "Sans Bold 8"
-
-gboolean playlistwin_is_shaded(void);
-gint playlistwin_get_width(void);
-gint playlistwin_get_height(void);
 void playlistwin_update (void);
-void playlistwin_set_toprow(gint top);
-void playlistwin_set_shade_menu_cb(gboolean shaded);
-void playlistwin_set_shade(gboolean shaded);
-void playlistwin_shade_toggle(void);
 void playlistwin_create(void);
 void playlistwin_unhook (void);
 void playlistwin_hide_timer(void);
 void playlistwin_set_time (const gchar * minutes, const gchar * seconds);
 void playlistwin_show (char show);
-void playlistwin_select_playlist_to_load(const gchar * default_filename);
-void playlistwin_set_sinfo_font(gchar *font);
-void playlistwin_set_sinfo_scroll(gboolean scroll);
-gint playlistwin_list_get_visible_count(void);
-gint playlistwin_list_get_first(void);
 
 extern gint active_playlist;
 extern gchar * active_title;
 extern glong active_length;
-extern GtkWidget * playlistwin, * playlistwin_list;
+extern GtkWidget * playlistwin, * playlistwin_list, * playlistwin_sinfo;
 
-#endif /* AUDACIOUS_UI_PLAYLIST_H */
+#endif /* SKINS_UI_PLAYLIST_H */

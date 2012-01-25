@@ -1,5 +1,5 @@
 /*  Audacious
- *  Copyright (C) 2005-2007  Audacious development team.
+ *  Copyright (C) 2005-2011  Audacious development team.
  *
  *  BMP - Cross-platform multimedia player
  *  Copyright (C) 2003-2004  BMP development team.
@@ -26,12 +26,16 @@
 #ifndef SKIN_H
 #define SKIN_H
 
-#include <glib.h>
-#include <gdk/gdk.h>
 #include <gtk/gtk.h>
 
-#define BMP_DEFAULT_SKIN_PATH \
-  DATA_DIR G_DIR_SEPARATOR_S "Skins" G_DIR_SEPARATOR_S "Default"
+#if GTK_CHECK_VERSION (3, 0, 0)
+#define MASK_IS_REGION
+#endif
+
+#define COLOR(r,g,b) (((guint32) (r) << 16) | ((guint32) (g) << 8) | (guint32) (b))
+#define COLOR_R(c) ((gint) (((c) & 0xff0000) >> 16))
+#define COLOR_G(c) ((gint) (((c) & 0xff00) >> 8))
+#define COLOR_B(c) ((gint) ((c) & 0xff))
 
 typedef enum {
     SKIN_MAIN = 0,
@@ -69,177 +73,138 @@ typedef enum {
     SKIN_COLOR_COUNT
 } SkinColorId;
 
-typedef struct _SkinProperties {
-	/* this enables the othertext engine, not it's visibility -nenolod */
-	gboolean mainwin_othertext;
+typedef struct {
+    /* Vis properties */
+    gint mainwin_vis_x;
+    gint mainwin_vis_y;
+    gboolean mainwin_vis_visible;
 
-	/* Vis properties */
-	gint mainwin_vis_x;
-	gint mainwin_vis_y;
-	gint mainwin_vis_width;
-	gboolean mainwin_vis_visible;
+    /* Text properties */
+    gint mainwin_text_x;
+    gint mainwin_text_y;
+    gint mainwin_text_width;
+    gboolean mainwin_text_visible;
 
-	/* Text properties */
-	gint mainwin_text_x;
-	gint mainwin_text_y;
-	gint mainwin_text_width;
-	gboolean mainwin_text_visible;
+    /* Infobar properties */
+    gint mainwin_infobar_x;
+    gint mainwin_infobar_y;
+    gboolean mainwin_othertext_visible;
 
-	/* Infobar properties */
-	gint mainwin_infobar_x;
-	gint mainwin_infobar_y;
-	gboolean mainwin_othertext_visible;
+    gint mainwin_number_0_x;
+    gint mainwin_number_0_y;
 
-	gint mainwin_number_0_x;
-	gint mainwin_number_0_y;
+    gint mainwin_number_1_x;
+    gint mainwin_number_1_y;
 
-	gint mainwin_number_1_x;
-	gint mainwin_number_1_y;
+    gint mainwin_number_2_x;
+    gint mainwin_number_2_y;
 
-	gint mainwin_number_2_x;
-	gint mainwin_number_2_y;
+    gint mainwin_number_3_x;
+    gint mainwin_number_3_y;
 
-	gint mainwin_number_3_x;
-	gint mainwin_number_3_y;
+    gint mainwin_number_4_x;
+    gint mainwin_number_4_y;
 
-	gint mainwin_number_4_x;
-	gint mainwin_number_4_y;
+    gint mainwin_playstatus_x;
+    gint mainwin_playstatus_y;
 
-	gint mainwin_playstatus_x;
-	gint mainwin_playstatus_y;
+    gint mainwin_volume_x;
+    gint mainwin_volume_y;
 
-	gint mainwin_volume_x;
-	gint mainwin_volume_y;	
+    gint mainwin_balance_x;
+    gint mainwin_balance_y;
 
-	gint mainwin_balance_x;
-	gint mainwin_balance_y;	
+    gint mainwin_position_x;
+    gint mainwin_position_y;
 
-	gint mainwin_position_x;
-	gint mainwin_position_y;
+    gint mainwin_previous_x;
+    gint mainwin_previous_y;
 
-	gint mainwin_previous_x;
-	gint mainwin_previous_y;
+    gint mainwin_play_x;
+    gint mainwin_play_y;
 
-	gint mainwin_play_x;
-	gint mainwin_play_y;
+    gint mainwin_pause_x;
+    gint mainwin_pause_y;
 
-	gint mainwin_pause_x;
-	gint mainwin_pause_y;
+    gint mainwin_stop_x;
+    gint mainwin_stop_y;
 
-	gint mainwin_stop_x;
-	gint mainwin_stop_y;
+    gint mainwin_next_x;
+    gint mainwin_next_y;
 
-	gint mainwin_next_x;
-	gint mainwin_next_y;
+    gint mainwin_eject_x;
+    gint mainwin_eject_y;
 
-	gint mainwin_eject_x;
-	gint mainwin_eject_y;
+    gint mainwin_eqbutton_x;
+    gint mainwin_eqbutton_y;
 
-	gint mainwin_eqbutton_x;
-	gint mainwin_eqbutton_y;
+    gint mainwin_plbutton_x;
+    gint mainwin_plbutton_y;
 
-	gint mainwin_plbutton_x;
-	gint mainwin_plbutton_y;
+    gint mainwin_shuffle_x;
+    gint mainwin_shuffle_y;
 
-	gint mainwin_shuffle_x;
-	gint mainwin_shuffle_y;
+    gint mainwin_repeat_x;
+    gint mainwin_repeat_y;
 
-	gint mainwin_repeat_x;
-	gint mainwin_repeat_y;
+    gint mainwin_about_x;
+    gint mainwin_about_y;
 
-	gint mainwin_about_x;
-	gint mainwin_about_y;
+    gint mainwin_minimize_x;
+    gint mainwin_minimize_y;
 
-	gint mainwin_minimize_x;
-	gint mainwin_minimize_y;
+    gint mainwin_shade_x;
+    gint mainwin_shade_y;
 
-	gint mainwin_shade_x;
-	gint mainwin_shade_y;
+    gint mainwin_close_x;
+    gint mainwin_close_y;
 
-	gint mainwin_close_x;
-	gint mainwin_close_y;
+    gint mainwin_width;
+    gint mainwin_height;
 
-	gint mainwin_width;
-	gint mainwin_height;
+    gboolean mainwin_menurow_visible;
+    gboolean mainwin_streaminfo_visible;
+    gboolean mainwin_othertext_is_status;
 
-	gboolean mainwin_menurow_visible;
-	gboolean mainwin_othertext_is_status;
-
-	gint textbox_bitmap_font_width;
-	gint textbox_bitmap_font_height;
+    gint textbox_bitmap_font_width;
+    gint textbox_bitmap_font_height;
 } SkinProperties;
 
-#define SKIN_PIXMAP(x)  ((SkinPixmap *)(x))
-typedef struct _SkinPixmap {
-    GdkPixbuf *pixbuf;
-
-    /* The real size of the pixmap */
-    gint width, height;
-
-    /* The size of the pixmap from the current skin,
-       which might be smaller */
-    gint current_width, current_height;
-} SkinPixmap;
-
-
-#define SKIN(x)  ((Skin *)(x))
-typedef struct _Skin {
-    GMutex *lock;
+typedef struct {
     gchar *path;
-    gchar *def_path;
-    SkinPixmap pixmaps[SKIN_PIXMAP_COUNT];
-    GdkColor textbg[6], def_textbg[6];
-    GdkColor textfg[6], def_textfg[6];
-    GdkColor *colors[SKIN_COLOR_COUNT];
-    guchar vis_color[24][3];
-    GdkBitmap *masks[SKIN_MASK_COUNT];
-    GdkBitmap *scaled_masks[SKIN_MASK_COUNT];
+    cairo_surface_t * pixmaps[SKIN_PIXMAP_COUNT];
+    guint32 colors[SKIN_COLOR_COUNT];
+    guint32 vis_colors[24];
+#ifdef MASK_IS_REGION
+    cairo_region_t * masks[SKIN_MASK_COUNT];
+#else
+    GdkBitmap * masks[SKIN_MASK_COUNT];
+#endif
     SkinProperties properties;
 } Skin;
 
-extern Skin *aud_active_skin;
+extern Skin * active_skin;
 
 gboolean init_skins(const gchar * path);
 void cleanup_skins(void);
 
-gboolean aud_active_skin_load(const gchar * path);
-gboolean aud_active_skin_reload(void);
+gboolean active_skin_load(const gchar * path);
 
-Skin *skin_new(void);
-gboolean skin_load(Skin * skin, const gchar * path);
-gboolean skin_reload_forced(void);
-void skin_reload(Skin * skin);
-void skin_free(Skin * skin);
-void skin_destroy(Skin * skin);
-
-GdkBitmap *skin_get_mask(Skin * skin, SkinMaskId mi);
-GdkColor *skin_get_color(Skin * skin, SkinColorId color_id);
-
-void skin_get_viscolor(Skin * skin, guchar vis_color[24][3]);
-gint skin_get_id(void);
-void skin_draw_pixbuf(GtkWidget *widget, Skin * skin, GdkPixbuf * pix,
-                 SkinPixmapId pixmap_id,
-                 gint xsrc, gint ysrc, gint xdest, gint ydest,
-                 gint width, gint height);
+void skin_draw_pixbuf (cairo_t * cr, SkinPixmapId id, gint xsrc, gint ysrc,
+ gint xdest, gint ydest, gint width, gint height);
 
 void skin_get_eq_spline_colors(Skin * skin, guint32 colors[19]);
 void skin_install_skin(const gchar * path);
 
-void skin_draw_playlistwin_shaded(Skin * skin, GdkPixbuf * pix,
-                                  gint width, gboolean focus);
-void skin_draw_playlistwin_frame(Skin * skin, GdkPixbuf * pix,
-                                 gint width, gint height, gboolean focus);
+void skin_draw_playlistwin_shaded (cairo_t * cr, gint width, gboolean focus);
+void skin_draw_playlistwin_frame (cairo_t * cr, gint width, gint height,
+ gboolean focus);
+void skin_draw_mainwin_titlebar (cairo_t * cr, gboolean shaded, gboolean focus);
 
-void skin_draw_mainwin_titlebar(Skin * skin, GdkPixbuf * pix,
-                                gboolean shaded, gboolean focus);
-
-
-void skin_parse_hints(Skin * skin, gchar *path_p);
-
-
-void skin_set_random_skin(void);
-
-void ui_skinned_widget_draw_with_coordinates(GtkWidget *widget, GdkPixbuf *obj, gint width, gint height, gint destx, gint desty, gboolean scale);
-void ui_skinned_widget_draw(GtkWidget *widget, GdkPixbuf *obj, gint width, gint height, gboolean scale);
+static inline void set_cairo_color (cairo_t * cr, guint32 c)
+{
+    cairo_set_source_rgb (cr, COLOR_R(c) / 255.0, COLOR_G(c) / 255.0, COLOR_B(c)
+     / 255.0);
+}
 
 #endif

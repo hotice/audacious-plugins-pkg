@@ -18,44 +18,52 @@
  * Audacious or using our public API to be a derived work.
  */
 
+#include <stdlib.h>
 
-#include "plugin.h"
-#include "skins_cfg.h"
-#include "ui_dock.h"
-#include "ui_equalizer.h"
-#include "ui_main.h"
-#include "ui_skin.h"
-#include "ui_manager.h"
-#include "ui_main_evlisteners.h"
-#include "ui_playlist_evlisteners.h"
-
-#include <audacious/audconfig.h>
 #include <audacious/drct.h>
 #include <audacious/i18n.h>
+#include <audacious/plugin.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 
-#include <libintl.h>
+#include "config.h"
+#include "plugin.h"
+#include "skins_cfg.h"
+#include "ui_equalizer.h"
+#include "ui_main.h"
+#include "ui_main_evlisteners.h"
+#include "ui_manager.h"
+#include "ui_playlist.h"
+#include "ui_skin.h"
 
 gchar * skins_paths[SKINS_PATH_COUNT];
 
-Interface skins_interface =
-{
-    .id = "skinned",
-    .desc = "Winamp Classic Interface",
-    .init = skins_init,
-    .fini = skins_cleanup
-};
+static gboolean skins_init (void);
+static void skins_cleanup (void);
+static void skins_about (void);
+static gboolean ui_is_shown (void);
+static gboolean ui_is_focused (void);
+static void show_error_message (const gchar * text);
 
-SIMPLE_INTERFACE_PLUGIN ("skinned", & skins_interface)
-gboolean plugin_is_active = FALSE;
+AUD_IFACE_PLUGIN
+(
+    .name = "Winamp Classic Interface",
+    .init = skins_init,
+    .cleanup = skins_cleanup,
+    .about = skins_about,
+    .configure = skins_configure,
+    .show = mainwin_show,
+    .is_shown = ui_is_shown,
+    .is_focused = ui_is_focused,
+    .show_error = show_error_message,
+    .show_filebrowser = audgui_run_filebrowser,
+    .show_jump_to_track = audgui_jump_to_track,
+)
+
+static gboolean plugin_is_active = FALSE;
 
 static gint update_source;
-
-static void toggle_visibility(void);
-static void toggle_shuffle(void);
-static void toggle_repeat(void);
-static void show_error_message(const gchar * markup);
+static GtkWidget * error_win;
 
 static void skins_free_paths(void) {
     int i;
@@ -92,15 +100,13 @@ static gboolean update_cb (void * unused)
     return TRUE;
 }
 
-gboolean skins_init (InterfaceCbs * cbs)
+static gboolean skins_init (void)
 {
     plugin_is_active = TRUE;
     g_log_set_handler(NULL, G_LOG_LEVEL_WARNING, g_log_default_handler, NULL);
 
     skins_init_paths();
     skins_cfg_load();
-
-    ui_main_check_theme_engine();
 
     audgui_set_default_icon();
     audgui_register_stock_icons();
@@ -114,32 +120,13 @@ gboolean skins_init (InterfaceCbs * cbs)
     if (aud_drct_get_playing ())
     {
         ui_main_evlistener_playback_begin (NULL, NULL);
-        info_change ();
-
         if (aud_drct_get_paused ())
             ui_main_evlistener_playback_pause (NULL, NULL);
     }
     else
         mainwin_update_song_info ();
 
-    if (config.player_visible)
-       mainwin_show (1);
-    if (config.equalizer_visible) equalizerwin_show(TRUE);
-    if (config.playlist_visible)
-       playlistwin_show (1);
-
-    /* Register interface callbacks */
-    cbs->show_prefs_window = show_preferences_window;
-    cbs->run_filebrowser = audgui_run_filebrowser;
-    cbs->hide_filebrowser = audgui_hide_filebrowser;
-    cbs->toggle_visibility = toggle_visibility;
-    cbs->show_error = show_error_message;
-    cbs->show_jump_to_track = audgui_jump_to_track;
-    cbs->hide_jump_to_track = audgui_jump_to_track_hide;
-    cbs->show_about_window = audgui_show_about_window;
-    cbs->hide_about_window = audgui_hide_about_window;
-    cbs->toggle_shuffle = toggle_shuffle;
-    cbs->toggle_repeat = toggle_repeat;
+    mainwin_show (config.player_visible);
 
     eq_init_hooks ();
     update_source = g_timeout_add (250, update_cb, NULL);
@@ -147,10 +134,12 @@ gboolean skins_init (InterfaceCbs * cbs)
     return TRUE;
 }
 
-gboolean skins_cleanup (void)
+static void skins_cleanup (void)
 {
     if (plugin_is_active)
     {
+        skins_configure_cleanup ();
+
         mainwin_unhook ();
         playlistwin_unhook ();
         eq_end_hooks ();
@@ -158,20 +147,19 @@ gboolean skins_cleanup (void)
 
         skins_cfg_save();
 
-        audgui_playlist_manager_destroy();
-
         cleanup_skins();
-        clear_dock_window_list ();
         skins_free_paths();
         skins_cfg_free();
         ui_manager_destroy();
+
+        if (error_win)
+            gtk_widget_destroy (error_win);
+
         plugin_is_active = FALSE;
     }
-
-    return TRUE;
 }
 
-void skins_about (void)
+static void skins_about (void)
 {
     static GtkWidget * about_window = NULL;
 
@@ -180,85 +168,24 @@ void skins_about (void)
      _("Copyright (c) 2008, by Tomasz Moń <desowin@gmail.com>\n\n"));
 }
 
-void show_preferences_window(gboolean show) {
-    /* static GtkWidget * * prefswin = NULL; */
-    static void * * prefswin = NULL;
-
-    if (show) {
-        if ((prefswin != NULL) && (*prefswin != NULL)) {
-            gtk_window_present(GTK_WINDOW(*prefswin));
-            return;
-        }
-        GtkWidget *cfgdlg;
-
-        prefswin = skins_interface.ops->create_prefs_window();
-        cfgdlg = skins_configure();
-        skins_interface.ops->prefswin_page_new(cfgdlg, _("Skinned Interface"), DATA_DIR "/images/appearance.png");
-
-        gtk_widget_show_all(*prefswin);
-    } else {
-        if ((prefswin != NULL) && (*prefswin != NULL)) {
-            skins_interface.ops->destroy_prefs_window();
-        }
-    }
-}
-
-static void toggle_visibility(void)
+static gboolean ui_is_shown (void)
 {
-    /* use the window visibility status to toggle show/hide
-       (if at least one is visible, hide) */
-    if ((config.player_visible == TRUE ) ||
-        (config.equalizer_visible == TRUE) ||
-        (config.playlist_visible == TRUE))
-    {
-        /* remember the visibility status of the player windows */
-        config.player_visible_prev = config.player_visible;
-        config.equalizer_visible_prev = config.equalizer_visible;
-        config.playlist_visible_prev = config.playlist_visible;
-        /* now hide all of them */
-        if (config.player_visible_prev == TRUE)
-            mainwin_show(FALSE);
-        if (config.equalizer_visible_prev == TRUE)
-            equalizerwin_show(FALSE);
-        if (config.playlist_visible_prev == TRUE)
-            playlistwin_show(FALSE);
-    }
-    else
-    {
-        /* show the windows that were visible before */
-        if (config.player_visible_prev == TRUE)
-            mainwin_show(TRUE);
-        if (config.equalizer_visible_prev == TRUE)
-            equalizerwin_show(TRUE);
-        if (config.playlist_visible_prev == TRUE)
-            playlistwin_show(TRUE);
-    }
+    return config.player_visible;
 }
 
-static void toggle_shuffle(void)
+static gboolean ui_is_focused (void)
 {
-    mainwin_shuffle_pushed(aud_cfg->shuffle);
+/* gtk_window_is_active() is too unreliable, unfortunately. --jlindgren */
+#if 0
+    return gtk_window_is_active ((GtkWindow *) mainwin) || gtk_window_is_active
+     ((GtkWindow *) equalizerwin) || gtk_window_is_active ((GtkWindow *)
+     playlistwin);
+#else
+    return ui_is_shown ();
+#endif
 }
 
-static void toggle_repeat(void)
+static void show_error_message (const gchar * text)
 {
-    mainwin_repeat_pushed(aud_cfg->repeat);
+    audgui_simple_message (& error_win, GTK_MESSAGE_ERROR, _("Error"), _(text));
 }
-
-static void show_error_message(const gchar * markup)
-{
-    GtkWidget *dialog =
-        gtk_message_dialog_new_with_markup(GTK_WINDOW(mainwin),
-                                           GTK_DIALOG_DESTROY_WITH_PARENT,
-                                           GTK_MESSAGE_ERROR,
-                                           GTK_BUTTONS_OK,
-                                           "%s",_(markup));
-
-    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-    gtk_widget_show(GTK_WIDGET(dialog));
-
-    g_signal_connect_swapped(dialog, "response",
-                             G_CALLBACK(gtk_widget_destroy),
-                             dialog);
-}
-

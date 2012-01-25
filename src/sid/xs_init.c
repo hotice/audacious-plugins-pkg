@@ -1,8 +1,8 @@
-/*  
+/*
    XMMS-SID - SIDPlay input plugin for X MultiMedia System (XMMS)
 
    Plugin initialization point
-   
+
    Programmed and designed by Matti 'ccr' Hamalainen <ccr@tnsp.org>
    (C) Copyright 1999-2007 Tecnic Software productions (TNSP)
 
@@ -22,30 +22,19 @@
 */
 #include "xmms-sid.h"
 #include "xs_config.h"
-#include "xs_fileinfo.h"
 
 static const gchar *xs_sid_fmts[] = { "sid", "psid", NULL };
 
-
-InputPlugin xs_plugin_ip = {
-    .description = XS_PACKAGE_STRING,   /* Plugin description */
+AUD_INPUT_PLUGIN
+(
+    .name = XS_PACKAGE_STRING,          /* Plugin description */
     .init = xs_init,                    /* Initialization */
     .cleanup = xs_close,                /* Cleanup */
-    .about = xs_about,                  /* Show aboutbox */
-    .configure = xs_configure,          /* Show/edit configuration */
-
-    .play = xs_play_file,          /* Play given file */
+    .play = xs_play_file,               /* Play given file */
     .stop = xs_stop,                    /* Stop playing */
     .pause = xs_pause,                  /* Pause playing */
-
-    .file_info_box = xs_fileinfo,       /* Show file-information dialog */
-
-    .get_song_tuple = xs_get_song_tuple,/* Get Tuple */
-    .vfs_extensions = xs_sid_fmts,      /* File ext assist */
     .probe_for_tuple = xs_probe_for_tuple,
+
+    .extensions = xs_sid_fmts,          /* File ext assist */
     .have_subtune = TRUE
-};
-
-static InputPlugin *sid_iplist[] = { &xs_plugin_ip, NULL };
-
-SIMPLE_INPUT_PLUGIN(sid, sid_iplist);
+)

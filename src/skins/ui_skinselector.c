@@ -1,53 +1,43 @@
-/*  BMP - Cross-platform multimedia player
- *  Copyright (C) 2003-2004  BMP development team.
+/*
+ * ui_skinselector.c
+ * Copyright 1998-2003 XMMS Development Team
+ * Copyright 2003-2004 BMP Development Team
+ * Copyright 2011 John Lindgren
  *
- *  Based on XMMS:
- *  Copyright (C) 1998-2003  XMMS development team.
+ * This file is part of Audacious.
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; under version 3 of the License.
+ * Audacious is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, version 2 or version 3 of the License.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * Audacious is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses>.
+ * You should have received a copy of the GNU General Public License along with
+ * Audacious. If not, see <http://www.gnu.org/licenses/>.
  *
- *  The Audacious team does not consider modular code linking to
- *  Audacious or using our public API to be a derived work.
+ * The Audacious team does not consider modular code linking to Audacious or
+ * using our public API to be a derived work.
  */
-
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
-
-#include "ui_skinselector.h"
-
-#include <glib.h>
-#include <gtk/gtk.h>
-
-#include "platform/smartinclude.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 #include <audacious/i18n.h>
+#include <audacious/misc.h>
+#include <libaudgui/libaudgui-gtk.h>
 
+#include "config.h"
 #include "plugin.h"
 #include "ui_skin.h"
+#include "ui_skinselector.h"
 #include "util.h"
 
 #define EXTENSION_TARGETS 7
 
 static gchar *ext_targets[EXTENSION_TARGETS] = { "bmp", "xpm", "png", "svg",
         "gif", "jpg", "jpeg" };
-
-#define THUMBNAIL_WIDTH  90
-#define THUMBNAIL_HEIGHT 40
-
 
 enum SkinViewCols {
     SKIN_VIEW_COL_PREVIEW,
@@ -56,10 +46,14 @@ enum SkinViewCols {
     SKIN_VIEW_N_COLS
 };
 
+typedef struct {
+    gchar *name;
+    gchar *desc;
+    gchar *path;
+    GTime *time;
+} SkinNode;
 
-GList *skinlist = NULL;
-
-
+static GList *skinlist = NULL;
 
 static gchar *
 get_thumbnail_filename(const gchar * path)
@@ -124,41 +118,30 @@ skin_get_preview(const gchar * path)
     return preview;
 }
 
-
-static GdkPixbuf *
-skin_get_thumbnail(const gchar * path)
+static GdkPixbuf * skin_get_thumbnail (const gchar * path)
 {
-    GdkPixbuf *scaled = NULL;
-    GdkPixbuf *preview;
-    gchar *thumbname;
+    gchar * thumbname = get_thumbnail_filename (path);
+    GdkPixbuf * thumb = NULL;
 
-    g_return_val_if_fail(path != NULL, NULL);
-
-    if (g_str_has_suffix(path, "thumbs"))
-        return NULL;
-
-    thumbname = get_thumbnail_filename(path);
-
-    if (g_file_test(thumbname, G_FILE_TEST_EXISTS)) {
-        scaled = gdk_pixbuf_new_from_file(thumbname, NULL);
-        g_free(thumbname);
-        return scaled;
+    if (g_file_test (thumbname, G_FILE_TEST_EXISTS))
+    {
+        thumb = gdk_pixbuf_new_from_file (thumbname, NULL);
+        if (thumb)
+            goto DONE;
     }
 
-    if (!(preview = skin_get_preview(path))) {
-        g_free(thumbname);
-        return NULL;
-    }
+    thumb = skin_get_preview (path);
+    if (! thumb)
+        goto DONE;
 
-    scaled = gdk_pixbuf_scale_simple(preview,
-                                     THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT,
-                                     GDK_INTERP_BILINEAR);
-    g_object_unref(preview);
+    audgui_pixbuf_scale_within (& thumb, 128);
 
-    gdk_pixbuf_save(scaled, thumbname, "png", NULL, NULL);
-    g_free(thumbname);
+    if (thumb)
+        gdk_pixbuf_save (thumb, thumbname, "png", NULL, NULL);
 
-    return scaled;
+DONE:
+    g_free (thumbname);
+    return thumb;
 }
 
 static void
@@ -219,20 +202,20 @@ scan_skindir(const gchar * path)
     }
 }
 
-static gint
-skinlist_compare_func(gconstpointer a, gconstpointer b)
+static gint skinlist_compare_func (const void * _a, const void * _b)
 {
-    g_return_val_if_fail(a != NULL && SKIN_NODE(a)->name != NULL, 1);
-    g_return_val_if_fail(b != NULL && SKIN_NODE(b)->name != NULL, 1);
-    return strcasecmp(SKIN_NODE(a)->name, SKIN_NODE(b)->name);
+    const SkinNode * a = _a, * b = _b;
+    g_return_val_if_fail (a && a->name, 1);
+    g_return_val_if_fail (b && b->name, 1);
+    return strcasecmp (a->name, b->name);
 }
 
-static void
-skin_free_func(gpointer data)
+static void skin_free_func (void * _data)
 {
+    SkinNode * data = _data;
     g_return_if_fail(data != NULL);
-    g_free(SKIN_NODE(data)->name);
-    g_free(SKIN_NODE(data)->path);
+    g_free (data->name);
+    g_free (data->path);
     g_slice_free(SkinNode, data);
 }
 
@@ -248,15 +231,19 @@ skinlist_clear(void)
     skinlist = NULL;
 }
 
-void
+static void
 skinlist_update(void)
 {
     gchar *skinsdir;
 
     skinlist_clear();
 
-    scan_skindir(skins_paths[SKINS_PATH_USER_SKIN_DIR]);
-    scan_skindir(DATA_DIR G_DIR_SEPARATOR_S "Skins");
+    if (g_file_test (skins_paths[SKINS_PATH_USER_SKIN_DIR], G_FILE_TEST_EXISTS))
+        scan_skindir (skins_paths[SKINS_PATH_USER_SKIN_DIR]);
+
+    gchar * path = g_strdup_printf ("%s/Skins", aud_get_path (AUD_PATH_DATA_DIR));
+    scan_skindir (path);
+    g_free (path);
 
     skinsdir = getenv("SKINSDIR");
     if (skinsdir) {
@@ -294,12 +281,14 @@ void skin_view_update (GtkTreeView * treeview)
 
     skinlist_update();
 
-    for (entry = skinlist; entry; entry = g_list_next(entry)) {
-        thumbnail = skin_get_thumbnail(SKIN_NODE(entry->data)->path);
+    for (entry = skinlist; entry; entry = entry->next)
+    {
+        SkinNode * node = entry->data;
 
-        formattedname = g_strdup_printf("<big><b>%s</b></big>\n<i>%s</i>",
-		SKIN_NODE(entry->data)->name, SKIN_NODE(entry->data)->desc);
-        name = SKIN_NODE(entry->data)->name;
+        thumbnail = skin_get_thumbnail (node->path);
+        formattedname = g_strdup_printf ("<big><b>%s</b></big>\n<i>%s</i>",
+         node->name, node->desc);
+        name = node->name;
 
         gtk_list_store_append(store, &iter);
         gtk_list_store_set(store, &iter,
@@ -310,8 +299,8 @@ void skin_view_update (GtkTreeView * treeview)
             g_object_unref(thumbnail);
         g_free(formattedname);
 
-        if (g_strstr_len(aud_active_skin->path,
-                         strlen(aud_active_skin->path), name) ) {
+        if (g_strstr_len(active_skin->path,
+                         strlen(active_skin->path), name) ) {
             iter_current_skin = iter;
             have_current_skin = TRUE;
         }
@@ -350,14 +339,14 @@ skin_view_on_cursor_changed(GtkTreeView * treeview,
     gtk_tree_model_get(model, &iter, SKIN_VIEW_COL_NAME, &name, -1);
 
     for (node = skinlist; node; node = g_list_next(node)) {
-        comp = SKIN_NODE(node->data)->path;
+        comp = ((SkinNode *) node->data)->path;
         if (g_strrstr(comp, name))
             break;
     }
 
     g_free(name);
 
-    aud_active_skin_load(comp);
+    active_skin_load (comp);
 }
 
 
@@ -377,6 +366,7 @@ skin_view_realize(GtkTreeView * treeview)
     store = gtk_list_store_new(SKIN_VIEW_N_COLS, GDK_TYPE_PIXBUF,
                                G_TYPE_STRING , G_TYPE_STRING);
     gtk_tree_view_set_model(treeview, GTK_TREE_MODEL(store));
+    g_object_unref (store);
 
     column = gtk_tree_view_column_new();
     gtk_tree_view_column_set_sizing(column, GTK_TREE_VIEW_COLUMN_AUTOSIZE);

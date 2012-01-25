@@ -2,7 +2,8 @@
  * Audacious: A cross-platform multimedia player
  * Copyright (c) 2006 William Pitcock, Tony Vroon, George Averill,
  *                    Giacomo Lozito, Derek Pomery, Yoshiki Yazawa
- *                    and Matti H‰m‰l‰inen.
+ *                    and Matti H√§m√§l√§inen.
+ * Copyright (c) 2011 John Lindgren
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,30 +20,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-/* #define AUD_DEBUG 1 */
-
-#include <config.h>
-
 #include <glib.h>
 #include <string.h>
-#include <stdlib.h>
-#include <time.h>
-
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/errno.h>
 
 #include <libxml/tree.h>
 #include <libxml/parser.h>
 #include <libxml/xmlreader.h>
+#include <libxml/xmlsave.h>
 #include <libxml/xpath.h>
 #include <libxml/xpathInternals.h>
 #include <libxml/uri.h>
 
-#include <audacious/debug.h>
-#include <audacious/misc.h>
-#include <audacious/playlist.h>
 #include <audacious/plugin.h>
 
 #define XSPF_ROOT_NODE_NAME "playlist"
@@ -69,10 +57,9 @@ static const xspf_entry_t xspf_entries[] = {
     { FIELD_QUALITY,      "quality",      TUPLE_STRING,   TRUE},
 
     { FIELD_CODEC,        "codec",        TUPLE_STRING,   TRUE},
-    { FIELD_SONG_ARTIST,  "song-artist",  TUPLE_STRING,   TRUE},
 
-    { FIELD_MTIME,        "mtime",        TUPLE_INT,      TRUE},
-    { FIELD_FORMATTER,    "formatter",    TUPLE_STRING,   TRUE},
+    { FIELD_SONG_ARTIST,  "song-artist",  TUPLE_STRING,   TRUE},
+    { FIELD_COMPOSER,     "composer",     TUPLE_STRING,   TRUE},
     { FIELD_PERFORMER,    "performer",    TUPLE_STRING,   TRUE},
     { FIELD_COPYRIGHT,    "copyright",    TUPLE_STRING,   TRUE},
     { FIELD_DATE,         "date",         TUPLE_STRING,   TRUE},
@@ -95,13 +82,11 @@ static const xspf_entry_t xspf_entries[] = {
 static const gint xspf_nentries = (sizeof(xspf_entries) / sizeof(xspf_entries[0]));
 
 static void xspf_add_file (xmlNode * track, const gchar * filename, const gchar
- * base, struct index * filenames, struct index * tuples)
+ * base, Index * filenames, Index * tuples)
 {
     xmlNode *nptr;
-    Tuple *tuple;
     gchar *location = NULL;
-
-    tuple = tuple_new();
+    Tuple * tuple = NULL;
 
     for (nptr = track->children; nptr != NULL; nptr = nptr->next) {
         if (nptr->type == XML_ELEMENT_NODE) {
@@ -110,22 +95,22 @@ static void xspf_add_file (xmlNode * track, const gchar * filename, const gchar
                 gchar *str = (gchar *)xmlNodeGetContent(nptr);
 
                 if (strstr (str, "://") != NULL)
-                    location = g_strdup (str);
+                    location = str_get (str);
                 else if (str[0] == '/' && base != NULL)
                 {
                     const gchar * colon = strstr (base, "://");
 
                     if (colon != NULL)
-                        location = g_strdup_printf ("%.*s%s", (gint) (colon + 3
-                         - base), base, str);
+                        location = str_printf ("%.*s%s", (gint) (colon + 3 -
+                         base), base, str);
                 }
                 else if (base != NULL)
                 {
                     const gchar * slash = strrchr (base, '/');
 
                     if (slash != NULL)
-                        location = g_strdup_printf ("%.*s%s", (gint) (slash + 1
-                         - base), base, str);
+                        location = str_printf ("%.*s%s", (gint) (slash + 1 -
+                         base), base, str);
                 }
 
                 xmlFree(str);
@@ -149,11 +134,15 @@ static void xspf_add_file (xmlNode * track, const gchar * filename, const gchar
                     xmlChar *str = xmlNodeGetContent(nptr);
                     switch (xspf_entries[i].type) {
                         case TUPLE_STRING:
-                            tuple_associate_string(tuple, xspf_entries[i].tupleField, NULL, (gchar *)str);
+                            if (! tuple)
+                                tuple = tuple_new ();
+                            tuple_set_str(tuple, xspf_entries[i].tupleField, NULL, (gchar *)str);
                             break;
 
                         case TUPLE_INT:
-                            tuple_associate_int(tuple, xspf_entries[i].tupleField, NULL, atol((char *)str));
+                            if (! tuple)
+                                tuple = tuple_new ();
+                            tuple_set_int(tuple, xspf_entries[i].tupleField, NULL, atol((char *)str));
                             break;
 
                         default:
@@ -170,16 +159,19 @@ static void xspf_add_file (xmlNode * track, const gchar * filename, const gchar
 
     if (location != NULL)
     {
-        tuple_set_filename(tuple, location);
+        if (tuple)
+            tuple_set_filename (tuple, location);
 
         index_append(filenames, location);
         index_append(tuples, tuple);
     }
+    else if (tuple)
+        tuple_unref (tuple);
 }
 
 
 static void xspf_find_track (xmlNode * tracklist, const gchar * filename, const
- gchar * base, struct index * filenames, struct index * tuples)
+ gchar * base, Index * filenames, Index * tuples)
 {
     xmlNode *nptr;
 
@@ -190,41 +182,32 @@ static void xspf_find_track (xmlNode * tracklist, const gchar * filename, const
     }
 }
 
-#if 0
-static void xspf_find_audoptions(xmlNode *tracklist, const gchar *filename, gint pos)
+static gint read_cb (void * file, gchar * buf, gint len)
 {
-    xmlNode *nptr;
-    Playlist *playlist = aud_playlist_get_active();
-
-    for (nptr = tracklist->children; nptr != NULL; nptr = nptr->next) {
-        if (nptr->type == XML_ELEMENT_NODE &&
-            !xmlStrcmp(nptr->name, (xmlChar *)"options")) {
-            xmlChar *opt = NULL;
-
-            opt = xmlGetProp(nptr, (xmlChar *)"staticlist");
-            if (!g_strcasecmp((char *)opt, "true"))
-                playlist->attribute |= PLAYLIST_STATIC;
-            else
-                playlist->attribute ^= PLAYLIST_STATIC;
-
-            xmlFree(opt);
-        }
-    }
+    return vfs_fread (buf, 1, len, file);
 }
-#endif
 
-static void xspf_playlist_load(const gchar *filename, gint pos)
+static gint write_cb (void * file, const gchar * buf, gint len)
 {
-    xmlDocPtr doc;
+    return vfs_fwrite (buf, 1, len, file);
+}
+
+static gint close_cb (void * file)
+{
+    return 0;
+}
+
+static gboolean xspf_playlist_load (const gchar * filename, VFSFile * file,
+ gchar * * title, Index * filenames, Index * tuples)
+{
+    xmlDoc * doc = xmlReadIO (read_cb, close_cb, file, filename, NULL,
+     XML_PARSE_RECOVER);
+    if (! doc)
+        return FALSE;
+
+    * title = NULL;
+
     xmlNode *nptr, *nptr2;
-    struct index * filenames, * tuples;
-
-    doc = xmlRecoverFile(filename);
-    if (doc == NULL)
-        return;
-
-    filenames = index_new ();
-    tuples = index_new ();
 
     // find trackList
     for (nptr = doc->children; nptr != NULL; nptr = nptr->next) {
@@ -234,41 +217,96 @@ static void xspf_playlist_load(const gchar *filename, gint pos)
 
             base = (gchar *)xmlNodeGetBase(doc, nptr);
 
-            for (nptr2 = nptr->children; nptr2 != NULL; nptr2 = nptr2->next) {
-#if 0
-                if (nptr2->type == XML_ELEMENT_NODE &&
-                    !xmlStrcmp(nptr2->name, (xmlChar *)"extension")) {
-                    //check if application is audacious
-                    xmlChar *app = NULL;
-                    app = xmlGetProp(nptr2, (xmlChar *)"application");
-                    if (!xmlStrcmp(app, (xmlChar *)"audacious"))
-                        xspf_find_audoptions(nptr2, filename, pos);
-                    xmlFree(app);
-                } else
-#endif
-                if (nptr2->type == XML_ELEMENT_NODE &&
-                    !xmlStrcmp(nptr2->name, (xmlChar *)"title")) {
-                    xmlChar *title = xmlNodeGetContent(nptr2);
+            for (nptr2 = nptr->children; nptr2; nptr2 = nptr2->next)
+            {
+                if (nptr2->type != XML_ELEMENT_NODE)
+                    continue;
 
-                    if (title && *title) {
-                        aud_playlist_set_title (aud_playlist_get_active (),
-                         (const gchar *) title);
+                if (! xmlStrcmp (nptr2->name, (xmlChar *) "title"))
+                {
+                    xmlChar * xml_title = xmlNodeGetContent (nptr2);
+                    if (xml_title && xml_title[0])
+                    {
+                        str_unref (* title);
+                        * title = str_get ((gchar *) xml_title);
                     }
-                    xmlFree(title);
-                } else
-                if (nptr2->type == XML_ELEMENT_NODE &&
-                    !xmlStrcmp(nptr2->name, (xmlChar *)"trackList")) {
-                    xspf_find_track (nptr2, filename, base, filenames, tuples);
+                    xmlFree (xml_title);
                 }
+                else if (! xmlStrcmp (nptr2->name, (xmlChar *) "trackList"))
+                    xspf_find_track (nptr2, filename, base, filenames, tuples);
             }
 
             xmlFree (base);
         }
     }
-    xmlFreeDoc(doc);
 
-    aud_playlist_entry_insert_batch (aud_playlist_get_active (), pos, filenames,
-     tuples);
+    xmlFreeDoc(doc);
+    return TRUE;
+}
+
+
+#define IS_VALID_CHAR(c) (((c) >= 0x20 && (c) <= 0xd7ff) || \
+                          ((c) == 0x9) || \
+                          ((c) == 0xa) || \
+                          ((c) == 0xd) || \
+                          ((c) >= 0xe000 && (c) <= 0xfffd) || \
+                          ((c) >= 0x10000 && (c) <= 0x10ffff))
+
+/* check for characters that are invalid in XML */
+static gboolean is_valid_string (const gchar * s, gchar * * subst)
+{
+    if (! g_utf8_validate (s, -1, NULL))
+        goto NOT_VALID;
+
+    const gchar * p = s;
+    while (* p)
+    {
+        gunichar c = g_utf8_get_char (p);
+
+        if (IS_VALID_CHAR (c))
+            p = g_utf8_next_char (p);
+        else
+            goto NOT_VALID;
+    }
+
+    return TRUE;
+
+NOT_VALID:;
+    gint len = 0;
+
+    p = s;
+    while (* p)
+    {
+        gunichar c = g_utf8_get_char_validated (p, -1);
+
+        if (IS_VALID_CHAR (c))
+        {
+            len += g_unichar_to_utf8 (c, NULL);
+            p = g_utf8_next_char (p);
+        }
+        else
+            p ++;
+    }
+
+    * subst = g_malloc (len + 1);
+    gchar * w = * subst;
+
+    p = s;
+    while (* p)
+    {
+        gunichar c = g_utf8_get_char_validated (p, -1);
+
+        if (IS_VALID_CHAR (c))
+        {
+            w += g_unichar_to_utf8 (c, w);
+            p = g_utf8_next_char (p);
+        }
+        else
+            p ++;
+    }
+
+    * w = 0;
+    return FALSE;
 }
 
 
@@ -286,8 +324,15 @@ static void xspf_add_node(xmlNodePtr node, TupleValueType type,
         tmp = xmlNewNode(NULL, (xmlChar *) xspfName);
 
     switch (type) {
-        case TUPLE_STRING:
-            xmlAddChild(tmp, xmlNewText((xmlChar *) strVal));
+        case TUPLE_STRING:;
+            gchar * subst;
+            if (is_valid_string (strVal, & subst))
+                xmlAddChild (tmp, xmlNewText ((xmlChar *) strVal));
+            else
+            {
+                xmlAddChild (tmp, xmlNewText ((xmlChar *) subst));
+                g_free (subst);
+            }
             break;
 
         case TUPLE_INT:
@@ -303,20 +348,13 @@ static void xspf_add_node(xmlNodePtr node, TupleValueType type,
 }
 
 
-static void xspf_playlist_save(const gchar *filename, gint pos)
+static gboolean xspf_playlist_save (const gchar * filename, VFSFile * file,
+ const gchar * title, Index * filenames, Index * tuples)
 {
-    gint playlist = aud_playlist_get_active ();
-    const gchar * title = aud_playlist_get_title (playlist);
-    gint entries = aud_playlist_entry_count (playlist);
+    gint entries = index_count (filenames);
     xmlDocPtr doc;
     xmlNodePtr rootnode, tracklist;
-#if 0
-    gint baselen = 0;
-    gchar *base = NULL;
-#endif
     gint count;
-
-    AUDDBG("filename='%s', pos=%d\n", filename, pos);
 
     doc = xmlNewDoc((xmlChar *)"1.0");
     doc->charset = XML_CHAR_ENCODING_UTF8;
@@ -326,107 +364,21 @@ static void xspf_playlist_save(const gchar *filename, gint pos)
     xmlSetProp(rootnode, (xmlChar *)"version", (xmlChar *)"1");
     xmlSetProp(rootnode, (xmlChar *)"xmlns", (xmlChar *)XSPF_XMLNS);
 
-#if 0
-    /* relative */
-    if (playlist->attribute & PLAYLIST_USE_RELATIVE) {
-        /* prescan to determine base uri */
-        for (node = playlist->entries; node != NULL; node = g_list_next(node)) {
-            gchar *ptr1, *ptr2, *ptrslash;
-            PlaylistEntry *entry = PLAYLIST_ENTRY(node->data);
-            gchar *tmp;
-            gint tmplen = 0;
-
-            if (!is_uri(entry->filename)) { //obsolete
-                gchar *tmp2 = g_path_get_dirname(entry->filename);
-                tmp = g_strdup_printf("%s/", tmp2);
-                g_free(tmp2);
-            } else
-                tmp = g_strdup(entry->filename);
-
-            if (!base) {
-                base = strdup(tmp);
-                baselen = strlen(base);
-            }
-
-            ptr1 = base;
-            ptrslash = ptr2 = tmp;
-
-            while(ptr1 && ptr2 && *ptr1 && *ptr2 && *ptr1 == *ptr2) {
-                if (*ptr2 == '/') ptrslash = ptr2 + 1;
-
-                ptr1++;
-                ptr2++;
-            }
-
-            if (!(*ptrslash)) ptrslash--;
-            *ptrslash = '\0';       //terminate
-            tmplen = ptrslash - tmp;
-
-            if (tmplen <= baselen) {
-                g_free(base);
-                base = tmp;
-                baselen = tmplen;
-                AUDDBG("base='%s', baselen=%d\n", base, baselen);
-            } else
-                g_free(tmp);
-        }
-
-        /* set base URI */
-        if (base) {
-            gchar *tmp;
-            if (!is_uri(base)) {
-                tmp = (gchar *) xspf_path_to_uri((xmlChar *)base);
-                if (tmp) {
-                    g_free(base);
-                    base = tmp;
-                }
-            }
-
-            if (!is_uri(base)) {
-                AUDDBG("base is not uri. something is wrong.\n");
-                tmp = g_strdup_printf("file://%s", base);
-                xmlSetProp(rootnode, (xmlChar *)"xml:base", (xmlChar *)tmp);
-                g_free(tmp);
-            } else
-                xmlSetProp(rootnode, (xmlChar *)"xml:base", (xmlChar *)base);
-        }
-    }                           /* USE_RELATIVE */
-#endif
-
     /* common */
     xmlDocSetRootElement(doc, rootnode);
-    xspf_add_node(rootnode, TUPLE_STRING, FALSE, "creator", PACKAGE "-" VERSION, 0);
 
-#if 0
-    /* add staticlist marker */
-    if (playlist->attribute & PLAYLIST_STATIC) {
-        xmlNodePtr extension, options;
-
-        extension = xmlNewNode(NULL, (xmlChar *)"extension");
-        xmlSetProp(extension, (xmlChar *)"application", (xmlChar *)"audacious");
-
-        options = xmlNewNode(NULL, (xmlChar *)"options");
-        xmlSetProp(options, (xmlChar *)"staticlist", (xmlChar *)"true");
-
-        xmlAddChild(extension, options);
-        xmlAddChild(rootnode, extension);
-    }
-#endif
-
-    if (title != NULL)
+    if (title)
         xspf_add_node (rootnode, TUPLE_STRING, FALSE, "title", title, 0);
 
     tracklist = xmlNewNode(NULL, (xmlChar *)"trackList");
     xmlAddChild(rootnode, tracklist);
 
-    for (count = pos; count < entries; count ++)
+    for (count = 0; count < entries; count ++)
     {
-        const gchar * filename = aud_playlist_entry_get_filename (playlist,
-         count);
-        const Tuple * tuple = aud_playlist_entry_get_tuple (playlist, count,
-         FALSE);
+        const gchar * filename = index_get (filenames, count);
+        const Tuple * tuple = index_get (tuples, count);
         xmlNodePtr track, location;
-        const gchar *scratch = NULL;
+        gchar *scratch = NULL;
         gint scratchi = 0;
 
         track = xmlNewNode(NULL, (xmlChar *)"track");
@@ -446,7 +398,10 @@ static void xspf_playlist_save(const gchar *filename, gint pos)
 
                 switch (xs->type) {
                     case TUPLE_STRING:
-                        scratch = tuple_get_string (tuple, xs->tupleField, NULL);
+                        scratch = tuple_get_str (tuple, xs->tupleField, NULL);
+                        if (! scratch)
+                            isOK = FALSE;
+                        str_unref(scratch);
                         break;
                     case TUPLE_INT:
                         scratchi = tuple_get_int (tuple, xs->tupleField, NULL);
@@ -461,33 +416,28 @@ static void xspf_playlist_save(const gchar *filename, gint pos)
         }
     }
 
-    xmlSaveFormatFile(filename, doc, 1);
+    xmlSaveCtxt * save = xmlSaveToIO (write_cb, close_cb, file, NULL,
+     XML_SAVE_FORMAT);
+    if (! save)
+        goto ERR;
+
+    if (xmlSaveDoc (save, doc) < 0 || xmlSaveClose (save) < 0)
+        goto ERR;
+
     xmlFreeDoc(doc);
-#if 0
-    xmlFree(base);
-#endif
+    return TRUE;
+
+ERR:
+    xmlFreeDoc (doc);
+    return FALSE;
 }
 
+static const gchar * const xspf_exts[] = {"xspf", NULL};
 
-PlaylistContainer plc_xspf = {
-    .name = "XSPF Playlist Format",
-    .ext = "xspf",
-    .plc_read = xspf_playlist_load,
-    .plc_write = xspf_playlist_save,
-};
-
-
-static void xspf_init(void)
-{
-    aud_playlist_container_register(&plc_xspf);
-}
-
-
-static void xspf_cleanup(void)
-{
-    aud_playlist_container_unregister(&plc_xspf);
-}
-
-
-DECLARE_PLUGIN (xspf, xspf_init, xspf_cleanup, NULL, NULL, NULL, NULL, NULL,
- NULL)
+AUD_PLAYLIST_PLUGIN
+(
+ .name = "XML Shareable Playlist Format",
+ .extensions = xspf_exts,
+ .load = xspf_playlist_load,
+ .save = xspf_playlist_save
+)

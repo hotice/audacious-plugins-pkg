@@ -13,8 +13,8 @@
 #include "jack.h"
 #include <string.h>
 
-#include <audacious/configdb.h>
 #include <audacious/i18n.h>
+#include <audacious/misc.h>
 #include <audacious/plugin.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
@@ -55,6 +55,7 @@ static format_info_t effect;
 static format_info_t output;
 
 static gboolean output_opened; /* true if we have a connection to jack */
+static gboolean paused;
 
 
 /* Giacomo's note: removed the destructor from the original xmms-jack, cause
@@ -131,6 +132,11 @@ static gint jack_get_written_time(void)
   return return_val;
 }
 
+static void jack_set_written_time(gint time)
+{
+  JACK_SetPosition(driver, MILLISECONDS, time);
+}
+
 
 /* Return the current number of milliseconds of audio data that has */
 /* been played out of the audio device, not including the buffer */
@@ -152,6 +158,7 @@ static gint jack_get_output_time(void)
 /* returns TRUE if we are currently playing */
 /* NOTE: this was confusing at first BUT, if the device is open and there */
 /* is no more audio to be played, then the device is NOT PLAYING */
+#if 0
 static gint jack_playing(void)
 {
   gint return_val;
@@ -171,7 +178,7 @@ static gint jack_playing(void)
   TRACE("returning %d\n", return_val);
   return return_val;
 }
-
+#endif
 
 void jack_set_port_connection_mode()
 {
@@ -192,32 +199,22 @@ void jack_set_port_connection_mode()
   JACK_SetPortConnectionMode(mode);
 }
 
+static const gchar * const jack_defaults[] = {
+ "isTraceEnabled", "FALSE",
+ "port_connection_mode", "CONNECT_ALL",
+ "volume_left", "25",
+ "volume_right", "25",
+ NULL};
+
 /* Initialize necessary things */
-static OutputPluginInitStatus jack_init(void)
+static gboolean jack_init (void)
 {
-  /* read the isTraceEnabled setting from the config file */
-  mcs_handle_t *cfgfile;
+  aud_config_set_defaults ("jack", jack_defaults);
 
-  cfgfile = aud_cfg_db_open();
-  if (!cfgfile)
-  {
-      jack_cfg.isTraceEnabled = FALSE;
-      jack_cfg.port_connection_mode = "CONNECT_ALL"; /* default to connect all */
-      jack_cfg.volume_left = 25; /* set default volume to 25 % */
-      jack_cfg.volume_right = 25;
-  } else
-  {
-      aud_cfg_db_get_bool(cfgfile, "jack", "isTraceEnabled", &jack_cfg.isTraceEnabled);
-      if(!aud_cfg_db_get_string(cfgfile, "jack", "port_connection_mode", &jack_cfg.port_connection_mode))
-          jack_cfg.port_connection_mode = "CONNECT_ALL";
-      if(!aud_cfg_db_get_int(cfgfile, "jack", "volume_left", &jack_cfg.volume_left))
-          jack_cfg.volume_left = 25;
-      if(!aud_cfg_db_get_int(cfgfile, "jack", "volume_right", &jack_cfg.volume_right))
-          jack_cfg.volume_right = 25;
-  }
-
-  aud_cfg_db_close(cfgfile);
-
+  jack_cfg.isTraceEnabled = aud_get_bool ("jack", "isTraceEnabled");
+  jack_cfg.port_connection_mode = aud_get_string ("jack", "port_connection_mode");
+  jack_cfg.volume_left = aud_get_int ("jack", "volume_left");
+  jack_cfg.volume_right = aud_get_int ("jack", "volume_right");
 
   TRACE("initializing\n");
   JACK_Init(); /* initialize the driver */
@@ -232,7 +229,7 @@ static OutputPluginInitStatus jack_init(void)
   output_opened = FALSE;
 
   /* Always return OK, as we don't know about physical devices here */
-  return OUTPUT_PLUGIN_INIT_FOUND_DEVICES;
+  return TRUE;
 }
 
 
@@ -268,14 +265,8 @@ static gint audacious_jack_free(void)
 /* Close the device */
 static void jack_close(void)
 {
-  mcs_handle_t *cfgfile;
-
-  cfgfile = aud_cfg_db_open();
-  aud_cfg_db_set_int(cfgfile, "jack", "volume_left", jack_cfg.volume_left); /* stores the volume setting */
-  aud_cfg_db_set_int(cfgfile, "jack", "volume_right", jack_cfg.volume_right);
-  aud_cfg_db_close(cfgfile);
-
-  TRACE("\n");
+  aud_set_int ("jack", "volume_left", jack_cfg.volume_left);
+  aud_set_int ("jack", "volume_right", jack_cfg.volume_right);
 
   JACK_Reset(driver); /* flush buffers, reset position and set state to STOPPED */
   TRACE("resetting driver, not closing now, destructor will close for us\n");
@@ -343,6 +334,7 @@ static gint jack_open(gint fmt, gint sample_rate, gint num_channels)
     } else
     {
         TRACE("output_opened is TRUE and no options changed, not reopening\n");
+        paused = FALSE;
         return 1;
     }
   }
@@ -369,6 +361,7 @@ static gint jack_open(gint fmt, gint sample_rate, gint num_channels)
 
   jack_set_volume(jack_cfg.volume_left, jack_cfg.volume_right); /* sets the volume to stored value */
   output_opened = TRUE;
+  paused = FALSE;
 
   return 1;
 }
@@ -409,14 +402,19 @@ static void jack_flush(gint ms_offset_time)
   /* update the internal driver values to correspond to the input time given */
   JACK_SetPosition(driver, MILLISECONDS, ms_offset_time);
 
-  JACK_SetState(driver, PLAYING);
+  if (paused)
+    JACK_SetState(driver, PAUSED);
+  else
+    JACK_SetState(driver, PLAYING);
 }
 
 
 /* Pause the jack device */
-static void jack_pause(short p)
+static void jack_pause (gboolean p)
 {
   TRACE("p == %d\n", p);
+
+  paused = p;
 
   /* pause the device if p is non-zero, unpause the device if p is zero and */
   /* we are currently paused */
@@ -445,20 +443,15 @@ static void jack_about(void)
     }
 }
 
-static void jack_tell_audio(gint * fmt, gint * srate, gint * nch)
-{
-    (*fmt) = input.format;
-    (*srate) = input.frequency;
-    (*nch) = input.channels;
-}
-
-OutputPlugin jack_op =
-{
-    .description = "JACK Output Plugin 0.17",
+AUD_OUTPUT_PLUGIN
+(
+    .name = "JACK",
     .init = jack_init,
     .cleanup = jack_cleanup,
     .about = jack_about,
+#if 0
     .configure = jack_configure,
+#endif
     .get_volume = jack_get_volume,
     .set_volume = jack_set_volume,
     .open_audio = jack_open,
@@ -467,12 +460,7 @@ OutputPlugin jack_op =
     .flush = jack_flush,
     .pause = jack_pause,
     .buffer_free = audacious_jack_free,
-    .buffer_playing = jack_playing,
     .output_time = jack_get_output_time,
     .written_time = jack_get_written_time,
-    .tell_audio = jack_tell_audio
-};
-
-OutputPlugin *jack_oplist[] = { &jack_op, NULL };
-
-SIMPLE_OUTPUT_PLUGIN(jack, jack_oplist);
+    .set_written_time = jack_set_written_time
+)

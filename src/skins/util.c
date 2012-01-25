@@ -23,31 +23,26 @@
  *  Audacious or using our public API to be a derived work.
  */
 
-/*#define AUD_DEBUG*/
-
-#include "config.h"
-
-#include "util.h"
-
+#include <ctype.h>
+#include <errno.h>
 #include <dirent.h>
-#include <gdk/gdkkeysyms.h>
-#include <glib.h>
-#include <gtk/gtk.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#ifdef HAVE_FTS_H
-#  include <sys/types.h>
-#  include <sys/stat.h>
-#  include <fts.h>
-#endif
+#include <gtk/gtk.h>
 
 #include <audacious/debug.h>
+#include <audacious/gtk-compat.h>
 #include <audacious/i18n.h>
 #include <libaudcore/audstrings.h>
 #include <libaudcore/hook.h>
+#include <libaudcore/vfs.h>
 
-#include "plugin.h"
+#include "config.h"
+#include "ui_main.h"
+#include "util.h"
 
 typedef struct
 {
@@ -62,15 +57,16 @@ static void make_directory(const gchar *path, mode_t mode);
 
 gchar * find_file_case (const gchar * folder, const gchar * basename)
 {
-    static mowgli_dictionary_t * cache = NULL;
-    GList * list;
+    static GHashTable * cache = NULL;
+    GList * list = NULL;
+    void * vlist;
 
     if (cache == NULL)
-        cache = mowgli_dictionary_create (strcmp);
+        cache = g_hash_table_new (g_str_hash, g_str_equal);
 
-    list = mowgli_dictionary_retrieve (cache, folder);
-
-    if (list == NULL)
+    if (g_hash_table_lookup_extended (cache, folder, NULL, & vlist))
+        list = vlist;
+    else
     {
         DIR * handle;
         struct dirent * entry;
@@ -81,7 +77,7 @@ gchar * find_file_case (const gchar * folder, const gchar * basename)
         while ((entry = readdir (handle)) != NULL)
             list = g_list_prepend (list, g_strdup (entry->d_name));
 
-        mowgli_dictionary_add (cache, folder, list);
+        g_hash_table_insert (cache, g_strdup (folder), list);
         closedir (handle);
     }
 
@@ -297,6 +293,39 @@ gchar *archive_basename(const gchar *str)
     return NULL;
 }
 
+/**
+ * Escapes characters that are special to the shell inside double quotes.
+ *
+ * @param string String to be escaped.
+ * @return Given string with special characters escaped. Must be freed with g_free().
+ */
+static gchar *
+escape_shell_chars(const gchar * string)
+{
+    const gchar *special = "$`\"\\";    /* Characters to escape */
+    const gchar *in = string;
+    gchar *out, *escaped;
+    gint num = 0;
+
+    while (*in != '\0')
+        if (strchr(special, *in++))
+            num++;
+
+    escaped = g_malloc(strlen(string) + num + 1);
+
+    in = string;
+    out = escaped;
+
+    while (*in != '\0') {
+        if (strchr(special, *in))
+            *out++ = '\\';
+        *out++ = *in++;
+    }
+    *out = '\0';
+
+    return escaped;
+}
+
 /*
    decompress_archive
 
@@ -310,7 +339,11 @@ gchar *archive_decompress(const gchar *filename)
     gchar *tmpdir, *cmd, *escaped_filename;
     ArchiveType type;
 #ifndef HAVE_MKDTEMP
+#ifdef S_IRGRP
     mode_t mode755 = S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+#else
+    mode_t mode755 = S_IRWXU;
+#endif
 #endif
 
     if ((type = archive_get_type(filename)) <= ARCHIVE_DIR)
@@ -354,38 +387,6 @@ gchar *archive_decompress(const gchar *filename)
     return tmpdir;
 }
 
-
-#ifdef HAVE_FTS_H
-
-void del_directory(const gchar *dirname)
-{
-    gchar *const argv[2] = { (gchar *)dirname, NULL };
-    FTS *fts;
-    FTSENT *p;
-
-    fts = fts_open(argv, FTS_PHYSICAL, (gint (*)())NULL);
-    while ((p = fts_read(fts)))
-    {
-        switch (p->fts_info)
-        {
-        case FTS_D:
-            break;
-        case FTS_DNR:
-        case FTS_ERR:
-            break;
-        case FTS_DP:
-            rmdir(p->fts_accpath);
-            break;
-        default:
-            unlink(p->fts_accpath);
-            break;
-        }
-    }
-    fts_close(fts);
-}
-
-#else /* !HAVE_FTS */
-
 static gboolean del_directory_func(const gchar *path, const gchar *basename,
                                    void *params)
 {
@@ -409,8 +410,6 @@ void del_directory(const gchar *path)
     dir_foreach(path, del_directory_func, NULL, NULL);
     rmdir(path);
 }
-
-#endif /* ifdef HAVE_FTS */
 
 static void strip_string(GString *string)
 {
@@ -672,7 +671,8 @@ GArray *read_ini_array(INIFile *inifile, const gchar *section, const gchar *key)
     gchar *temp;
     GArray *a;
 
-    g_return_val_if_fail((temp = read_ini_string(inifile, section, key)), NULL);
+    if (! (temp = read_ini_string (inifile, section, key)))
+        return NULL;
 
     a = string_to_garray(temp);
     g_free(temp);
@@ -700,69 +700,6 @@ GArray *string_to_garray(const gchar *str)
             break;
     }
     return (array);
-}
-
-/* text_get_extents() taken from The GIMP (C) Spencer Kimball, Peter
- * Mattis et al */
-gboolean text_get_extents(const gchar *fontname, const gchar *text, gint *width,
-                          gint *height, gint *ascent, gint *descent)
-{
-    PangoFontDescription *font_desc;
-    PangoLayout *layout;
-    PangoRectangle rect;
-
-    g_return_val_if_fail(fontname != NULL, FALSE);
-    g_return_val_if_fail(text != NULL, FALSE);
-
-    /* FIXME: resolution */
-    layout = gtk_widget_create_pango_layout(GTK_WIDGET(mainwin), text);
-
-    font_desc = pango_font_description_from_string(fontname);
-    pango_layout_set_font_description(layout, font_desc);
-    pango_font_description_free(font_desc);
-    pango_layout_get_pixel_extents(layout, NULL, &rect);
-
-    if (width)
-        *width = rect.width;
-    if (height)
-        *height = rect.height;
-
-    if (ascent || descent)
-    {
-        PangoLayoutIter *iter;
-        PangoLayoutLine *line;
-
-        iter = pango_layout_get_iter(layout);
-        line = pango_layout_iter_get_line(iter);
-        pango_layout_iter_free(iter);
-
-        pango_layout_line_get_pixel_extents(line, NULL, &rect);
-
-        if (ascent)
-            *ascent = PANGO_ASCENT(rect);
-        if (descent)
-            *descent = -PANGO_DESCENT(rect);
-    }
-
-    g_object_unref(layout);
-
-    return TRUE;
-}
-
-/* counts number of digits in a gint */
-guint gint_count_digits(gint n)
-{
-    guint count = 0;
-
-    n = ABS(n);
-    do
-    {
-        count++;
-        n /= 10;
-    }
-    while (n > 0);
-
-    return count;
 }
 
 gboolean dir_foreach(const gchar *path, DirForeachFunc function,
@@ -814,7 +751,7 @@ GtkWidget *make_filebrowser(const gchar *title, gboolean save)
                               GTK_RESPONSE_REJECT);
 
     gtk_button_set_use_stock(GTK_BUTTON(button), TRUE);
-    GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+    gtk_widget_set_can_default (button, TRUE);
 
     button =
         gtk_dialog_add_button(GTK_DIALOG(dialog),
@@ -839,31 +776,6 @@ static void make_directory(const gchar *path, mode_t mode)
 }
 #endif
 
-void resize_window(GtkWidget *window, gint width, gint height)
-{
-    /* As of GTK+ 2.16, gtk_window_resize is broken on fixed size windows and
-     * needs this workaround. */
-    if (!gtk_window_get_resizable((GtkWindow *)window))
-    {
-        GdkGeometry hints;
-
-        hints.min_width = width;
-        hints.min_height = height;
-        hints.max_width = width;
-        hints.max_height = height;
-        gtk_window_set_geometry_hints((GtkWindow *)window, NULL, &hints,
-                                      GDK_HINT_MIN_SIZE | GDK_HINT_MAX_SIZE);
-    }
-
-    gtk_window_resize((GtkWindow *)window, width, height);
-}
-
-gboolean widget_really_drawable (GtkWidget * widget)
-{
-    return GTK_WIDGET_DRAWABLE (widget) && widget->allocation.x >= 0 &&
-     widget->allocation.y >= 0;
-}
-
 void check_set (GtkActionGroup * action_group, const gchar * action_name,
  gboolean is_on)
 {
@@ -872,5 +784,4 @@ void check_set (GtkActionGroup * action_group, const gchar * action_name,
     g_return_if_fail (action != NULL);
 
     gtk_toggle_action_set_active ((GtkToggleAction *) action, is_on);
-    hook_call (action_name, GINT_TO_POINTER (is_on));
 }

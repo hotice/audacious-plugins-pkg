@@ -1,5 +1,5 @@
 /*  Audacious - Cross-platform multimedia player
- *  Copyright (C) 2010 Audacious development team
+ *  Copyright (C) 2010-2011 Audacious development team
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
  */
 
 #include <glib.h>
-#include <glib/gi18n.h>
+#include <audacious/i18n.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
@@ -31,7 +31,11 @@
 #include <audacious/playlist.h>
 #include <libaudcore/hook.h>
 
+#include "config.h"
 #include "ui_statusbar.h"
+
+#define APPEND(b, ...) snprintf (b + strlen (b), sizeof b - strlen (b), \
+ __VA_ARGS__)
 
 static void
 ui_statusbar_update_playlist_length(gpointer unused, GtkWidget *label)
@@ -40,8 +44,8 @@ ui_statusbar_update_playlist_length(gpointer unused, GtkWidget *label)
     gint64 selection, total;
     gchar *sel_text, *tot_text, *text;
 
-    total = aud_playlist_get_total_length (playlist, TRUE) / 1000;
-    selection = aud_playlist_get_selected_length (playlist, TRUE) / 1000;
+    total = aud_playlist_get_total_length (playlist) / 1000;
+    selection = aud_playlist_get_selected_length (playlist) / 1000;
 
     if (selection >= 3600)
         sel_text = g_strdup_printf ("%" PRId64 ":%02" PRId64 ":%02" PRId64,
@@ -68,41 +72,58 @@ ui_statusbar_update_playlist_length(gpointer unused, GtkWidget *label)
 static void
 ui_statusbar_info_change(gpointer unused, GtkWidget *label)
 {
-    gint bitrate, samplerate, channels;
-    gchar *text, *ch_text;
-    const Tuple *tuple;
-    gint playlist, entry;
-    const gchar *codec;
-
     /* may be called asynchronously */
     if (!aud_drct_get_playing())
         return;
 
-    playlist = aud_playlist_get_active();
-    entry = aud_playlist_get_position(playlist);
-    tuple = aud_playlist_entry_get_tuple (playlist, entry, FALSE);
-    codec = tuple != NULL ? tuple_get_string(tuple, FIELD_CODEC, NULL) : "???";
+    gint playlist = aud_playlist_get_playing ();
+    Tuple * tuple = aud_playlist_entry_get_tuple (playlist,
+     aud_playlist_get_position (playlist), FALSE);
+    gchar * codec = tuple ? tuple_get_str (tuple, FIELD_CODEC, NULL) :
+     NULL;
+    if (tuple)
+        tuple_unref (tuple);
 
+    gint bitrate, samplerate, channels;
     aud_drct_get_info(&bitrate, &samplerate, &channels);
 
-    switch (channels)
+    gchar buf[256];
+    buf[0] = 0;
+
+    if (codec)
     {
-    case 1:
-        ch_text = g_strdup(_("mono"));
-        break;
-    case 2:
-        ch_text = g_strdup(_("stereo"));
-        break;
-    default:
-        ch_text = g_strdup_printf(_("%d channels"), channels);
-        break;
+        APPEND (buf, "%s", codec);
+        if (channels > 0 || samplerate > 0 || bitrate > 0)
+            APPEND (buf, ", ");
     }
 
-    text = g_strdup_printf(_("%s: %d kbps, %d Hz, %s"), codec, bitrate / 1000, samplerate, ch_text);
-    gtk_label_set_text(GTK_LABEL(label), text);
+    str_unref(codec);
 
-    g_free(text);
-    g_free(ch_text);
+    if (channels > 0)
+    {
+        if (channels == 1)
+            APPEND (buf, _("mono"));
+        else if (channels == 2)
+            APPEND (buf, _("stereo"));
+        else
+            APPEND (buf, ngettext ("%d channel", "%d channels", channels),
+             channels);
+
+        if (samplerate > 0 || bitrate > 0)
+            APPEND (buf, ", ");
+    }
+
+    if (samplerate > 0)
+    {
+        APPEND (buf, "%d kHz", samplerate / 1000);
+        if (bitrate > 0)
+            APPEND (buf, ", ");
+    }
+
+    if (bitrate > 0)
+        APPEND (buf, _("%d kbps"), bitrate / 1000);
+
+    gtk_label_set_text ((GtkLabel *) label, buf);
 }
 
 static void
@@ -113,10 +134,11 @@ ui_statusbar_playback_stop(gpointer unused, GtkWidget *label)
 
 static void ui_statusbar_destroy_cb(GtkWidget *widget, gpointer user_data)
 {
+    hook_dissociate("playback ready", (HookFunction) ui_statusbar_info_change);
     hook_dissociate("info change", (HookFunction) ui_statusbar_info_change);
     hook_dissociate("playback stop", (HookFunction) ui_statusbar_playback_stop);
+    hook_dissociate("playlist activate", (HookFunction) ui_statusbar_update_playlist_length);
     hook_dissociate("playlist update", (HookFunction) ui_statusbar_update_playlist_length);
-    hook_dissociate("info change", (HookFunction) ui_statusbar_update_playlist_length);
 }
 
 GtkWidget *
@@ -131,6 +153,7 @@ ui_statusbar_new(void)
     gtk_label_set_ellipsize ((GtkLabel *) status, PANGO_ELLIPSIZE_END);
     gtk_box_pack_start(GTK_BOX(hbox), status, TRUE, TRUE, 5);
 
+    hook_associate("playback ready", (HookFunction) ui_statusbar_info_change, status);
     hook_associate("info change", (HookFunction) ui_statusbar_info_change, status);
     hook_associate("playback stop", (HookFunction) ui_statusbar_playback_stop, status);
 
@@ -138,15 +161,13 @@ ui_statusbar_new(void)
     gtk_box_pack_start(GTK_BOX(hbox), length, FALSE, FALSE, 5);
     ui_statusbar_update_playlist_length(NULL, length);
 
+    hook_associate("playlist activate", (HookFunction) ui_statusbar_update_playlist_length, length);
     hook_associate("playlist update", (HookFunction) ui_statusbar_update_playlist_length, length);
-    hook_associate("info change", (HookFunction) ui_statusbar_update_playlist_length, length);
 
     g_signal_connect(G_OBJECT(hbox), "destroy", G_CALLBACK(ui_statusbar_destroy_cb), NULL);
 
-    if (aud_drct_get_playing())
-    {
+    if (aud_drct_get_playing() && aud_drct_get_ready())
         ui_statusbar_info_change(NULL, status);
-    }
 
     return hbox;
 }

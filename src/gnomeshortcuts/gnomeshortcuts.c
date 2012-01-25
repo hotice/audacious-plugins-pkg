@@ -34,7 +34,7 @@
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 
-static void init (void);
+static gboolean init (void);
 static void about (void);
 static void cleanup (void);
 void gnome_remote_init();
@@ -43,16 +43,13 @@ void gnome_remote_uninit();
 static gboolean loaded = FALSE;
 static DBusGProxy *media_player_keys_proxy = NULL;
 
-static GeneralPlugin audaciousgnomeshortcuts =
-{
-	.description = "Gnome Shortcuts",
+AUD_GENERAL_PLUGIN
+(
+	.name = "Gnome Shortcuts",
 	.init = init,
 	.about = about,
 	.cleanup = cleanup
-};
-
-GeneralPlugin *gnomeshortcuts_gplist[] = { &audaciousgnomeshortcuts, NULL };
-SIMPLE_GENERAL_PLUGIN(gnomeshortcuts, gnomeshortcuts_gplist);
+)
 
 #define g_marshal_value_peek_string(v)   (char*) g_value_get_string (v)
 
@@ -91,7 +88,7 @@ static void
 on_media_player_key_pressed (DBusGProxy *proxy, const gchar *application, const gchar *key)
 {
 	if (strcmp ("Audacious", application) == 0) {
-		gint current_volume, old_volume;
+		gint current_volume /* , old_volume */ ;
 		static gint volume_static = 0;
 		gboolean play, mute;
 
@@ -100,7 +97,7 @@ on_media_player_key_pressed (DBusGProxy *proxy, const gchar *application, const 
 
 		/* get current volume */
 		aud_drct_get_volume_main (&current_volume);
-		old_volume = current_volume;
+		/* old_volume = current_volume; */
 		if (current_volume)
 		{
 			/* volume is not mute */
@@ -309,10 +306,11 @@ static void about (void)
      "Copyright (C) 2007-2008 Sascha Hlusiak <contact@saschahlusiak.de>\n\n"));
 }
 
-static void init (void)
+static gboolean init (void)
 {
 	gnome_remote_init();
 	loaded = TRUE;
+	return TRUE;
 }
 
 static void cleanup (void)

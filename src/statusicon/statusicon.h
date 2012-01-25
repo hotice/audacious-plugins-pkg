@@ -51,15 +51,11 @@ typedef struct
     gint rclick_menu;
     gint scroll_action;
     gint volume_delta;
+    gboolean disable_popup;
+    gboolean close_to_tray;
 } si_cfg_t;
 
 extern si_cfg_t si_cfg;
-
-/* statusicon.c */
-void si_init(void);
-void si_cleanup(void);
-void si_config(void);
-void si_about(void);
 
 /* util.c */
 void si_volume_change(gint);
