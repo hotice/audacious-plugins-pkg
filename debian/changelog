@@ -1,8 +1,8 @@
 audacious-plugins (3.2-1) UNRELEASED; urgency=low
  
-  * New upstream release.
+  * New upstream release. (Closes: #657095)
   * debian/control:
-    + Adde build-deps necessary for mp3, bs2b and modplug support.
+    + Added build-deps necessary for mp3, bs2b and modplug support.
     + Enabling OSS4 support. (Closes: #632303)
     + Raised the build-dep of audacious-dev to 3.2.
   * debian/rules:
