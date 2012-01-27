@@ -1,4 +1,4 @@
-audacious-plugins (3.2-1) UNRELEASED; urgency=low
+audacious-plugins (3.2-1) unstable; urgency=low
  
   * New upstream release. (Closes: #657095)
   * debian/control:
@@ -11,7 +11,7 @@ audacious-plugins (3.2-1) UNRELEASED; urgency=low
   * Add correct_spelling_error.diff to suppress the lintian warning (patch
       submitted upstream)
  
- -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Wed, 25 Jan 2012 22:10:42 +0100
+ -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Fri, 27 Jan 2012 09:02:40 +0100
 
 audacious-plugins (2.4.4-1) unstable; urgency=low
 
