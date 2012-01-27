@@ -1,6 +1,5 @@
-Format-Specification: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Name: audacious-plugins
-Maintainer: Adam Cécile (Le_Vert) <gandalf@le-vert.net>
+Format: http://anonscm.debian.org/viewvc/dep/web/deps/dep5.mdwn?revision=174
+Upstream-Name: audacious-plugins
 Source: http://www.audacious-media-player.org/
 
 Files: *
@@ -198,7 +197,7 @@ Copyright: 2005-2009 William Pitcock, Yoshiki Yazawa, John Lindgren
 License: GPL-2
 
 Files src/metronom/*
-Copyright: 2000 Martin Strau?
+Copyright: 2000 Martin Strauß
 License: GPL-2+
 
 Files: src/modplug/*
