@@ -47,7 +47,7 @@ License: GPL-2+
 
 Files: src/adplug/*
 Copyright: 2002, 2007 Simon Peter
-Liense: LGPL-2.1+
+License: LGPL-2.1+
 
 Files: src/adplug/core/adl.cxx
 Copyright: 2006 The ScummVM project
@@ -196,7 +196,7 @@ Files: src/madplug/*
 Copyright: 2005-2009 William Pitcock, Yoshiki Yazawa, John Lindgren
 License: GPL-2
 
-Files src/metronom/*
+Files: src/metronom/*
 Copyright: 2000 Martin Strauß
 License: GPL-2+
 
@@ -271,7 +271,7 @@ Copyright: 2006-2007 Audacious development team
 License: GPL-3
 
 Files: src/smb/*
-Copyright 2007 Daniel Bradshaw
+Copyright: 2007 Daniel Bradshaw
 License: GPL-2+
 
 Files: src/sndfile/*
