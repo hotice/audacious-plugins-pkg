@@ -73,7 +73,6 @@ Description: Base plugins for audacious
   * AAC and AAC+
   * FLAC
   * Windows Media (WMA)
-  * TTA
   * Many module formats and much more!
  .
  Additionally, Audacious is extendable through plugins, and contains
@@ -110,7 +109,6 @@ Description: Audacious-Plugins debug symbols
   * AAC and AAC+
   * FLAC
   * Windows Media (WMA)
-  * TTA
   * Many module formats and much more!
  .
  Additionally, Audacious is extendable through plugins, and contains
