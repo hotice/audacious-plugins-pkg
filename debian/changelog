@@ -1,3 +1,10 @@
+audacious-plugins (3.2-2) UNRELEASED; urgency=low
+
+  [ Cyril Lavier ]
+  * Clean Build-deps. (Closes: #634505)
+
+ -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Mon, 30 Jan 2012 15:51:35 +0100
+
 audacious-plugins (3.2-1) unstable; urgency=low
  
   * New upstream release. (Closes: #657095)
