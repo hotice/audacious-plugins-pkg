@@ -6,6 +6,7 @@ Uploaders: Chris Taylor <ctaylor@debian.org>,
            Bilal Akhtar <bilalakhtar@ubuntu.com>,
            Cyril Lavier <cyril.lavier@davromaniak.eu>
 Build-Depends: audacious-dev (>= 3.2),
+               autoconf,
                debhelper (>= 7.0.50~),
                libasound2-dev (>= 1.0) [linux-any],
                libavcodec-dev (>= 4:0.6.1),
