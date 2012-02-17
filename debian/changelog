@@ -1,6 +1,5 @@
 audacious-plugins (3.2-2) UNRELEASED; urgency=low
 
-  [ Cyril Lavier ]
   * debian/control:
     + Clean Build-deps. (Closes: #634505)
     + Removed the TTA support has it's not supported anymore. (Closes: #650847)
