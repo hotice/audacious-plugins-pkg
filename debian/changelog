@@ -1,13 +1,24 @@
 audacious-plugins (3.2-2) UNRELEASED; urgency=low
 
+  [ Cyril Lavier ]
   * debian/control:
     + Clean Build-deps. (Closes: #634505)
-    + Removed the TTA support has it's not supported anymore. (Closes: #650847)
+    + Removed the TTA support has it's not supported
+      anymore. (Closes: #650847)
   * Performed review on old bugs. (Closes: #589756, #644554, #645347, #636847)
-  * Added ffaudio.diff patch to make audacious work with current 
-      debian unstable version of ffaudio. (Closes: #641701)
+  * Added ffaudio.diff patch to make audacious work with current debian
+    unstable version of ffaudio. (Closes: #641701)
 
- -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Thu, 9 Feb 2012 17:42:21 +0100
+  [ Alessio Treglia ]
+  * Introduce Multiarch, split audacious-plugins in:
+    - audacious-plugins, which is Multi-Arch: same and contains runtime
+      objects.
+    - audacious-plugins-data to provide architecture-independent data files;
+      it is set to Multi-Arch: foreign
+  * Pass -Sautoconf to 'dh' sequencer rather than call autoconf in
+    override_dh_auto_configure.
+
+ -- Cyril Lavier <cyril.lavier@davromaniak.eu>  Sun, 19 Feb 2012 12:35:33 +0100
 
 audacious-plugins (3.2-1) unstable; urgency=low
  
