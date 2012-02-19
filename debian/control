@@ -59,10 +59,13 @@ Vcs-Git: git://anonscm.debian.org/pkg-multimedia/audacious-plugins.git
 
 Package: audacious-plugins
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}
+Depends: ${misc:Depends},
+         ${shlibs:Depends}
 Recommends: audacious (>= 2.4.3)
-Breaks: audacious (<< 2.4.3), audacious-plugins-extra (<< 1.3.5-4)
-Replaces: audacious (<< 2.4.3), audacious-plugins-extra
+Breaks: audacious (<< 2.4.3),
+        audacious-plugins-extra (<< 1.3.5-4)
+Replaces: audacious (<< 2.4.3),
+          audacious-plugins-extra
 Description: Base plugins for audacious
  Audacious is a fork of beep-media-player which supports winamp skins
  and many codecs.
@@ -97,7 +100,8 @@ Package: audacious-plugins-dbg
 Section: debug
 Priority: extra
 Architecture: any
-Depends: audacious-plugins (= ${binary:Version}), ${misc:Depends}
+Depends: audacious-plugins (= ${binary:Version}),
+         ${misc:Depends}
 Recommends: audacious-dbg
 Description: Audacious-Plugins debug symbols
  Audacious is a fork of beep-media-player which supports winamp skins
