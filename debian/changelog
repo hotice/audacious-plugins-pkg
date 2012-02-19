@@ -1,3 +1,15 @@
+audacious-plugins (3.2.1-1) unstable; urgency=low
+
+  * Team upload.
+  * New upstream bugfix release.
+  * Remove correct_spelling_error.diff, applied upstream.
+  * Refresh ffaudio.diff.
+  * Reintroduce src/psf/*, it seems DFSG clean now.
+  * Fix and update debian/copyright.
+  * Update watch file.
+
+ -- Alessio Treglia <alessio@debian.org>  Mon, 20 Feb 2012 00:28:16 +0100
+
 audacious-plugins (3.2-2) unstable; urgency=low
 
   [ Cyril Lavier ]
