@@ -80,22 +80,24 @@ Copyright:
  1999-2001 Haavard Kvaalen <havardk@sol.no>
 License: GPL-2+
 
-Files: src/adplug/*
-Copyright: 2002, 2007 Simon Peter
-License: LGPL-2.1+
-
-Files: src/adplug/core/adlibemu.*
-Copyright: 1998-2001 Ken Silverman
+Files:
+ src/jack/*
+ src/ladspa/ladspa.h
+ src/console/*
+ src/adplug/*
+Copyright:
+ 2003-2006 Chris Morgan
+ 2003-2006 Shay Green
+ 2002-2007 Simon Peter
+ 2000-2002 Richard W.E. Furse, Paul Barton-Davis, Stefan Westerfeld
+ 1998-2001 Ken Silverman
+ 1999,2000 Tatsuyuki Satoh , MultiArcadeMachineEmurator development
 License: LGPL-2.1+
 
 Files: src/adplug/core/binio_virtual.h
 Copyright: 2006 William Pitcock <nenolod -at- atheme.org>
 License: public-domain
  This code is in the public domain.
-
-Files: src/adplug/core/fmopl.*
-Copyright: 1999,2000 Tatsuyuki Satoh , MultiArcadeMachineEmurator development
-License: LGPL-2.1+
 
 Files: src/aosd/ghosd*
 Copyright: 2006 Evan Martin
@@ -108,6 +110,7 @@ Files:
  src/unix-io/*
  src/crossfade/*
  src/ladspa/*
+ src/audpl/*
 Copyright: 2009-2011 John Lindgren
 License: BSD-2-clause
 
@@ -157,16 +160,6 @@ Copyright:
  1998-2003 XMMS development team
  2003-2004 BMP development team
 License: GPL-3
-
-Files:
- src/jack/*
- src/ladspa/ladspa.h
- src/console/*
-Copyright:
- 2003-2006 Chris Morgan
- 2003-2006 Shay Green
- 2000-2002 Richard W.E. Furse, Paul Barton-Davis, Stefan Westerfeld
-License: LGPL-2.1+
 
 Files:
  src/modplug/*
