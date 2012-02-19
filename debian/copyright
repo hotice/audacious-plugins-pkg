@@ -4,11 +4,11 @@ Source: http://www.audacious-media-player.org/
 
 Files: *
 Copyright: 2005-2007 Audacious development team
-License: BSD-3
+License: BSD-3-clause
 
 Files: scripts/makerelease.sh
 Copyright: 2007 atheme.org
-License: MIT
+License: Expat
 
 Files: src/CoreAudio/*
        src/crossfade/*
@@ -80,7 +80,7 @@ License: GPL-2+
 
 Files: src/aosd/ghosd*
 Copyright: 2006 Evan Martin
-License: MIT
+License: Expat
 
 Files: src/bluetooth/*
 Copyright: 2008 Paula Stanciu
@@ -119,7 +119,7 @@ License: BSD-2
 Files: src/crystalizer/*
 Copyright: 2008 William Pitcock
            2010 John Lindgren
-License: MIT
+License: Expat
 
 Files: src/daap/*
 Copyright: 2007 Cristi Magherusan
@@ -135,7 +135,7 @@ License: GPL-2+
 
 Files: src/dockalbumart/*
 Copyright: 2007 William Pitcock
-License: MIT
+License: Expat
 
 Files: src/esd/*
 Copyright: 2003-2004 BMP development team
@@ -255,6 +255,19 @@ Copyright: 2008 William Pitcock
            2004-2006 Peter Sperl
 License: GPL-2
 
+Files: src/psf/*
+Copyright:
+ 2007-2008 R. Belmont and Richard Bannister
+ 2000-2008 Richard F. Bannister
+License: BSD-3-clause
+
+Files: src/psf/peops/*
+ src/psf/peops2/*
+Copyright:
+ 2003 by Chris Moeller, eh, whatever
+ 2002 by Pete Bernert
+License: GPL-2+
+
 Files: src/rocklight/*
 Copyright: 2006 Tony Vroon
            2007 Michael Hanselmann
@@ -292,7 +305,7 @@ License: GPL-2+
 
 Files: src/sun/audioio.h
 Copyright: 1991-1993 Regents of the University of California
-License: BSD-4
+License: BSD-4-clause
 
 Files: src/voice_removal/*
 Copyright: 2000-2001 Konstantin Laevsky
@@ -422,7 +435,7 @@ License: BSD-2
  implied. In no event shall the authors be liable for any damages arising from
  the use of this software.
 
-License: BSD-3
+License: BSD-3-clause
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
  .
@@ -449,7 +462,7 @@ License: BSD-3
  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-License: BSD-4
+License: BSD-4-clause
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions
  are met:
@@ -478,7 +491,7 @@ License: BSD-4
  OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  SUCH DAMAGE.
 
-License: MIT
+License: Expat
  Permission to use, copy, modify, and/or distribute this software for
  any purpose with or without fee is hereby granted, provided that the above
  copyright notice and this permission notice appear in all copies.
