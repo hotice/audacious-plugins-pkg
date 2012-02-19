@@ -99,10 +99,6 @@ Copyright: 2006 William Pitcock <nenolod -at- atheme.org>
 License: public-domain
  This code is in the public domain.
 
-Files: src/aosd/ghosd*
-Copyright: 2006 Evan Martin
-License: Expat
-
 Files:
  src/alsa/*
  src/compressor/*
@@ -122,9 +118,11 @@ Files:
  src/voice_removal/*
  src/console/abstract_file.cxx
  src/console/Gzip_File.cxx
+ src/aosd/ghosd*
 Copyright:
  2007-2011 William Pitcock <nenolod@dereferenced.org>
  2010 John Lindgren
+ 2006 Evan Martin
  2005 Shay Green
 License: Expat
 
