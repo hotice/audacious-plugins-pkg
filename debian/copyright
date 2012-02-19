@@ -107,7 +107,7 @@ Files:
  src/unix-io/*
  src/crossfade/*
  src/ladspa/*
-Copyright: 2010-2011 John Lindgren
+Copyright: 2009-2011 John Lindgren
 License: BSD-2-clause
 
 Files:
@@ -116,9 +116,12 @@ Files:
  src/dockalbumart/*
  src/crystalizer/*
  src/voice_removal/*
+ src/console/abstract_file.cxx
+ src/console/Gzip_File.cxx
 Copyright:
  2007-2011 William Pitcock <nenolod@dereferenced.org>
  2010 John Lindgren
+ 2005 Shay Green
 License: Expat
 
 Files:
@@ -156,8 +159,10 @@ License: GPL-3
 Files:
  src/jack/*
  src/ladspa/ladspa.h
+ src/console/*
 Copyright:
  2003-2006 Chris Morgan
+ 2003-2006 Shay Green
  2000-2002 Richard W.E. Furse, Paul Barton-Davis, Stefan Westerfeld
 License: LGPL-2.1+
 
