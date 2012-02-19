@@ -7,7 +7,7 @@ Uploaders: Chris Taylor <ctaylor@debian.org>,
            Cyril Lavier <cyril.lavier@davromaniak.eu>
 Build-Depends: audacious-dev (>= 3.2),
                autoconf,
-               debhelper (>= 7.0.50~),
+               debhelper (>= 9),
                libasound2-dev (>= 1.0) [linux-any],
                libavcodec-dev (>= 4:0.6.1),
                libavformat-dev (>= 4:0.6.1),
@@ -54,12 +54,15 @@ Build-Depends: audacious-dev (>= 3.2),
                oss4-dev
 Homepage: http://www.audacious-media-player.org/
 Standards-Version: 3.9.2
-Vcs-Broweser: http://anonscm.debian.org/gitweb/?p=pkg-multimedia/audacious-plugins.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-multimedia/audacious-plugins.git
 Vcs-Git: git://anonscm.debian.org/pkg-multimedia/audacious-plugins.git
 
 Package: audacious-plugins
 Architecture: any
-Depends: ${misc:Depends},
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: audacious-plugins-data (>= ${source:Version}),
+         ${misc:Depends},
          ${shlibs:Depends}
 Recommends: audacious (>= 2.4.3)
 Breaks: audacious (<< 2.4.3),
@@ -100,6 +103,7 @@ Package: audacious-plugins-dbg
 Section: debug
 Priority: extra
 Architecture: any
+Multi-Arch: same
 Depends: audacious-plugins (= ${binary:Version}),
          ${misc:Depends}
 Recommends: audacious-dbg
@@ -122,3 +126,17 @@ Description: Audacious-Plugins debug symbols
  This package contains the debugging symbols for the plugins collection of
  Audacious. Please install it before reporting any crashes, as it makes bug
  triage an easier process.
+
+Package: audacious-plugins-data
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}
+Recommends: audacious-plugins
+Breaks: audacious-plugins (<= 3.2-2~),
+Replaces: audacious-plugins (<= 3.2-2~),
+Description: Data files for Audacious plugins
+ Audacious is a fork of beep-media-player which supports winamp skins
+ and many codecs.
+ .
+ This package contains internationalized messages and skins for
+ Audacious plugins.
