@@ -1,9 +1,14 @@
 Description: Make audacious work with current unstable version of FFAUDIO
 Author: Cyril Lavier <cyril.lavier@davromaniak.eu>
 Last-Update: 2012-01-28
---- a/configure.ac
-+++ b/configure.ac
-@@ -549,7 +549,7 @@
+---
+ configure.ac               |    2 
+ src/ffaudio/ffaudio-core.c |  105 +++++++++++++++++++++++++++++++++++++++------
+ 2 files changed, 94 insertions(+), 13 deletions(-)
+
+--- audacious-plugins.orig/configure.ac
++++ audacious-plugins/configure.ac
+@@ -549,7 +549,7 @@ AC_ARG_ENABLE(ffaudio,
  
  if test $enable_ffaudio = yes ; then
      PKG_CHECK_MODULES([FFMPEG],
@@ -12,10 +17,10 @@ Last-Update: 2012-01-28
       [have_ffaudio=yes], [have_ffaudio=no])
  fi
  
---- a/src/ffaudio/ffaudio-core.c
-+++ b/src/ffaudio/ffaudio-core.c
-@@ -40,6 +40,14 @@
- #endif
+--- audacious-plugins.orig/src/ffaudio/ffaudio-core.c
++++ audacious-plugins/src/ffaudio/ffaudio-core.c
+@@ -37,6 +37,14 @@
+ #include <audacious/audtag.h>
  #include <libaudcore/audstrings.h>
  
 +#if ! CHECK_LIBAVFORMAT_VERSION (53, 5, 0)
@@ -29,7 +34,7 @@ Last-Update: 2012-01-28
  static GMutex *ctrl_mutex = NULL;
  static GCond *ctrl_cond = NULL;
  static gint64 seek_value = -1;
-@@ -423,8 +431,11 @@
+@@ -416,8 +424,11 @@ static gboolean ffaudio_play (InputPlayb
      AVCodecContext *c = NULL;
      AVStream *s = NULL;
      AVPacket pkt = {.data = NULL};
@@ -42,7 +47,7 @@ Last-Update: 2012-01-28
      gint out_fmt;
      gboolean seekable;
      gboolean error = FALSE;
-@@ -460,14 +471,38 @@
+@@ -453,14 +464,38 @@ static gboolean ffaudio_play (InputPlayb
  
      codec_opened = TRUE;
  
@@ -84,7 +89,7 @@ Last-Update: 2012-01-28
      }
  
      /* Open audio output */
-@@ -481,6 +516,10 @@
+@@ -474,6 +509,10 @@ static gboolean ffaudio_play (InputPlayb
  
      playback->set_gain_from_playlist(playback);
  
@@ -95,7 +100,7 @@ Last-Update: 2012-01-28
      AUDDBG("setting parameters\n");
  
      if (pause)
-@@ -553,6 +592,9 @@
+@@ -546,6 +585,9 @@ static gboolean ffaudio_play (InputPlayb
          memcpy(&tmp, &pkt, sizeof(tmp));
          while (tmp.size > 0 && !stop_flag)
          {
@@ -105,7 +110,7 @@ Last-Update: 2012-01-28
              /* Check for seek request and bail out if we have one */
              g_mutex_lock(ctrl_mutex);
              if (seek_value != -1)
-@@ -570,25 +612,60 @@
+@@ -563,25 +605,60 @@ static gboolean ffaudio_play (InputPlayb
              }
              g_mutex_unlock(ctrl_mutex);
  
@@ -174,7 +179,7 @@ Last-Update: 2012-01-28
          }
  
          if (pkt.data)
-@@ -611,6 +688,10 @@
+@@ -604,6 +681,10 @@ error_exit:
  
      stop_flag = TRUE;
  
