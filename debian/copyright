@@ -32,13 +32,18 @@ Copyright: 1998-2003 XMMS development team
 License: GPL-2+
 
 Files: src/aac/*
+       src/alarm/*
        src/cue/*
        src/ffaudio/*
        src/gio/*
        src/kanashi/*
        src/mms/*
        src/vfstrace/*
-Copyright: 2005-2006 William Pitcock
+       src/adplug/core/adl.cxx
+Copyright:
+ 2006 The ScummVM project
+ 2006 Torbjorn Andersson and Johannes Schickel
+ 2005-2006 William Pitcock
 License: GPL-2+
 
 Files: src/aac/mp4ff/*
@@ -48,11 +53,6 @@ License: GPL-2+
 Files: src/adplug/*
 Copyright: 2002, 2007 Simon Peter
 License: LGPL-2.1+
-
-Files: src/adplug/core/adl.cxx
-Copyright: 2006 The ScummVM project
-           2006 Torbjorn Andersson and Johannes Schickel
-License: GPL-2+
 
 Files: src/adplug/core/adlibemu.*
 Copyright: 1998-2001 Ken Silverman
@@ -64,10 +64,6 @@ License: PD
 
 Files: src/adplug/core/fmopl.*
 Copyright: 1999, 2000 Tatsuyuki Satoh
-License: GPL-2+
-
-Files: src/alarm/*
-Copyright: Adam Feakin
 License: GPL-2+
 
 Files: src/amidi-plug/*
@@ -120,18 +116,6 @@ Files: src/crystalizer/*
 Copyright: 2008 William Pitcock
            2010 John Lindgren
 License: Expat
-
-Files: src/daap/*
-Copyright: 2007 Cristi Magherusan
-License: GPL-2+
-
-Files: src/daap/xmms2-daap/*
-Copyright: 2006-2007 XMMS2 Team
-License: GPL-2+
-
-Files: src/daap/xmms2-daap/daap_md5.*
-Copyright: 2004,2005 Charles Schmidt
-License: GPL-2+
 
 Files: src/dockalbumart/*
 Copyright: 2007 William Pitcock
