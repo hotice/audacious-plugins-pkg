@@ -22,6 +22,7 @@ Files:
  src/adplug/core/adl.cxx
  src/amidi-plug/*
  src/aosd/*
+ src/blur_scope/*
  src/jack/configure.c
  src/statusicon/*
  src/gnomeshortcuts/*
