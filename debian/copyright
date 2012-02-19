@@ -3,13 +3,16 @@ Upstream-Name: audacious-plugins
 Source: http://www.audacious-media-player.org/
 
 Files: *
-Copyright: 2005-2007 Audacious development team
+Copyright:
+ 2005-2007 Audacious development team
+ 2007-2008 R. Belmont and Richard Bannister
+ 2000-2008 Richard F. Bannister
 License: BSD-3-clause
 
 Files:
  src/bs2b/*
  src/tonegen/*
- src/OSS*/*
+ src/OSS/*
  src/aac/*
  src/alarm/*
  src/cd-menu-items/*
@@ -31,6 +34,7 @@ Files:
  src/flacng/*
  src/m3u/*
  src/pls/*
+ src/pulse_audio/*
  src/metronom/*
  src/neon/*
  src/null/*
@@ -40,6 +44,9 @@ Files:
  src/vorbis/*
  src/vtx/*
  src/asx/asx.c
+ src/xsf/desmume/*
+ src/xspf/*
+ src/psf/peops*/*
 Copyright:
  2009, Sebastian Pipping <sebastian@pipping.org>
  2009, Tony Vroon <chainsaw@gentoo.org>
@@ -56,15 +63,20 @@ Copyright:
  2006-2007 Vladimir Paskov <vlado.paskov@gmail.com>
  2006-2007 Yoshiki Yazawa
  2006-2007 Bastien Nocera
+ 2006-2007 shash
+ 2006-2007 Theo Berkau
  2006 The ScummVM project
  2006 Evan Martin <martine@danga.com>
  2006 Torbjorn Andersson and Johannes Schickel
  2006 Christian Birchinger <joker@netswarm.net>
+ 2006 yopyop
+ 2006 thoduv
  2005-2011 Audacious development team
  2005-2008 Marcel Holtmann
  2005-2007 Giacomo Lozito <james@develia.org>
  2005-2010 William Pitcock <nenolod@dereferenced.org>
  2005-2007 Ralf Ertzinger
+ 2005-2006 Guillaume Duhamel
  2004 Clemens Ladisch <clemens@ladisch.de>
  2003-2004  BMP development team
  2003-2005 M. Bakker, Nero AG, http://www.nero.com
@@ -108,7 +120,13 @@ Files:
  src/crossfade/*
  src/ladspa/*
  src/audpl/*
-Copyright: 2009-2011 John Lindgren
+ src/oss4/*
+ src/mpris2/*
+ src/sdlout/*
+ src/mixer/*
+Copyright:
+ 2010-2011 Michał Lipski <tallica@o2.pl>
+ 2009-2011 John Lindgren
 License: BSD-2-clause
 
 Files:
@@ -120,9 +138,11 @@ Files:
  src/console/abstract_file.cxx
  src/console/Gzip_File.cxx
  src/aosd/ghosd*
+ src/mpg123/*
+ src/lyricwiki/*
 Copyright:
  2007-2011 William Pitcock <nenolod@dereferenced.org>
- 2010 John Lindgren
+ 2010-2011 John Lindgren <john.lindgren@tds.net>
  2006 Evan Martin
  2005 Shay Green
 License: Expat
@@ -177,12 +197,6 @@ License: public-domain
  This code was written by Colin Plumb in 1993, no copyright is claimed.
  This code is in the public domain; do with it what you wish.
 
-Files: src/psf/*
-Copyright:
- 2007-2008 R. Belmont and Richard Bannister
- 2000-2008 Richard F. Bannister
-License: BSD-3-clause
-
 Files: src/sndstretch/*
 Copyright:
  2009-2011 John Lindgren
@@ -196,6 +210,10 @@ Copyright:
  2003-2004 Sashnov Alexander
  2000-2001 Michael Smith <msmith@labyrinth.net.au>
 License: LGPL-2
+
+Files: src/search-tool/search-tool.c
+Copyright: 2011 John Lindgren
+License: GPL-2 or GPL-3
 
 Files: debian/*
 Copyright: 2006-2009, Adam Cécile (Le_Vert)
