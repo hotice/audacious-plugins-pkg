@@ -195,37 +195,24 @@ Files: src/ladspa/ladspa.h
 Copyright: 2000-2002 Richard W.E. Furse, Paul Barton-Davis, Stefan Westerfeld
 License: LGPL-2.1+
 
-Files: src/m3u/*
-       src/pls/*
-Copyright: 2006 William Pitcock, Tony Vroon, George Averill, Giacomo Lozito, Derek Pomery and Yoshiki Yazawa
-License: GPL-2+
-
-Files: src/madplug/*
-Copyright: 2005-2009 William Pitcock, Yoshiki Yazawa, John Lindgren
-License: GPL-2
-
-Files: src/metronom/*
-Copyright: 2000 Martin Strauß
+Files:
+ src/m3u/*
+ src/pls/*
+ src/metronom/*
+Copyright:
+ 2000 Martin Strau? <mys@faveve.uni-stuttgart.de>
+ 2006-2010 William Pitcock, Tony Vroon, George Averill, Giacomo
+ Lozito, Derek Pomery and Yoshiki Yazawa
 License: GPL-2+
 
 Files: src/modplug/*
-Copyright: Olivier Lapicque
-           Adam Goode
-License: PD
-
-Files: src/modplug/archive/*
-       src/modplug/gui/*
-Copyright: Kenton Varda
-License: PD
-
-Files: src/modplug/fastmix.cxx
-Copyright: Olivier Lapicque, Markus Fick
-License: GPL-2+
-
-Files: src/modplug/midi.h
-Copyright: 2003-2005 chisel
-           2005-2006 Mrs. Brisby
-License: GPL-2+
+Copyright: No copyright holders
+License: public-domain
+ This source code is public domain.
+Comment: A list of original authors follows:
+ Olivier Lapicque
+ Adam Goode
+ Kenton Varda
 
 Files: src/mtp_up/*
 Copyright: 2007 Cristian Magherusan
@@ -498,6 +485,3 @@ License: Expat
  ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-License: PD
- Public Domain
