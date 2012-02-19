@@ -1,4 +1,4 @@
-audacious-plugins (3.2-2) UNRELEASED; urgency=low
+audacious-plugins (3.2-2) unstable; urgency=low
 
   [ Cyril Lavier ]
   * debian/control:
