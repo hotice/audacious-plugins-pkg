@@ -101,8 +101,8 @@ AUD_IFACE_PLUGIN
     .show_error = ui_show_error,
     .show_filebrowser = audgui_run_filebrowser,
     .show_jump_to_track = audgui_jump_to_track,
-    .run_gtk_plugin = (void *) layout_add,
-    .stop_gtk_plugin = (void *) layout_remove,
+    .run_gtk_plugin = (void (*) (void *, const gchar *)) layout_add,
+    .stop_gtk_plugin = (void (*) (void *)) layout_remove,
 )
 
 static void save_window_size (void)
@@ -485,6 +485,42 @@ static gboolean window_keypress_cb (GtkWidget * widget, GdkEventKey * event, voi
 {
     switch (event->state & (GDK_SHIFT_MASK | GDK_CONTROL_MASK | GDK_MOD1_MASK))
     {
+      case 0:;
+        /* single-key shortcuts; must not interfere with text entry */
+        GtkWidget * focused = gtk_window_get_focus ((GtkWindow *) window);
+        if (focused && GTK_IS_ENTRY (focused))
+            return FALSE;
+
+        switch (event->keyval)
+        {
+        case 'z':
+            aud_drct_pl_prev ();
+            return TRUE;
+        case 'x':
+            aud_drct_play ();
+            return TRUE;
+        case 'c':
+        case ' ':
+            aud_drct_pause ();
+            return TRUE;
+        case 'v':
+            aud_drct_stop ();
+            return TRUE;
+        case 'b':
+            aud_drct_pl_next ();
+            return TRUE;
+        case GDK_Left:
+            if (aud_drct_get_playing ())
+                aud_drct_seek (aud_drct_get_time () - 5000);
+            return TRUE;
+        case GDK_Right:
+            if (aud_drct_get_playing ())
+                aud_drct_seek (aud_drct_get_time () + 5000);
+            return TRUE;
+        }
+
+        return FALSE;
+
       case GDK_CONTROL_MASK:
         switch (event->keyval)
         {
