@@ -38,6 +38,7 @@ Files:
  src/sndfile/*
  src/vorbis/*
  src/vtx/*
+ src/asx/asx.c
 Copyright:
  2009, Sebastian Pipping <sebastian@pipping.org>
  2009, Tony Vroon <chainsaw@gentoo.org>
@@ -143,6 +144,7 @@ Files:
  src/pls/util.*
  src/mtp_up/*
  src/cdaudio-ng/*
+ src/asx/util.*
 Copyright:
  2005-2011 Audacious development team
  2009 John Lindgren
