@@ -132,8 +132,8 @@ Architecture: all
 Multi-Arch: foreign
 Depends: ${misc:Depends}
 Recommends: audacious-plugins
-Breaks: audacious-plugins (<= 3.2-2~),
-Replaces: audacious-plugins (<= 3.2-2~),
+Breaks: audacious-plugins (<= 3.2-2~)
+Replaces: audacious-plugins (<= 3.2-2~)
 Description: Data files for Audacious plugins
  Audacious is a fork of beep-media-player which supports winamp skins
  and many codecs.
