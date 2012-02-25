@@ -1,110 +1,105 @@
-Format: http://anonscm.debian.org/gitweb/?p=dbnpolicy/policy.git;a=blob;f=copyright-format/copyright-format.xml;hb=HEAD
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: audacious-plugins
 Source: http://www.audacious-media-player.org/
 
 Files: *
-Copyright:
- 2005-2007 Audacious development team
- 2007-2008 R. Belmont and Richard Bannister
- 2000-2008 Richard F. Bannister
+Copyright: 2005-2007 Audacious development team
+           2007-2008 R. Belmont and Richard Bannister
+           2000-2008 Richard F. Bannister
 License: BSD-3-clause
 
-Files:
- src/aac/*
- src/adplug/core/adl.cxx
- src/alarm/*
- src/amidi-plug/*
- src/aosd/*
- src/asx/asx.c
- src/blur_scope/*
- src/bs2b/*
- src/cd-menu-items/*
- src/cue/*
- src/ffaudio/*
- src/filewriter/*
- src/flacng/*
- src/gio/*
- src/gnomeshortcuts/*
- src/hotkey/*
- src/jack/configure.c
- src/kanashi/*
- src/m3u/*
- src/metronom/*
- src/mms/*
- src/neon/*
- src/null/*
- src/OSS/*
- src/pls/*
- src/psf/peops*/*
- src/pulse_audio/*
- src/sid/*
- src/smb/*
- src/sndfile/*
- src/statusicon/*
- src/tonegen/*
- src/vfstrace/*
- src/vorbis/*
- src/vtx/*
- src/xsf/desmume/*
- src/xspf/*
-Copyright:
- 2010-2011, Michał Lipski <tallica@o2.pl>
- 2009, Tony Vroon <chainsaw@gentoo.org>
- 2009, Sebastian Pipping <sebastian@pipping.org>
- 2009 Jussi Judin
- 2009-2011, John Lindgren <john.lindgren@tds.net>
- 2008 Eugene Zagidullin <e.asphyx@gmail.com>
- 2008 Cristi Măgherușan <majeru@gentoo.ro>
- 2007 Michael FÃ¤rber
- 2007 Daniel Bradshaw
- 2007-2008 Sascha Hlusiak <contact@saschahlusiak.de>
- 2006 yopyop
- 2006 Torbjorn Andersson and Johannes Schickel
- 2006 thoduv
- 2006 The ScummVM project
- 2006 Evan Martin <martine@danga.com>
- 2006 Christian Birchinger <joker@netswarm.net>
- 2006-2010 William Pitcock, Tony Vroon, George Averill, Giacomo
- Lozito, Derek Pomery and Yoshiki Yazawa, and John Lindgren.
- 2006-2007 Yoshiki Yazawa
- 2006-2007 Vladimir Paskov <vlado.paskov@gmail.com>
- 2006-2007 Theo Berkau
- 2006-2007 shash
- 2006-2007 Bastien Nocera
- 2005-2011 Audacious development team
- 2005-2010 William Pitcock <nenolod@dereferenced.org>
- 2005-2008 Marcel Holtmann
- 2005-2007 Ralf Ertzinger
- 2005-2007 Giacomo Lozito <james@develia.org>
- 2005-2006 Guillaume Duhamel
- 2004 Clemens Ladisch <clemens@ladisch.de>
- 2003 by Chris Moeller, eh, whatever
- 2003-2005 M. Bakker, Nero AG, http://www.nero.com
- 2003-2004 Sashnov Alexander
- 2003-2004  BMP development team
- 2002 Lars Siebold
- 2002 Gian-Carlo Pascutto <gcp@sjeng.org>
- 2002 by Pete Bernert
- 2000 Martin Strau? <mys@faveve.uni-stuttgart.de>
- 2000-2002 Ville Syrjälä <syrjala@sci.fi>
- 2000, 2002 Erik de Castro Lopo
- 1999-2007 Tecnic Software productions (TNSP)
- 1999-2001 Haavard Kvaalen <havardk@sol.no>
- 1998-2003 XMMS development team
+Files: src/aac/*
+       src/adplug/core/adl.cxx
+       src/alarm/*
+       src/amidi-plug/*
+       src/aosd/*
+       src/asx/asx.c
+       src/blur_scope/*
+       src/bs2b/*
+       src/cd-menu-items/*
+       src/cue/*
+       src/ffaudio/*
+       src/filewriter/*
+       src/flacng/*
+       src/gio/*
+       src/gnomeshortcuts/*
+       src/hotkey/*
+       src/jack/configure.c
+       src/kanashi/*
+       src/m3u/*
+       src/metronom/*
+       src/mms/*
+       src/neon/*
+       src/null/*
+       src/OSS/*
+       src/pls/*
+       src/psf/peops*/*
+       src/pulse_audio/*
+       src/sid/*
+       src/smb/*
+       src/sndfile/*
+       src/statusicon/*
+       src/tonegen/*
+       src/vfstrace/*
+       src/vorbis/*
+       src/vtx/*
+       src/xsf/desmume/*
+       src/xspf/*
+Copyright: 2010-2011, Michał Lipski <tallica@o2.pl>
+           2009, Tony Vroon <chainsaw@gentoo.org>
+           2009, Sebastian Pipping <sebastian@pipping.org>
+           2009 Jussi Judin
+           2009-2011, John Lindgren <john.lindgren@tds.net>
+           2008 Eugene Zagidullin <e.asphyx@gmail.com>
+           2008 Cristi Măgherușan <majeru@gentoo.ro>
+           2007 Michael FÃ¤rber
+           2007 Daniel Bradshaw
+           2007-2008 Sascha Hlusiak <contact@saschahlusiak.de>
+           2006 yopyop
+           2006 Torbjorn Andersson and Johannes Schickel
+           2006 thoduv
+           2006 The ScummVM project
+           2006 Evan Martin <martine@danga.com>
+           2006 Christian Birchinger <joker@netswarm.net>
+           2006-2010 William Pitcock, Tony Vroon, George Averill, Giacomo
+           Lozito, Derek Pomery and Yoshiki Yazawa, and John Lindgren.
+           2006-2007 Yoshiki Yazawa
+           2006-2007 Vladimir Paskov <vlado.paskov@gmail.com>
+           2006-2007 Theo Berkau
+           2006-2007 shash
+           2006-2007 Bastien Nocera
+           2005-2011 Audacious development team
+           2005-2010 William Pitcock <nenolod@dereferenced.org>
+           2005-2008 Marcel Holtmann
+           2005-2007 Ralf Ertzinger
+           2005-2007 Giacomo Lozito <james@develia.org>
+           2005-2006 Guillaume Duhamel
+           2004 Clemens Ladisch <clemens@ladisch.de>
+           2003 by Chris Moeller, eh, whatever
+           2003-2005 M. Bakker, Nero AG, http://www.nero.com
+           2003-2004 Sashnov Alexander
+           2003-2004  BMP development team
+           2002 Lars Siebold
+           2002 Gian-Carlo Pascutto <gcp@sjeng.org>
+           2002 by Pete Bernert
+           2000 Martin Strau? <mys@faveve.uni-stuttgart.de>
+           2000-2002 Ville Syrjälä <syrjala@sci.fi>
+           2000, 2002 Erik de Castro Lopo
+           1999-2007 Tecnic Software productions (TNSP)
+           1999-2001 Haavard Kvaalen <havardk@sol.no>
+           1998-2003 XMMS development team
 License: GPL-2+
 
-Files:
- src/adplug/*
- src/console/*
- src/jack/*
- src/ladspa/ladspa.h
-Copyright:
- 2003-2006 Shay Green
- 2003-2006 Chris Morgan
- 2002-2007 Simon Peter
- 2000-2002 Richard W.E. Furse, Paul Barton-Davis, Stefan Westerfeld
- 1999,2000 Tatsuyuki Satoh , MultiArcadeMachineEmurator development
- 1998-2001 Ken Silverman
+Files: src/adplug/*
+       src/console/*
+       src/jack/*
+       src/ladspa/ladspa.h
+Copyright: 2003-2006 Shay Green
+           2003-2006 Chris Morgan
+           2002-2007 Simon Peter
+           2000-2002 Richard W.E. Furse, Paul Barton-Davis, Stefan Westerfeld
+           1999,2000 Tatsuyuki Satoh , MultiArcadeMachineEmurator development
+           1998-2001 Ken Silverman
 License: LGPL-2.1+
 
 Files: src/adplug/core/binio_virtual.h
@@ -112,76 +107,67 @@ Copyright: 2006 William Pitcock <nenolod -at- atheme.org>
 License: public-domain
  This code is in the public domain.
 
-Files:
- src/alsa/*
- src/audpl/*
- src/compressor/*
- src/crossfade/*
- src/ladspa/*
- src/mixer/*
- src/mpris2/*
- src/oss4/*
- src/resample/*
- src/sdlout/*
- src/unix-io/*
-Copyright:
- 2010-2011 Michał Lipski <tallica@o2.pl>
- 2009-2011 John Lindgren
+Files: src/alsa/*
+       src/audpl/*
+       src/compressor/*
+       src/crossfade/*
+       src/ladspa/*
+       src/mixer/*
+       src/mpris2/*
+       src/oss4/*
+       src/resample/*
+       src/sdlout/*
+       src/unix-io/*
+Copyright: 2010-2011 Michał Lipski <tallica@o2.pl>
+           2009-2011 John Lindgren
 License: BSD-2-clause
 
-Files:
- src/albumart/*
- src/cairo-spectrum/*
- src/dockalbumart/*
- src/crystalizer/*
- src/voice_removal/*
- src/console/abstract_file.cxx
- src/console/Gzip_File.cxx
- src/aosd/ghosd*
- src/mpg123/*
- src/lyricwiki/*
-Copyright:
- 2010-2011 John Lindgren <john.lindgren@tds.net>
- 2007-2011 William Pitcock <nenolod@dereferenced.org>
- 2006 Evan Martin
- 2005 Shay Green
+Files: src/albumart/*
+       src/cairo-spectrum/*
+       src/dockalbumart/*
+       src/crystalizer/*
+       src/voice_removal/*
+       src/console/abstract_file.cxx
+       src/console/Gzip_File.cxx
+       src/aosd/ghosd*
+       src/mpg123/*
+       src/lyricwiki/*
+Copyright: 2010-2011 John Lindgren <john.lindgren@tds.net>
+           2007-2011 William Pitcock <nenolod@dereferenced.org>
+           2006 Evan Martin
+           2005 Shay Green
 License: Expat
 
-Files:
- src/flacng/metadata.c
- src/notify/*
-Copyright:
- 2010-2011 John Lindgren <john.lindgren@tds.net>
- 2010 Michał Lipski <tallica@o2.pl>
- 2010 Maximilian Bogner <max@mbogner.de>
- 2005 Ralf Ertzinger
+Files: src/flacng/metadata.c
+       src/notify/*
+Copyright: 2010-2011 John Lindgren <john.lindgren@tds.net>
+           2010 Michał Lipski <tallica@o2.pl>
+           2010 Maximilian Bogner <max@mbogner.de>
+           2005 Ralf Ertzinger
 License: GPL-3+
 
-Files:
- src/asx/util.*
- src/cdaudio-ng/*
- src/gntui/*
- src/gtkui/*
- src/lirc/*
- src/mtp_up/*
- src/pls/util.*
- src/skins/*
- src/song_change/*
-Copyright:
- 2009 John Lindgren
- 2007 Cristian Magherusan
- 2007 Calin Crisan <ccrisan@gmail.com>
- 2007-2009 Tomasz Moń <desowin@gmail.com>
- 2005-2011 Audacious development team
- 2003-2004 BMP development team
- 1999-2003 Haavard Kvaalen
- 1998-2003 XMMS development team
- 1998-2003 Peter Alm, Mikael Alm, Olle Hallnas,
- Thomas Nilsson and 4Front Technologies
+Files: src/asx/util.*
+       src/cdaudio-ng/*
+       src/gntui/*
+       src/gtkui/*
+       src/lirc/*
+       src/mtp_up/*
+       src/pls/util.*
+       src/skins/*
+       src/song_change/*
+Copyright: 2009 John Lindgren
+           2007 Cristian Magherusan
+           2007 Calin Crisan <ccrisan@gmail.com>
+           2007-2009 Tomasz Moń <desowin@gmail.com>
+           2005-2011 Audacious development team
+           2003-2004 BMP development team
+           1999-2003 Haavard Kvaalen
+           1998-2003 XMMS development team
+           1998-2003 Peter Alm, Mikael Alm, Olle Hallnas,
+           Thomas Nilsson and 4Front Technologies
 License: GPL-3
 
-Files:
- src/modplug/*
+Files: src/modplug/*
 Copyright: No copyright holders
 License: public-domain
  This source code is public domain.
@@ -197,17 +183,14 @@ License: public-domain
  This code is in the public domain; do with it what you wish.
 
 Files: src/sndstretch/*
-Copyright:
- 2009-2011 John Lindgren
- 2000-2001 Florian Berger
+Copyright: 2009-2011 John Lindgren
+           2000-2001 Florian Berger
 License: GPL-2
 
-Files:
- src/vorbis/vcedit.*
- src/vtx/ayemu*
-Copyright:
- 2003-2004 Sashnov Alexander
- 2000-2001 Michael Smith <msmith@labyrinth.net.au>
+Files: src/vorbis/vcedit.*
+       src/vtx/ayemu*
+Copyright: 2003-2004 Sashnov Alexander
+           2000-2001 Michael Smith <msmith@labyrinth.net.au>
 License: LGPL-2
 
 Files: src/search-tool/search-tool.c
@@ -215,10 +198,9 @@ Copyright: 2011 John Lindgren
 License: GPL-2 or GPL-3
 
 Files: debian/*
-Copyright:
- 2010 Chris Taylor
- 2010 Benjamin Drung <bdrung@ubuntu.com>
- 2006-2009 Adam Cécile (Le_Vert)
+Copyright: 2010 Chris Taylor
+           2010 Benjamin Drung <bdrung@ubuntu.com>
+           2006-2009 Adam Cécile (Le_Vert)
 License: GPL-2+
 
 License: GPL-2
