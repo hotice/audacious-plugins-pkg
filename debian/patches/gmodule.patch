@@ -1,0 +1,15 @@
+Description: Fix build failure due to missing gmodule linkage.
+Author: Benjamin Drung <bdrung@ubuntu.com>
+Forwarded: no
+
+--- audacious-plugins-3.2.1.orig/src/ladspa/Makefile
++++ audacious-plugins-3.2.1/src/ladspa/Makefile
+@@ -10,6 +10,6 @@ include ../../extra.mk
+ 
+ plugindir := ${plugindir}/${EFFECT_PLUGIN_DIR}
+ 
+-CPPFLAGS += -I../.. ${PTHREAD_CFLAGS} ${GTK_CFLAGS}
++CPPFLAGS += -I../.. ${PTHREAD_CFLAGS} ${GTK_CFLAGS} ${GMODULE_CFLAGS}
+ CFLAGS += ${PLUGIN_CFLAGS}
+-LIBS += -lm ${PTHREAD_LIBS} ${GTK_LIBS}
++LIBS += -lm ${PTHREAD_LIBS} ${GTK_LIBS} ${GMODULE_LIBS}
