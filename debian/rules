@@ -11,9 +11,7 @@ endif
 
 override_dh_auto_configure:
 	autoconf
-	dh_auto_configure -- \
-		--disable-rpath \
-		$(additional_confflags)
+	dh_auto_configure -- --disable-rpath $(additional_confflags)
 
 override_dh_strip:
 	dh_strip --dbg-package=audacious-plugins-dbg
