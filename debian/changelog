@@ -1,3 +1,15 @@
+audacious-plugins (3.2.1-2) unstable; urgency=low
+
+  * Team upload.
+  * Add gmodule.patch to fix build failure on Ubuntu.
+  * Bump Standards-Version to 3.9.3, no changes needed.
+  * Update machine-readable copyright Format to 1.0.
+  * Do not disable PSF any more.
+  * Run autoconf again to really apply the FFaudio patch
+    (Closes: #640931, #641701, LP: #880192, #922985).
+
+ -- Benjamin Drung <bdrung@debian.org>  Sat, 25 Feb 2012 17:57:39 +0100
+
 audacious-plugins (3.2.1-1) unstable; urgency=low
 
   * Team upload.
