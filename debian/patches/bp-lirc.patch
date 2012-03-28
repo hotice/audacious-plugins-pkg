@@ -1,0 +1,793 @@
+Description: Backport lirc plugin from upstream.
+Author: Benjamin Drung <bdrung@debian.org>
+Forwarded: not-needed
+Last-Update: 2012-03-28
+
+--- a/configure.ac
++++ b/configure.ac
+@@ -239,6 +239,21 @@
+     GENERAL_PLUGINS="$GENERAL_PLUGINS gnomeshortcuts"
+ fi
+ 
++dnl Linux Infrared Remote Control (LIRC)
++dnl ====================================
++
++AC_ARG_ENABLE(lirc,
++ AS_HELP_STRING([--disable-lirc], [disable LIRC support (default=enabled)]),
++ [enable_lirc=$enableval], [enable_lirc=yes])
++
++if test $enable_lirc = yes ; then
++    AC_CHECK_HEADERS([lirc/lirc_client.h], [enable_lirc=yes], [enable_lirc=no])
++fi
++
++if test $enable_lirc = yes ; then
++	GENERAL_PLUGINS="$GENERAL_PLUGINS lirc"
++fi
++
+ dnl Song Change
+ dnl ===========
+ 
+@@ -1193,6 +1208,7 @@
+ echo "  -------"
+ echo "  Alarm:                                  yes"
+ echo "  Album Art:                              yes"
++echo "  Linux Infrared Remote Control (LIRC)    $enable_lirc"
+ echo "  MPRIS 2 Server:                         $enable_mpris2"
+ echo "  Search Tool:                            yes"
+ echo "  Song Change:                            $enable_songchange"
+--- /dev/null
++++ b/src/lirc/Makefile
+@@ -0,0 +1,14 @@
++PLUGIN = lirc${PLUGIN_SUFFIX}
++
++SRCS = lirc.c \
++       configure.c
++      
++
++include ../../buildsys.mk
++include ../../extra.mk
++
++plugindir := ${plugindir}/${GENERAL_PLUGIN_DIR}
++
++CFLAGS += ${PLUGIN_CFLAGS}
++CPPFLAGS += ${PLUGIN_CPPFLAGS} ${GTK_CFLAGS} ${MOWGLI_CFLAGS}   -I../..
++LIBS += ${GTK_LIBS} ${GLIB_LIBS}  -llirc_client
+--- /dev/null
++++ b/src/lirc/configure.h
+@@ -0,0 +1,40 @@
++/* Audacious LIRC plugin - configure.h
++
++   Copyright (C) 2012 Joonas Harjumäki (jharjuma@gmail.com)
++
++   Copyright (C) 2005 Audacious development team
++
++   Copyright (c) 1998-1999 Carl van Schaik (carl@leg.uct.ac.za)
++
++   Copyright (C) 2000 Christoph Bartelmus (xmms@bartelmus.de)
++
++   some code was stolen from:
++   IRman plugin for xmms by Charles Sielski (stray@teklabs.net)
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++*/
++
++#include <gtk/gtk.h>
++#include <glib.h>
++
++extern gint b_enable_reconnect;
++extern gint reconnect_timeout;
++extern gchar *aosd_font;
++
++void load_cfg (void);
++
++void configure (void);
++
++GtkWidget *create_lirc_cfg (void);
+--- /dev/null
++++ b/src/lirc/lirc.c
+@@ -0,0 +1,430 @@
++/* Audacious LIRC plugin - lirc.c
++
++   Copyright (C) 2012 Joonas Harjumäki (jharjuma@gmail.com)
++
++   Copyright (C) 2005 Audacious development team
++
++   Copyright (c) 1998-1999 Carl van Schaik (carl@leg.uct.ac.za)
++
++   Copyright (C) 2000 Christoph Bartelmus (xmms@bartelmus.de)
++
++   some code was stolen from:
++   IRman plugin for xmms by Charles Sielski (stray@teklabs.net)
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++*/
++
++#include "config.h"
++
++#include <stdio.h>
++#include <unistd.h>
++#include <fcntl.h>
++#include <string.h>
++#include <signal.h>
++#include <stdlib.h>
++#include <ctype.h>
++
++
++#include <glib.h>
++#include <gtk/gtk.h>
++#include <lirc/lirc_client.h>
++
++#include <audacious/drct.h>
++#include <audacious/i18n.h>
++#include <audacious/plugin.h>
++#include <libaudcore/hook.h>
++#include <audacious/misc.h>
++#include <libaudgui/libaudgui-gtk.h>
++#include <audacious/playlist.h>
++
++
++#include "lirc.h"
++#include "configure.h"
++
++const char *plugin_name = "LIRC Plugin";
++
++int lirc_fd = -1;
++struct lirc_config *config = NULL;
++gint tracknr = 0;
++gint mute = 0;                  /* mute flag */
++gint mute_vol = 0;              /* holds volume before mute */
++
++guint input_tag;
++
++char track_no[64];
++int track_no_pos;
++gint tid;
++
++
++void init_lirc (void)
++{
++    int flags;
++
++    if ((lirc_fd = lirc_init ("audacious", 1)) == -1)
++    {
++        fprintf (stderr, _("%s: could not init LIRC support\n"), plugin_name);
++        return;
++    }
++    if (lirc_readconfig (NULL, &config, NULL) == -1)
++    {
++        lirc_deinit ();
++        fprintf (stderr,
++                 _("%s: could not read LIRC config file\n"
++                   "%s: please read the documentation of LIRC\n"
++                   "%s: how to create a proper config file\n"),
++                 plugin_name, plugin_name, plugin_name);
++        return;
++    }
++
++    input_tag =
++        g_io_add_watch (g_io_channel_unix_new (lirc_fd), G_IO_IN,
++                        lirc_input_callback, NULL);
++
++    fcntl (lirc_fd, F_SETOWN, getpid ());
++    flags = fcntl (lirc_fd, F_GETFL, 0);
++    if (flags != -1)
++    {
++        fcntl (lirc_fd, F_SETFL, flags | O_NONBLOCK);
++    }
++    fflush (stdout);
++}
++
++gboolean init (void)
++{
++    load_cfg ();
++    init_lirc ();
++    track_no_pos = 0;
++    tid = 0;
++    return TRUE;
++}
++
++gboolean reconnect_lirc (gpointer data)
++{
++    fprintf (stderr, _("%s: trying to reconnect...\n"), plugin_name);
++    init ();
++    return (lirc_fd == -1);
++}
++
++void about (void)
++{
++    static GtkWidget *about_widget = NULL;
++
++    audgui_simple_message (&about_widget, GTK_MESSAGE_INFO,
++                           _("About LIRC Audacious Plugin"),
++                           "A simple plugin that lets you control\n"
++                           "Audacious using the LIRC remote control daemon\n\n"
++                           "Adapted for Audacious usage by Tony Vroon <chainsaw@gentoo.org> and\n"
++                           "Joonas Harjumäki <jharjuma@gmail.com>\n"
++                           "from the XMMS LIRC plugin by:\n"
++                           "Carl van Schaik <carl@leg.uct.ac.za>\n"
++                           "Christoph Bartelmus <xmms@bartelmus.de>\n"
++                           "Andrew O. Shadoura <bugzilla@tut.by>\n"
++                           "You can get LIRC information at:\n"
++                           "http://lirc.org");
++}
++
++void cleanup ()
++{
++    if (config)
++    {
++        if (input_tag)
++            g_source_remove (input_tag);
++
++        config = NULL;
++    }
++    if (lirc_fd != -1)
++    {
++        lirc_deinit ();
++        lirc_fd = -1;
++    }
++    g_free (aosd_font);
++}
++
++gboolean jump_to (gpointer data)
++{
++    int playlist = aud_playlist_get_active ();
++    aud_playlist_set_position (playlist, atoi (track_no) - 1);
++    track_no_pos = 0;
++    tid = 0;
++    return FALSE;
++}
++
++
++
++gboolean lirc_input_callback (GIOChannel * source,
++                              GIOCondition condition, gpointer data)
++{
++    char *code;
++    char *c;
++    gint playlist_time, playlist_pos, output_time, v;
++    int ret;
++    char *ptr;
++    gint balance;
++#if 0
++    gboolean show_pl;
++#endif
++    int n;
++    gchar *utf8_title_markup;
++
++    while ((ret = lirc_nextcode (&code)) == 0 && code != NULL)
++    {
++        while ((ret = lirc_code2char (config, code, &c)) == 0 && c != NULL)
++        {
++            if (strcasecmp ("PLAY", c) == 0)
++            {
++                aud_drct_play ();
++            }
++            else if (strcasecmp ("STOP", c) == 0)
++            {
++                aud_drct_stop ();
++            }
++            else if (strcasecmp ("PAUSE", c) == 0)
++            {
++                aud_drct_pause ();
++            }
++            else if (strcasecmp ("PLAYPAUSE", c) == 0)
++            {
++                if (aud_drct_get_playing ())
++                    aud_drct_pause ();
++                else
++                    aud_drct_play ();
++            }
++            else if (strncasecmp ("NEXT", c, 4) == 0)
++            {
++                ptr = c + 4;
++                while (isspace (*ptr))
++                    ptr++;
++                n = atoi (ptr);
++
++                if (n <= 0)
++                    n = 1;
++                for (; n > 0; n--)
++                {
++                    aud_drct_pl_next ();
++                }
++            }
++            else if (strncasecmp ("PREV", c, 4) == 0)
++            {
++                ptr = c + 4;
++                while (isspace (*ptr))
++                    ptr++;
++                n = atoi (ptr);
++
++                if (n <= 0)
++                    n = 1;
++                for (; n > 0; n--)
++                {
++                    aud_drct_pl_prev ();
++                }
++            }
++
++            else if (strcasecmp ("SHUFFLE", c) == 0)
++            {
++                aud_set_bool (NULL, "shuffle",
++                              !aud_get_bool (NULL, "shuffle"));
++            }
++            else if (strcasecmp ("REPEAT", c) == 0)
++            {
++                aud_set_bool (NULL, "repeat", !aud_get_bool (NULL, "repeat"));
++            }
++
++            else if (strncasecmp ("FWD", c, 3) == 0)
++            {
++                ptr = c + 3;
++                while (isspace (*ptr))
++                    ptr++;
++                n = atoi (ptr) * 1000;
++
++                if (n <= 0)
++                    n = 5000;
++                output_time = aud_drct_get_time ();
++
++                int playlist = aud_playlist_get_active ();
++                playlist_pos = aud_playlist_get_position (playlist);
++                playlist_time =
++                    aud_playlist_entry_get_length (playlist, playlist_pos,
++                                                   FALSE);
++                if (playlist_time - output_time < n)
++                    output_time = playlist_time - n;
++                aud_drct_seek (output_time + n);
++            }
++            else if (strncasecmp ("BWD", c, 3) == 0)
++            {
++                ptr = c + 3;
++                while (isspace (*ptr))
++                    ptr++;
++                n = atoi (ptr) * 1000;
++
++                if (n <= 0)
++                    n = 5000;
++                output_time = aud_drct_get_time ();
++                if (output_time < n)
++                    output_time = n;
++                aud_drct_seek (output_time - n);
++            }
++            else if (strncasecmp ("VOL_UP", c, 6) == 0)
++            {
++                ptr = c + 6;
++                while (isspace (*ptr))
++                    ptr++;
++                n = atoi (ptr);
++                if (n <= 0)
++                    n = 5;
++
++                aud_drct_get_volume_main (&v);
++                if (v > (100 - n))
++                    v = 100 - n;
++                aud_drct_set_volume_main (v + n);
++            }
++            else if (strncasecmp ("VOL_DOWN", c, 8) == 0)
++            {
++                ptr = c + 8;
++                while (isspace (*ptr))
++                    ptr++;
++                n = atoi (ptr);
++                if (n <= 0)
++                    n = 5;
++
++                aud_drct_get_volume_main (&v);
++                if (v < n)
++                    v = n;
++                aud_drct_set_volume_main (v - n);
++            }
++            else if (strcasecmp ("QUIT", c) == 0)
++            {
++                aud_drct_quit ();
++            }
++            else if (strcasecmp ("MUTE", c) == 0)
++            {
++                if (mute == 0)
++                {
++                    mute = 1;
++                    /* store the master volume so
++                       we can restore it on unmute. */
++                    aud_drct_get_volume_main (&mute_vol);
++                    aud_drct_set_volume_main (0);
++                }
++                else
++                {
++                    mute = 0;
++                    aud_drct_set_volume_main (mute_vol);
++                }
++            }
++            else if (strncasecmp ("BAL_LEFT", c, 8) == 0)
++            {
++                ptr = c + 8;
++                while (isspace (*ptr))
++                    ptr++;
++                n = atoi (ptr);
++                if (n <= 0)
++                    n = 5;
++
++                aud_drct_get_volume_balance (&balance);
++                balance -= n;
++                if (balance < -100)
++                    balance = -100;
++                aud_drct_set_volume_balance (balance);
++            }
++            else if (strncasecmp ("BAL_RIGHT", c, 9) == 0)
++            {
++                ptr = c + 9;
++                while (isspace (*ptr))
++                    ptr++;
++                n = atoi (ptr);
++                if (n <= 0)
++                    n = 5;
++
++                aud_drct_get_volume_balance (&balance);
++                balance += n;
++                if (balance > 100)
++                    balance = 100;
++                aud_drct_set_volume_balance (balance);
++            }
++            else if (strcasecmp ("BAL_CENTER", c) == 0)
++            {
++                balance = 0;
++                aud_drct_set_volume_balance (balance);
++            }
++            else if (strcasecmp ("LIST", c) == 0)
++            {
++#if 0
++                show_pl = aud_drct_pl_win_is_visible ();
++                show_pl = (show_pl) ? 0 : 1;
++                aud_drct_pl_win_toggle (show_pl);
++#endif
++            }
++            else if (strcasecmp ("PLAYLIST_CLEAR", c) == 0)
++            {
++                aud_drct_stop ();
++                int playlist = aud_playlist_get_active ();
++                aud_playlist_entry_delete (playlist, 0,
++                                           aud_playlist_entry_count
++                                           (playlist));
++            }
++            else if (strncasecmp ("PLAYLIST_ADD ", c, 13) == 0)
++            {
++                aud_drct_pl_add (c + 13, -1);
++            }
++            else if ((strlen (c) == 1) && ((*c >= '0') || (*c <= '9')))
++            {
++                if (track_no_pos < 63)
++                {
++                    if (tid)
++                        g_source_remove (tid);
++                    track_no[track_no_pos++] = *c;
++                    track_no[track_no_pos] = 0;
++                    tid = g_timeout_add (1500, jump_to, NULL);
++                    utf8_title_markup =
++                        g_markup_printf_escaped
++                        ("<span font_desc='%s'>%s</span>", aosd_font,
++                         track_no);
++                    hook_call ("aosd toggle", utf8_title_markup);
++                }
++            }
++            else
++            {
++                fprintf (stderr, _("%s: unknown command \"%s\"\n"),
++                         plugin_name, c);
++            }
++        }
++        free (code);
++        if (ret == -1)
++            break;
++    }
++    if (ret == -1)
++    {
++        /* something went badly wrong */
++        fprintf (stderr, _("%s: disconnected from LIRC\n"), plugin_name);
++        cleanup ();
++        if (b_enable_reconnect)
++        {
++            fprintf (stderr,
++                     _("%s: will try reconnect every %d seconds...\n"),
++                     plugin_name, reconnect_timeout);
++            g_timeout_add (1000 * reconnect_timeout, reconnect_lirc, NULL);
++        }
++    }
++
++    return TRUE;
++}
++
++AUD_GENERAL_PLUGIN
++(
++    .name = "LIRC Plugin",
++    .init = init,
++    .about = about,
++    .configure = configure,
++    .cleanup = cleanup
++)
+--- /dev/null
++++ b/src/lirc/lirc.h
+@@ -0,0 +1,32 @@
++/* Audacious LIRC plugin - lirc.h
++
++   Copyright (C) 2012 Joonas Harjumäki (jharjuma@gmail.com)
++
++   Copyright (C) 2005 Audacious development team
++
++   Copyright (c) 1998-1999 Carl van Schaik (carl@leg.uct.ac.za)
++
++   Copyright (C) 2000 Christoph Bartelmus (xmms@bartelmus.de)
++
++   some code was stolen from:
++   IRman plugin for xmms by Charles Sielski (stray@teklabs.net)
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++*/
++
++#include <glib.h>
++
++gboolean lirc_input_callback (GIOChannel * source, GIOCondition condition,
++                              gpointer data);
+--- /dev/null
++++ b/src/lirc/configure.c
+@@ -0,0 +1,225 @@
++/* Audacious LIRC plugin - configure.c
++
++   Copyright (C) 2012 Joonas Harjumäki (jharjuma@gmail.com)
++
++   Copyright (C) 2005 Audacious development team
++
++   Copyright (c) 1998-1999 Carl van Schaik (carl@leg.uct.ac.za)
++
++   Copyright (C) 2000 Christoph Bartelmus (xmms@bartelmus.de)
++
++   some code was stolen from:
++   IRman plugin for xmms by Charles Sielski (stray@teklabs.net)
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++*/
++
++#include "config.h"
++
++#include <gtk/gtk.h>
++#include <audacious/i18n.h>
++#include <audacious/plugin.h>
++#include <audacious/misc.h>
++#include <gdk/gdkkeysyms.h>
++
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <unistd.h>
++#include <string.h>
++#include <stdio.h>
++
++#include "configure.h"
++
++static const gchar *const lirc_defaults[] = {
++    "enable_reconnect", "1",
++    "reconnect_timeout", "5",
++    "text_fonts_name_0", "Sans 26",
++    NULL
++};
++
++gint b_enable_reconnect;
++gint reconnect_timeout;
++gchar *aosd_font = NULL;
++
++GtkWidget *lirc_cfg;
++
++void load_cfg (void)
++{
++    aud_config_set_defaults ("lirc", lirc_defaults);
++    b_enable_reconnect = aud_get_int ("lirc", "enable_reconnect");
++    reconnect_timeout = aud_get_int ("lirc", "reconnect_timeout");
++    aosd_font = aud_get_string ("lirc", "text_fonts_name_0");
++
++}
++
++void save_cfg (void)
++{
++    aud_set_int ("lirc", "enable_reconnect", b_enable_reconnect);
++    aud_set_int ("lirc", "reconnect_timeout", reconnect_timeout);
++    aud_set_string ("lirc", "text_fonts_name_0", aosd_font);
++}
++
++void configure (void)
++{
++    if (lirc_cfg)
++    {
++        gtk_window_present (GTK_WINDOW (lirc_cfg));
++        return;
++    }
++    load_cfg ();
++    lirc_cfg = create_lirc_cfg ();
++    gtk_widget_show_all (lirc_cfg);
++
++}
++
++void
++on_reconnectcheck_toggled (GtkToggleButton * togglebutton,
++                           GtkWidget * reconnectspin)
++{
++    gtk_widget_set_sensitive (reconnectspin,
++                              gtk_toggle_button_get_active (togglebutton));
++}
++
++
++void on_cancelbutton1_clicked (GtkButton * button, gpointer user_data)
++{
++    gtk_widget_destroy (lirc_cfg);
++    lirc_cfg = NULL;
++}
++
++
++void on_okbutton1_clicked (GtkButton * button, gpointer user_data)
++{
++    b_enable_reconnect =
++        (gint)
++        gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON
++                                      (g_object_get_data
++                                       (G_OBJECT (lirc_cfg),
++                                        "reconnectcheck")));
++    reconnect_timeout =
++        gtk_spin_button_get_value_as_int (GTK_SPIN_BUTTON
++                                          (g_object_get_data
++                                           (G_OBJECT (lirc_cfg),
++                                            "reconnectspin")));
++    save_cfg ();
++    gtk_widget_destroy (lirc_cfg);
++    lirc_cfg = NULL;
++}
++
++GtkWidget *create_lirc_cfg (void)
++{
++    GtkWidget *dialog_vbox1;
++    GtkWidget *notebook1;
++    GtkWidget *vbox2;
++    GtkWidget *frame1;
++    GtkWidget *alignment1;
++    GtkWidget *vbox3;
++    GtkWidget *hbox1;
++    GtkWidget *label3;
++    GtkWidget *reconnectcheck;
++    GtkWidget *reconnectspin;
++    GtkAdjustment *reconnectspin_adj;
++    GtkWidget *label2;
++    GtkWidget *label1;
++    GtkWidget *dialog_action_area1;
++    GtkWidget *cancelbutton1;
++    GtkWidget *okbutton1;
++
++    lirc_cfg = gtk_dialog_new ();
++    gtk_window_set_title (GTK_WINDOW (lirc_cfg), _("LIRC plugin settings"));
++    gtk_window_set_position (GTK_WINDOW (lirc_cfg),
++                             GTK_WIN_POS_CENTER_ON_PARENT);
++    gtk_window_set_resizable (GTK_WINDOW (lirc_cfg), FALSE);
++    gtk_window_set_type_hint (GTK_WINDOW (lirc_cfg),
++                              GDK_WINDOW_TYPE_HINT_DIALOG);
++    g_signal_connect (G_OBJECT (lirc_cfg), "destroy",
++                      G_CALLBACK (gtk_widget_destroyed), &lirc_cfg);
++
++    dialog_vbox1 = gtk_dialog_get_content_area (GTK_DIALOG (lirc_cfg));
++
++    notebook1 = gtk_notebook_new ();
++    gtk_box_pack_start (GTK_BOX (dialog_vbox1), notebook1, TRUE, TRUE, 0);
++
++    vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
++    gtk_container_add (GTK_CONTAINER (notebook1), vbox2);
++
++    frame1 = gtk_frame_new (NULL);
++    gtk_box_pack_start (GTK_BOX (vbox2), frame1, TRUE, TRUE, 0);
++
++    alignment1 = gtk_alignment_new (0.5, 0.5, 1, 1);
++    gtk_container_add (GTK_CONTAINER (frame1), alignment1);
++    gtk_alignment_set_padding (GTK_ALIGNMENT (alignment1), 0, 0, 12, 0);
++
++    vbox3 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
++    gtk_container_add (GTK_CONTAINER (alignment1), vbox3);
++
++    reconnectcheck =
++        gtk_check_button_new_with_mnemonic (_("Reconnect to LIRC server"));
++    gtk_box_pack_start (GTK_BOX (vbox3), reconnectcheck, FALSE, FALSE, 0);
++    gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (reconnectcheck),
++                                  (gboolean) b_enable_reconnect);
++
++    hbox1 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
++    gtk_box_pack_start (GTK_BOX (vbox3), hbox1, TRUE, TRUE, 0);
++
++    label3 = gtk_label_new (_("Timeout before reconnecting (seconds): "));
++    gtk_box_pack_start (GTK_BOX (hbox1), label3, FALSE, FALSE, 17);
++
++    reconnectspin_adj =
++        gtk_adjustment_new (reconnect_timeout, 1, 100, 1, 10, 10);
++    reconnectspin =
++        gtk_spin_button_new (GTK_ADJUSTMENT (reconnectspin_adj), 1, 0);
++    gtk_box_pack_start (GTK_BOX (hbox1), reconnectspin, TRUE, TRUE, 15);
++
++    label2 = gtk_label_new (_("Reconnect"));
++    gtk_frame_set_label_widget (GTK_FRAME (frame1), label2);
++    gtk_label_set_use_markup (GTK_LABEL (label2), TRUE);
++
++    label1 = gtk_label_new (_("Connection"));
++    gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook1),
++                                gtk_notebook_get_nth_page (GTK_NOTEBOOK
++                                                           (notebook1), 0),
++                                label1);
++
++    dialog_action_area1 = gtk_dialog_get_action_area (GTK_DIALOG (lirc_cfg));
++    gtk_button_box_set_layout (GTK_BUTTON_BOX (dialog_action_area1),
++                               GTK_BUTTONBOX_END);
++
++    cancelbutton1 = gtk_button_new_from_stock ("gtk-cancel");
++    gtk_dialog_add_action_widget (GTK_DIALOG (lirc_cfg), cancelbutton1,
++                                  GTK_RESPONSE_CANCEL);
++    gtk_widget_set_can_default (cancelbutton1, TRUE);
++
++    okbutton1 = gtk_button_new_from_stock ("gtk-ok");
++    gtk_dialog_add_action_widget (GTK_DIALOG (lirc_cfg), okbutton1,
++                                  GTK_RESPONSE_OK);
++    gtk_widget_set_can_default (okbutton1, TRUE);
++
++    g_signal_connect (G_OBJECT (reconnectcheck), "toggled",
++                      G_CALLBACK (on_reconnectcheck_toggled),
++                      G_OBJECT (reconnectspin));
++    g_signal_connect (G_OBJECT (cancelbutton1), "clicked",
++                      G_CALLBACK (on_cancelbutton1_clicked), NULL);
++    g_signal_connect (G_OBJECT (okbutton1), "clicked",
++                      G_CALLBACK (on_okbutton1_clicked), NULL);
++    gtk_widget_set_sensitive (reconnectspin, (gboolean) b_enable_reconnect);
++
++    g_object_set_data (G_OBJECT (lirc_cfg), "reconnectcheck",
++                       G_OBJECT (reconnectcheck));
++    g_object_set_data (G_OBJECT (lirc_cfg), "reconnectspin",
++                       G_OBJECT (reconnectspin));
++
++    return lirc_cfg;
++}
