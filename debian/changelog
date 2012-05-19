@@ -1,5 +1,7 @@
 audacious-plugins (3.2.2-1) unstable; urgency=low
 
+  * Team upload.
+
   [ Alessio Treglia ]
   * New upstream release.
   * Refresh debian/patches/ffaudio.diff.
