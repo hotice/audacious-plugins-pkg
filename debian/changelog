@@ -1,3 +1,16 @@
+audacious-plugins (3.2.2-1) unstable; urgency=low
+
+  [ Alessio Treglia ]
+  * New upstream release.
+  * Refresh debian/patches/ffaudio.diff.
+  * Remove debian/patches/gmodule.patch, applied upstream.
+
+  [ Benjamin Drung ]
+  * Remove unused build-dependency on libprojectm-dev, which is
+    being removed from armel. Thanks to Colin Watson
+
+ -- Alessio Treglia <alessio@debian.org>  Sat, 19 May 2012 17:39:19 +0200
+
 audacious-plugins (3.2.1-4) unstable; urgency=low
 
   * Team upload.
