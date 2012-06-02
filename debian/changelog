@@ -1,3 +1,11 @@
+audacious-plugins (3.2.3-1) unstable; urgency=low
+
+  * Team upload.
+  * New upstream bugfix release.
+  * Refresh patches.
+
+ -- Alessio Treglia <alessio@debian.org>  Sat, 02 Jun 2012 13:33:01 +0200
+
 audacious-plugins (3.2.2-1) unstable; urgency=low
 
   * Team upload.
