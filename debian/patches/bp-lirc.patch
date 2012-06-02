@@ -3,9 +3,18 @@ Author: Benjamin Drung <bdrung@debian.org>
 Forwarded: not-needed
 Last-Update: 2012-03-28
 
---- a/configure.ac
-+++ b/configure.ac
-@@ -239,6 +239,21 @@
+---
+ configure.ac         |   16 +
+ src/lirc/Makefile    |   14 +
+ src/lirc/configure.c |  225 ++++++++++++++++++++++++++
+ src/lirc/configure.h |   40 ++++
+ src/lirc/lirc.c      |  430 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/lirc/lirc.h      |   32 +++
+ 6 files changed, 757 insertions(+)
+
+--- audacious-plugins.orig/configure.ac
++++ audacious-plugins/configure.ac
+@@ -239,6 +239,21 @@ if test "x$have_gnomeshortcuts" = "xyes"
      GENERAL_PLUGINS="$GENERAL_PLUGINS gnomeshortcuts"
  fi
  
@@ -27,7 +36,7 @@ Last-Update: 2012-03-28
  dnl Song Change
  dnl ===========
  
-@@ -1193,6 +1208,7 @@
+@@ -1178,6 +1193,7 @@ echo "  General"
  echo "  -------"
  echo "  Alarm:                                  yes"
  echo "  Album Art:                              yes"
@@ -36,13 +45,13 @@ Last-Update: 2012-03-28
  echo "  Search Tool:                            yes"
  echo "  Song Change:                            $enable_songchange"
 --- /dev/null
-+++ b/src/lirc/Makefile
++++ audacious-plugins/src/lirc/Makefile
 @@ -0,0 +1,14 @@
 +PLUGIN = lirc${PLUGIN_SUFFIX}
 +
 +SRCS = lirc.c \
 +       configure.c
-+      
++
 +
 +include ../../buildsys.mk
 +include ../../extra.mk
@@ -53,7 +62,7 @@ Last-Update: 2012-03-28
 +CPPFLAGS += ${PLUGIN_CPPFLAGS} ${GTK_CFLAGS} ${MOWGLI_CFLAGS}   -I../..
 +LIBS += ${GTK_LIBS} ${GLIB_LIBS}  -llirc_client
 --- /dev/null
-+++ b/src/lirc/configure.h
++++ audacious-plugins/src/lirc/configure.h
 @@ -0,0 +1,40 @@
 +/* Audacious LIRC plugin - configure.h
 +
@@ -96,7 +105,7 @@ Last-Update: 2012-03-28
 +
 +GtkWidget *create_lirc_cfg (void);
 --- /dev/null
-+++ b/src/lirc/lirc.c
++++ audacious-plugins/src/lirc/lirc.c
 @@ -0,0 +1,430 @@
 +/* Audacious LIRC plugin - lirc.c
 +
@@ -529,7 +538,7 @@ Last-Update: 2012-03-28
 +    .cleanup = cleanup
 +)
 --- /dev/null
-+++ b/src/lirc/lirc.h
++++ audacious-plugins/src/lirc/lirc.h
 @@ -0,0 +1,32 @@
 +/* Audacious LIRC plugin - lirc.h
 +
@@ -564,7 +573,7 @@ Last-Update: 2012-03-28
 +gboolean lirc_input_callback (GIOChannel * source, GIOCondition condition,
 +                              gpointer data);
 --- /dev/null
-+++ b/src/lirc/configure.c
++++ audacious-plugins/src/lirc/configure.c
 @@ -0,0 +1,225 @@
 +/* Audacious LIRC plugin - configure.c
 +
