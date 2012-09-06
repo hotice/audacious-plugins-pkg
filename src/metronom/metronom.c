@@ -1,6 +1,5 @@
 /*
- *  Copyright 2000 Martin Strau? <mys@faveve.uni-stuttgart.de>
- *
+ *  Copyright 2000 Martin Strauss <mys@faveve.uni-stuttgart.de>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,16 +16,14 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include "config.h"
+#include <stdio.h>
+#include <string.h>
 
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
-#include <libaudgui/libaudgui.h>
-#include <libaudgui/libaudgui-gtk.h>
 
-#include <glib.h>
-#include <string.h>
+#include "config.h"
 
 #define MIN_BPM         1
 #define MAX_BPM         512
@@ -36,18 +33,17 @@
 #define AUDIO_FREQ      (44100)
 #define BUF_SAMPLES     512
 #define BUF_BYTES       (BUF_SAMPLES * 2)
-#define MAX_AMPL        (GINT16_TO_LE((1 << 15) - 1))
-
+#define MAX_AMPL        0x7fff
 
 typedef struct
 {
-    gint bpm;
-    gint num;
-    gint den;
-    gint id;
+    int bpm;
+    int num;
+    int den;
+    int id;
 } metronom_t;
 
-gint tact_id[TACT_ID_MAX][2] = {
+int tact_id[TACT_ID_MAX][2] = {
     {1, 1},
     {2, 2},
     {3, 2},
@@ -62,7 +58,7 @@ gint tact_id[TACT_ID_MAX][2] = {
     {6, 8}
 };
 
-gdouble tact_form[TACT_ID_MAX][TACT_FORM_MAX] = {
+double tact_form[TACT_ID_MAX][TACT_FORM_MAX] = {
     {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
     {1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
     {1.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0},
@@ -77,29 +73,18 @@ gdouble tact_form[TACT_ID_MAX][TACT_FORM_MAX] = {
     {1.0, 0.5, 0.5, 0.6, 0.5, 0.5, 0.0, 0.0}
 };
 
-static gboolean stop_flag = FALSE;
+static bool_t stop_flag = FALSE;
 
-static void metronom_about (void)
-{
-    static GtkWidget * aboutbox = NULL;
-
-    audgui_simple_message (& aboutbox, GTK_MESSAGE_INFO, _("About Metronom"),
-     _("A Tact Generator by Martin Strauss <mys@faveve.uni-stuttgart.de>\n\n"
-     "To use it, add a URL: tact://beats*num/den\n"
-     "e.g. tact://77 to play 77 beats per minute\n"
-     "or   tact://60*3/4 to play 60 bpm in 3/4 tacts"));
-}
-
-static gboolean metronom_is_our_fd(const gchar * filename, VFSFile *fd)
+static bool_t metronom_is_our_fd(const char * filename, VFSFile *fd)
 {
     if (!strncmp(filename, "tact://", 7))
         return TRUE;
     return FALSE;
 }
 
-static gboolean metronom_get_cp(const gchar *filename, metronom_t *pmetronom, gchar **str)
+static bool_t metronom_get_cp(const char *filename, metronom_t *pmetronom, char **str)
 {
-    gsize count;
+    int count;
 
     count = sscanf(filename, "tact://%d*%d/%d",
         &pmetronom->bpm, &pmetronom->num, &pmetronom->den);
@@ -118,8 +103,8 @@ static gboolean metronom_get_cp(const gchar *filename, metronom_t *pmetronom, gc
     }
     else
     {
-        gboolean flag;
-        gint id;
+        bool_t flag;
+        int id;
 
         if (pmetronom->num == 0 || pmetronom->den == 0)
             return FALSE;
@@ -141,27 +126,27 @@ static gboolean metronom_get_cp(const gchar *filename, metronom_t *pmetronom, gc
         return TRUE;
 
     if (pmetronom->num == 1 && pmetronom->den == 1)
-        *str = g_strdup_printf(_("Tact generator: %d bpm"), pmetronom->bpm);
+        *str = str_printf (_("Tact generator: %d bpm"), pmetronom->bpm);
     else
-        *str = g_strdup_printf(_("Tact generator: %d bpm %d/%d"), pmetronom->bpm, pmetronom->num, pmetronom->den);
+        *str = str_printf (_("Tact generator: %d bpm %d/%d"), pmetronom->bpm, pmetronom->num, pmetronom->den);
 
     return TRUE;
 }
 
-static gboolean metronom_play(InputPlayback *playback, const gchar *filename,
-    VFSFile *file, gint start_time, gint stop_time, gboolean pause)
+static bool_t metronom_play(InputPlayback *playback, const char *filename,
+    VFSFile *file, int start_time, int stop_time, bool_t pause)
 {
     metronom_t pmetronom;
-    gint16 data[BUF_SAMPLES];
-    gint t = 0, tact, num;
-    gint datagoal = 0;
-    gint datamiddle = 0;
-    gint datacurrent = datamiddle;
-    gint datalast = datamiddle;
-    gint data_form[TACT_FORM_MAX];
-    gboolean error = FALSE;
+    int16_t data[BUF_SAMPLES];
+    int t = 0, tact, num;
+    int datagoal = 0;
+    int datamiddle = 0;
+    int datacurrent = datamiddle;
+    int datalast = datamiddle;
+    int data_form[TACT_FORM_MAX];
+    bool_t error = FALSE;
 
-    if (playback->output->open_audio(FMT_S16_LE, AUDIO_FREQ, 1) == 0)
+    if (playback->output->open_audio(FMT_S16_NE, AUDIO_FREQ, 1) == 0)
     {
         error = TRUE;
         goto error_exit;
@@ -169,7 +154,7 @@ static gboolean metronom_play(InputPlayback *playback, const gchar *filename,
 
     if (!metronom_get_cp(filename, &pmetronom, NULL))
     {
-        g_message("Invalid metronom tact parameters in URI %s", filename);
+        fprintf (stderr, "Invalid metronom tact parameters in URI %s", filename);
         goto error_exit;
     }
 
@@ -192,7 +177,7 @@ static gboolean metronom_play(InputPlayback *playback, const gchar *filename,
     num = 0;
     while (!stop_flag)
     {
-        gint i;
+        int i;
 
         for (i = 0; i < BUF_SAMPLES; i++)
         {
@@ -229,7 +214,6 @@ static gboolean metronom_play(InputPlayback *playback, const gchar *filename,
 error_exit:
 
     stop_flag = TRUE;
-    playback->output->close_audio();
 
     return !error;
 }
@@ -240,33 +224,40 @@ static void metronom_stop(InputPlayback * playback)
     playback->output->abort_write();
 }
 
-static void metronom_pause(InputPlayback * playback, gboolean pause)
+static void metronom_pause(InputPlayback * playback, bool_t pause)
 {
     if (!stop_flag)
         playback->output->pause(pause);
 }
 
-static Tuple *metronom_probe_for_tuple(const gchar * filename, VFSFile *fd)
+static Tuple *metronom_probe_for_tuple(const char * filename, VFSFile *fd)
 {
     Tuple *tuple = tuple_new_from_filename(filename);
     metronom_t metronom;
-    gchar *tmp = NULL;
+    char *tmp = NULL;
 
     if (metronom_get_cp(filename, &metronom, &tmp))
         tuple_set_str(tuple, FIELD_TITLE, NULL, tmp);
 
-    g_free(tmp);
+    str_unref(tmp);
 
     return tuple;
 }
 
-static const gchar * const schemes[] = {"tact", NULL};
+static const char metronom_about[] =
+ "A Tact Generator by Martin Strauss <mys@faveve.uni-stuttgart.de>\n\n"
+ "To use it, add a URL: tact://beats*num/den\n"
+ "e.g. tact://77 to play 77 beats per minute\n"
+ "or tact://60*3/4 to play 60 bpm in 3/4 tacts";
+
+static const char * const schemes[] = {"tact", NULL};
 
 AUD_INPUT_PLUGIN
 (
-    .name = "Tact Generator",
+    .name = N_("Tact Generator"),
+    .domain = PACKAGE,
+    .about_text = metronom_about,
     .schemes = schemes,
-    .about = metronom_about,
     .is_our_file_from_vfs = metronom_is_our_fd,
     .play = metronom_play,
     .stop = metronom_stop,

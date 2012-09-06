@@ -3,6 +3,12 @@
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
+/* Define if amidi-plug ALSA backend is to be built */
+#undef AMIDIPLUG_ALSA
+
+/* Define if amidi-plug FluidSynth backend is to be built */
+#undef AMIDIPLUG_FLUIDSYNTH
+
 /* Define to 1 if translation of program messages to the user's native
    language is requested. */
 #undef ENABLE_NLS
@@ -46,8 +52,8 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the <libsmbclient.h> header file. */
-#undef HAVE_LIBSMBCLIENT_H
+/* Define to 1 if you have the <lirc/lirc_client.h> header file. */
+#undef HAVE_LIRC_LIRC_CLIENT_H
 
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H

@@ -23,10 +23,10 @@
  *  Audacious or using our public API to be a derived work.
  */
 
+#include <string.h>
 #include <gtk/gtk.h>
 
 #include <audacious/drct.h>
-#include <audacious/gtk-compat.h>
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/playlist.h>
@@ -45,8 +45,6 @@
 #include "ui_skinned_horizontal_slider.h"
 #include "ui_skinned_window.h"
 #include "util.h"
-
-#include "images/audacious_eq.xpm"
 
 enum PresetViewCols {
     PRESET_VIEW_COL_NAME,
@@ -103,12 +101,7 @@ static void free_presets (Index * presets)
 void equalizerwin_set_shape (void)
 {
     gint id = config.equalizer_shaded ? SKIN_MASK_EQ_SHADE : SKIN_MASK_EQ;
-
-#ifdef MASK_IS_REGION
     gtk_widget_shape_combine_region (equalizerwin, active_skin->masks[id]);
-#else
-    gtk_widget_shape_combine_mask (equalizerwin, active_skin->masks[id], 0, 0);
-#endif
 }
 
 static void
@@ -380,8 +373,6 @@ static void eq_win_draw (GtkWidget * window, cairo_t * cr)
 static void
 equalizerwin_create_window(void)
 {
-    GdkPixbuf *icon;
-
     equalizerwin = window_new (& config.equalizer_x, & config.equalizer_y, 275,
      config.equalizer_shaded ? 14 : 116, FALSE, config.equalizer_shaded,
      eq_win_draw);
@@ -392,10 +383,6 @@ equalizerwin_create_window(void)
     gtk_window_set_transient_for(GTK_WINDOW(equalizerwin),
                                  GTK_WINDOW(mainwin));
     gtk_window_set_skip_taskbar_hint(GTK_WINDOW(equalizerwin), TRUE);
-
-    icon = gdk_pixbuf_new_from_xpm_data((const gchar **) audacious_eq_icon);
-    gtk_window_set_icon(GTK_WINDOW(equalizerwin), icon);
-    g_object_unref(icon);
 
     gtk_widget_set_app_paintable(equalizerwin, TRUE);
 
@@ -882,7 +869,7 @@ static GtkWidget * equalizerwin_create_list_window (Index * preset_list,
     g_signal_connect(*window, "destroy",
                      G_CALLBACK(gtk_widget_destroyed), window);
 
-    vbox = gtk_vbox_new(FALSE, 10);
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_add(GTK_CONTAINER(*window), vbox);
 
     scrolled_window = gtk_scrolled_window_new(NULL, NULL);
@@ -928,7 +915,7 @@ static GtkWidget * equalizerwin_create_list_window (Index * preset_list,
         gtk_box_pack_start(GTK_BOX(vbox), *entry, FALSE, FALSE, 0);
     }
 
-    bbox = gtk_hbutton_box_new();
+    bbox = gtk_button_box_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_button_box_set_layout(GTK_BUTTON_BOX(bbox), GTK_BUTTONBOX_END);
     gtk_box_set_spacing(GTK_BOX(bbox), 5);
     gtk_box_pack_start(GTK_BOX(vbox), bbox, FALSE, FALSE, 0);
@@ -1117,8 +1104,9 @@ action_equ_save_auto_preset(void)
 
     if (name != NULL)
     {
-        gtk_entry_set_text(GTK_ENTRY(equalizerwin_save_auto_entry),
-                           g_basename(name));
+        char * base = g_path_get_basename (name);
+        gtk_entry_set_text ((GtkEntry *) equalizerwin_save_auto_entry, base);
+        g_free (base);
         str_unref (name);
     }
 }

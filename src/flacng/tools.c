@@ -2,7 +2,7 @@
  *  A FLAC decoder plugin for the Audacious Media Player
  *  Copyright (C) 2005 Ralf Ertzinger
  *  Copyright (C) 2010 John Lindgren
- *  Copyright (C) 2010 Michał Lipski <tallica@o2.pl>
+ *  Copyright (C) 2010-2012 Michał Lipski
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,8 +20,6 @@
  */
 
 #include <string.h>
-#include <strings.h>
-
 #include <audacious/debug.h>
 
 #include "flacng.h"
@@ -30,13 +28,15 @@ callback_info *init_callback_info(void)
 {
     callback_info *info;
 
-    if ((info = g_slice_new0(callback_info)) == NULL)
+    if ((info = malloc (sizeof (callback_info))) == NULL)
     {
         FLACNG_ERROR("Could not allocate memory for callback structure!");
         return NULL;
     }
 
-    if ((info->output_buffer = g_malloc0(BUFFER_SIZE_BYTE)) == NULL)
+    memset (info, 0, sizeof (callback_info));
+
+    if ((info->output_buffer = malloc (BUFFER_SIZE_BYTE)) == NULL)
     {
         FLACNG_ERROR("Could not allocate memory for output buffer!");
         return NULL;
@@ -51,24 +51,17 @@ callback_info *init_callback_info(void)
 
 void clean_callback_info(callback_info *info)
 {
-    g_free(info->output_buffer);
-    g_slice_free(callback_info, info);
+    free (info->output_buffer);
+    free (info);
 }
 
 void reset_info(callback_info *info)
 {
-    info->buffer_free = BUFFER_SIZE_SAMP;
     info->buffer_used = 0;
     info->write_pointer = info->output_buffer;
-
-    /* Clear the stream and frame information */
-    memset(&(info->stream), 0, sizeof(info->stream));
-    memset(&(info->frame), 0, sizeof(info->frame));
-
-    info->metadata_changed = FALSE;
 }
 
-gboolean read_metadata(FLAC__StreamDecoder *decoder, callback_info *info)
+bool_t read_metadata(FLAC__StreamDecoder *decoder, callback_info *info)
 {
     FLAC__StreamDecoderState ret;
 

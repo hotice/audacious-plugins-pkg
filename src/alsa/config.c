@@ -1,6 +1,6 @@
 /*
  * ALSA Output Plugin for Audacious
- * Copyright 2009-2010 John Lindgren
+ * Copyright 2009-2012 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -34,7 +34,7 @@ int alsa_config_drain_workaround = 1;
 
 static GtkListStore * pcm_list, * mixer_list, * mixer_element_list;
 static GtkWidget * window, * pcm_combo, * mixer_combo, * mixer_element_combo,
- * ok_button, * drain_workaround_check;
+ * drain_workaround_check;
 
 static GtkTreeIter * list_lookup_member (GtkListStore * list, const char * text)
 {
@@ -373,7 +373,7 @@ static GtkWidget * combo_new (const char * title, GtkListStore * list,
     GtkWidget * hbox, * label;
     GtkCellRenderer * cell;
 
-    hbox = gtk_hbox_new (0, 6);
+    hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
 
     label = gtk_label_new (title);
     gtk_box_pack_start ((GtkBox *) hbox, label, 0, 0, 0);
@@ -430,17 +430,11 @@ static const char * combo_selected_text (GtkWidget * combo, GtkListStore * list)
 
 static void create_window (void)
 {
-    GtkWidget * vbox, * hbox;
-
-    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_type_hint ((GtkWindow *) window, GDK_WINDOW_TYPE_HINT_DIALOG);
+    window = gtk_dialog_new_with_buttons (_("ALSA Output Plugin Preferences"),
+     NULL, 0, GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE, NULL);
     gtk_window_set_resizable ((GtkWindow *) window, 0);
-    gtk_window_set_title ((GtkWindow *) window, _("ALSA Output Plugin "
-     "Preferences"));
-    gtk_container_set_border_width ((GtkContainer *) window, 6);
 
-    vbox = gtk_vbox_new (0, 6);
-    gtk_container_add ((GtkContainer *) window, vbox);
+    GtkWidget * vbox = gtk_dialog_get_content_area ((GtkDialog *) window);
 
     gtk_box_pack_start ((GtkBox *) vbox, combo_new (_("PCM device:"), pcm_list,
      & pcm_combo, 1), 0, 0, 0);
@@ -455,12 +449,6 @@ static void create_window (void)
      alsa_config_drain_workaround);
     gtk_box_pack_start ((GtkBox *) vbox, drain_workaround_check, 0, 0, 0);
 
-    hbox = gtk_hbox_new (0, 6);
-    gtk_box_pack_start ((GtkBox *) vbox, hbox, 0, 0, 0);
-
-    ok_button = gtk_button_new_from_stock (GTK_STOCK_OK);
-    gtk_box_pack_end ((GtkBox *) hbox, ok_button, 0, 0, 0);
-
     gtk_widget_show_all (window);
 }
 
@@ -473,6 +461,8 @@ static void pcm_changed (GtkComboBox * combo, void * unused)
 
     free (alsa_config_pcm);
     alsa_config_pcm = strdup (combo_selected_text (pcm_combo, pcm_list));
+
+    aud_output_reset (OUTPUT_RESET_SOFT);
 }
 
 static void mixer_changed (GtkComboBox * combo, void * unused)
@@ -526,7 +516,7 @@ static void connect_callbacks (void)
      mixer_element_changed, NULL);
     g_signal_connect ((GObject *) drain_workaround_check, "toggled", (GCallback)
      boolean_toggled, & alsa_config_drain_workaround);
-    g_signal_connect_swapped ((GObject *) ok_button, "clicked", (GCallback)
+    g_signal_connect ((GObject *) window, "response", (GCallback)
      gtk_widget_destroy, window);
     g_signal_connect ((GObject *) window, "destroy", (GCallback)
      gtk_widget_destroyed, & window);

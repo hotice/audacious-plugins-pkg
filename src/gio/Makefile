@@ -7,6 +7,6 @@ include ../../extra.mk
 
 plugindir := ${plugindir}/${TRANSPORT_PLUGIN_DIR}
 
+CPPFLAGS += -I../.. ${GIO_CFLAGS}
 CFLAGS += ${PLUGIN_CFLAGS}
-CPPFLAGS += ${PLUGIN_CPPFLAGS} ${GTK_CFLAGS} ${GLIB_CFLAGS} -I../..
-LIBS += ${GTK_LIBS} ${GLIB_LIBS} ${GIO_LIBS}
+LIBS += ${GIO_LIBS}

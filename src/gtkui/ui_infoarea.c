@@ -1,21 +1,20 @@
 /*
- *  Copyright (C) 2010 William Pitcock <nenolod@atheme.org>.
- *  Copyright (C) 2010-2011 John Lindgren <john.lindgren@tds.net>.
+ * ui_infoarea.c
+ * Copyright 2010-2012 William Pitcock and John Lindgren
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; under version 3 of the License.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses>.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
  *
- *  The Audacious team does not consider modular code linking to
- *  Audacious or using our public API to be a derived work.
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
+ * the use of this software.
  */
 
 #include <math.h>
@@ -24,7 +23,6 @@
 #include <gtk/gtk.h>
 
 #include <audacious/drct.h>
-#include <audacious/gtk-compat.h>
 #include <audacious/misc.h>
 #include <audacious/playlist.h>
 #include <libaudcore/hook.h>
@@ -43,7 +41,7 @@
 #define VIS_FALLOFF 2 /* falloff in pixels per frame */
 
 typedef struct {
-    GtkWidget * box, * main, * vis;
+    GtkWidget * box, * main;
 
     gchar * title, * artist, * album; /* pooled */
     gchar * last_title, * last_artist, * last_album; /* pooled */
@@ -51,11 +49,15 @@ typedef struct {
 
     gboolean stopped;
     gint fade_timeout;
-    gchar bars[VIS_BANDS];
-    gchar delay[VIS_BANDS];
 
     GdkPixbuf * pb, * last_pb;
 } UIInfoArea;
+
+static struct {
+    GtkWidget * widget;
+    gchar bars[VIS_BANDS];
+    gchar delay[VIS_BANDS];
+} vis;
 
 /****************************************************************************/
 
@@ -63,8 +65,6 @@ static UIInfoArea * area = NULL;
 
 static void vis_render_cb (const gfloat * freq)
 {
-    g_return_if_fail (area);
-
     const gfloat xscale[VIS_BANDS + 1] = {0.00, 0.59, 1.52, 3.00, 5.36, 9.10,
      15.0, 24.5, 39.4, 63.2, 101, 161, 256}; /* logarithmic scale - 1 */
 
@@ -87,32 +87,32 @@ static void vis_render_cb (const gfloat * freq)
         }
 
         /* 40 dB range */
-        int x = 20 * log10 (n * 100);
+        gint x = 20 * log10 (n * 100);
         x = CLAMP (x, 0, 40);
 
-        area->bars[i] -= MAX (0, VIS_FALLOFF - area->delay[i]);
+        vis.bars[i] -= MAX (0, VIS_FALLOFF - vis.delay[i]);
 
-        if (area->delay[i])
-            area->delay[i] --;
+        if (vis.delay[i])
+            vis.delay[i] --;
 
-        if (x > area->bars[i])
+        if (x > vis.bars[i])
         {
-            area->bars[i] = x;
-            area->delay[i] = VIS_DELAY;
+            vis.bars[i] = x;
+            vis.delay[i] = VIS_DELAY;
         }
     }
 
-    gtk_widget_queue_draw (area->vis);
+    if (vis.widget)
+        gtk_widget_queue_draw (vis.widget);
 }
 
 static void vis_clear_cb (void)
 {
-    g_return_if_fail (area);
+    memset (vis.bars, 0, sizeof vis.bars);
+    memset (vis.delay, 0, sizeof vis.delay);
 
-    memset (area->bars, 0, sizeof area->bars);
-    memset (area->delay, 0, sizeof area->delay);
-
-    gtk_widget_queue_draw (area->vis);
+    if (vis.widget)
+        gtk_widget_queue_draw (vis.widget);
 }
 
 /****************************************************************************/
@@ -121,23 +121,31 @@ static void clear (GtkWidget * widget, cairo_t * cr)
 {
     GtkAllocation alloc;
     gtk_widget_get_allocation (widget, & alloc);
+
+    cairo_pattern_t * gradient = cairo_pattern_create_linear (0, 0, 0, alloc.height);
+    cairo_pattern_add_color_stop_rgb (gradient, 0, 0.25, 0.25, 0.25);
+    cairo_pattern_add_color_stop_rgb (gradient, 0.5, 0.15, 0.15, 0.15);
+    cairo_pattern_add_color_stop_rgb (gradient, 0.5, 0.1, 0.1, 0.1);
+    cairo_pattern_add_color_stop_rgb (gradient, 1, 0, 0, 0);
+
+    cairo_set_source (cr, gradient);
     cairo_rectangle (cr, 0, 0, alloc.width, alloc.height);
     cairo_fill (cr);
+
+    cairo_pattern_destroy (gradient);
 }
 
 static void draw_text (GtkWidget * widget, cairo_t * cr, gint x, gint y, gint
  width, gfloat r, gfloat g, gfloat b, gfloat a, const gchar * font,
  const gchar * text)
 {
-    gchar * str = g_markup_escape_text (text, -1);
-
     cairo_move_to(cr, x, y);
     cairo_set_operator(cr, CAIRO_OPERATOR_ATOP);
     cairo_set_source_rgba(cr, r, g, b, a);
 
     PangoFontDescription * desc = pango_font_description_from_string (font);
     PangoLayout * pl = gtk_widget_create_pango_layout (widget, NULL);
-    pango_layout_set_markup(pl, str, -1);
+    pango_layout_set_text (pl, text, -1);
     pango_layout_set_font_description(pl, desc);
     pango_font_description_free(desc);
     pango_layout_set_width (pl, width * PANGO_SCALE);
@@ -146,7 +154,6 @@ static void draw_text (GtkWidget * widget, cairo_t * cr, gint x, gint y, gint
     pango_cairo_show_layout(cr, pl);
 
     g_object_unref(pl);
-    g_free(str);
 }
 
 /****************************************************************************/
@@ -216,14 +223,27 @@ static void hsv_to_rgb (gfloat h, gfloat s, gfloat v, gfloat * r, gfloat * g,
     * b = v * (1 - s * (1 - * b));
 }
 
-static void get_color (GtkWidget * widget, gint i, gfloat * r, gfloat * g,
- gfloat * b)
+static void get_color (gint i, gfloat * r, gfloat * g, gfloat * b)
 {
-    GdkColor * c = (gtk_widget_get_style (widget))->base + GTK_STATE_SELECTED;
-    gfloat h, s, v, n;
+    static GdkRGBA c;
+    static bool_t valid = FALSE;
 
-    rgb_to_hsv (c->red / 65535.0, c->green / 65535.0, c->blue / 65535.0, & h,
-     & s, & v);
+    if (! valid)
+    {
+        /* we want a color that matches the current theme
+         * selected color of a GtkEntry should be reasonable */
+        GtkStyleContext * style = gtk_style_context_new ();
+        GtkWidgetPath * path = gtk_widget_path_new ();
+        gtk_widget_path_append_type (path, GTK_TYPE_ENTRY);
+        gtk_style_context_set_path (style, path);
+        gtk_widget_path_free (path);
+        gtk_style_context_get_background_color (style, GTK_STATE_FLAG_SELECTED, & c);
+        g_object_unref (style);
+        valid = TRUE;
+    }
+
+    gfloat h, s, v;
+    rgb_to_hsv (c.red, c.green, c.blue, & h, & s, & v);
 
     if (s < 0.1) /* monochrome theme? use blue instead */
     {
@@ -231,33 +251,24 @@ static void get_color (GtkWidget * widget, gint i, gfloat * r, gfloat * g,
         s = 0.75;
     }
 
-    n = i / 11.0;
-    s = 1 - 0.9 * n;
-    v = 0.75 + 0.25 * n;
+    s = 1 - 0.9 * i / (VIS_BANDS - 1);
+    v = 0.75 + 0.25 * i / (VIS_BANDS - 1);
 
     hsv_to_rgb (h, s, v, r, g, b);
 }
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-static gboolean draw_vis_cb (GtkWidget * vis, cairo_t * cr)
+static gboolean draw_vis_cb (GtkWidget * widget, cairo_t * cr)
 {
-#else
-static gboolean expose_vis_cb (GtkWidget * vis, GdkEventExpose * event)
-{
-    cairo_t * cr = gdk_cairo_create (gtk_widget_get_window (vis));
-#endif
-    g_return_val_if_fail (area, FALSE);
-
-    clear (vis, cr);
+    clear (widget, cr);
 
     for (gint i = 0; i < VIS_BANDS; i++)
     {
         gint x = SPACING + 8 * i;
-        gint t = VIS_CENTER - area->bars[i];
-        gint m = MIN (VIS_CENTER + area->bars[i], HEIGHT);
+        gint t = VIS_CENTER - vis.bars[i];
+        gint m = MIN (VIS_CENTER + vis.bars[i], HEIGHT);
 
         gfloat r, g, b;
-        get_color (vis, i, & r, & g, & b);
+        get_color (i, & r, & g, & b);
 
         cairo_set_source_rgb (cr, r, g, b);
         cairo_rectangle (cr, x, t, 6, VIS_CENTER - t);
@@ -268,9 +279,6 @@ static gboolean expose_vis_cb (GtkWidget * vis, GdkEventExpose * event)
         cairo_fill (cr);
     }
 
-#if ! GTK_CHECK_VERSION (3, 0, 0)
-    cairo_destroy (cr);
-#endif
     return TRUE;
 }
 
@@ -321,14 +329,8 @@ static void draw_title (cairo_t * cr)
          0.7, 0.7, area->last_alpha, "9", area->last_album);
 }
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 static gboolean draw_cb (GtkWidget * widget, cairo_t * cr)
 {
-#else
-static gboolean expose_cb (GtkWidget * widget, GdkEventExpose * event)
-{
-    cairo_t * cr = gdk_cairo_create (gtk_widget_get_window (widget));
-#endif
     g_return_val_if_fail (area, FALSE);
 
     clear (widget, cr);
@@ -336,9 +338,6 @@ static gboolean expose_cb (GtkWidget * widget, GdkEventExpose * event)
     draw_album_art (cr);
     draw_title (cr);
 
-#if ! GTK_CHECK_VERSION (3, 0, 0)
-    cairo_destroy (cr);
-#endif
     return TRUE;
 }
 
@@ -367,16 +366,7 @@ static gboolean ui_infoarea_do_fade (void)
     return ret;
 }
 
-static gint strcmp_null (const gchar * a, const gchar * b)
-{
-    if (! a)
-        return (! b) ? 0 : -1;
-    if (! b)
-        return 1;
-    return strcmp (a, b);
-}
-
-void ui_infoarea_set_title (void)
+static void ui_infoarea_set_title (void)
 {
     g_return_if_fail (area);
 
@@ -389,8 +379,8 @@ void ui_infoarea_set_title (void)
     gchar * title, * artist, * album;
     aud_playlist_entry_describe (playlist, entry, & title, & artist, & album, TRUE);
 
-    if (! strcmp_null (title, area->title) && ! strcmp_null (artist,
-     area->artist) && ! strcmp_null (album, area->album))
+    if (! g_strcmp0 (title, area->title) && ! g_strcmp0 (artist, area->artist)
+     && ! g_strcmp0 (album, area->album))
     {
         str_unref (title);
         str_unref (artist);
@@ -475,18 +465,51 @@ static void ui_infoarea_playback_stop (void)
          ui_infoarea_do_fade, area);
 }
 
+void ui_infoarea_show_vis (gboolean show)
+{
+    if (! area)
+        return;
+
+    if (show)
+    {
+        if (vis.widget)
+            return;
+
+        vis.widget = gtk_drawing_area_new ();
+        gtk_widget_set_size_request (vis.widget, VIS_WIDTH + 2 * SPACING, HEIGHT);
+        gtk_box_pack_start ((GtkBox *) area->box, vis.widget, FALSE, FALSE, 0);
+
+        g_signal_connect (vis.widget, "draw", (GCallback) draw_vis_cb, NULL);
+        gtk_widget_show (vis.widget);
+
+        aud_vis_func_add (AUD_VIS_TYPE_CLEAR, (VisFunc) vis_clear_cb);
+        aud_vis_func_add (AUD_VIS_TYPE_FREQ, (VisFunc) vis_render_cb);
+    }
+    else
+    {
+        if (! vis.widget)
+            return;
+
+        aud_vis_func_remove ((VisFunc) vis_clear_cb);
+        aud_vis_func_remove ((VisFunc) vis_render_cb);
+
+        gtk_widget_destroy (vis.widget);
+
+        memset (& vis, 0, sizeof vis);
+    }
+}
+
 static void destroy_cb (GtkWidget * widget)
 {
     g_return_if_fail (area);
+
+    ui_infoarea_show_vis (FALSE);
 
     hook_dissociate ("playlist update", (HookFunction) ui_infoarea_set_title);
     hook_dissociate ("playback begin", (HookFunction)
      ui_infoarea_playback_start);
     hook_dissociate ("playback stop", (HookFunction)
      ui_infoarea_playback_stop);
-
-    aud_vis_func_remove ((VisFunc) vis_clear_cb);
-    aud_vis_func_remove ((VisFunc) vis_render_cb);
 
     if (area->fade_timeout)
     {
@@ -515,30 +538,17 @@ GtkWidget * ui_infoarea_new (void)
     g_return_val_if_fail (! area, NULL);
     area = g_slice_new0 (UIInfoArea);
 
-    area->box = gtk_hbox_new (FALSE, 0);
+    area->box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
 
     area->main = gtk_drawing_area_new ();
     gtk_widget_set_size_request (area->main, ICON_SIZE + 2 * SPACING, HEIGHT);
     gtk_box_pack_start ((GtkBox *) area->box, area->main, TRUE, TRUE, 0);
 
-    area->vis = gtk_drawing_area_new ();
-    gtk_widget_set_size_request (area->vis, VIS_WIDTH + 2 * SPACING, HEIGHT);
-    gtk_box_pack_start ((GtkBox *) area->box, area->vis, FALSE, FALSE, 0);
-
-#if GTK_CHECK_VERSION (3, 0, 0)
     g_signal_connect (area->main, "draw", (GCallback) draw_cb, NULL);
-    g_signal_connect (area->vis, "draw", (GCallback) draw_vis_cb, NULL);
-#else
-    g_signal_connect (area->main, "expose-event", (GCallback) expose_cb, NULL);
-    g_signal_connect (area->vis, "expose-event", (GCallback) expose_vis_cb, NULL);
-#endif
 
     hook_associate ("playlist update", (HookFunction) ui_infoarea_set_title, NULL);
     hook_associate ("playback begin", (HookFunction) ui_infoarea_playback_start, NULL);
     hook_associate ("playback stop", (HookFunction) ui_infoarea_playback_stop, NULL);
-
-    aud_vis_func_add (AUD_VIS_TYPE_CLEAR, (VisFunc) vis_clear_cb);
-    aud_vis_func_add (AUD_VIS_TYPE_FREQ, (VisFunc) vis_render_cb);
 
     g_signal_connect (area->box, "destroy", (GCallback) destroy_cb, NULL);
 
@@ -556,5 +566,8 @@ GtkWidget * ui_infoarea_new (void)
         }
     }
 
-    return area->box;
+    GtkWidget * frame = gtk_frame_new (NULL);
+    gtk_frame_set_shadow_type ((GtkFrame *) frame, GTK_SHADOW_IN);
+    gtk_container_add ((GtkContainer *) frame, area->box);
+    return frame;
 }

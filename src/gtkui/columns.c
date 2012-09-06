@@ -2,28 +2,25 @@
  * columns.c
  * Copyright 2011 John Lindgren
  *
- * This file is part of Audacious.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * Audacious is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation, version 2 or version 3 of the License.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- * Audacious is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
  *
- * You should have received a copy of the GNU General Public License along with
- * Audacious. If not, see <http://www.gnu.org/licenses/>.
- *
- * The Audacious team does not consider modular code linking to Audacious or
- * using our public API to be a derived work.
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
+ * the use of this software.
  */
 
 #include <string.h>
 
 #include <gtk/gtk.h>
 
-#include <audacious/gtk-compat.h>
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <libaudcore/index.h>
@@ -34,16 +31,16 @@
 #include "ui_playlist_widget.h"
 
 const gchar * const pw_col_names[PW_COLS] = {N_("Entry number"), N_("Title"),
- N_("Artist"), N_("Year"), N_("Album"), N_("Track"), N_("Queue position"),
- N_("Length"), N_("File path"), N_("File name"), N_("Custom title"),
- N_("Bitrate")};
+ N_("Artist"), N_("Year"), N_("Album"), N_("Track"), N_("Genre"),
+ N_("Queue position"), N_("Length"), N_("File path"), N_("File name"),
+ N_("Custom title"), N_("Bitrate")};
 
 gint pw_num_cols;
 gint pw_cols[PW_COLS];
 
 static const gchar * const pw_col_keys[PW_COLS] = {"number", "title", "artist",
- "year", "album", "track", "queued", "length", "path", "filename", "custom",
- "bitrate"};
+ "year", "album", "track", "genre", "queued", "length", "path", "filename",
+ "custom", "bitrate"};
 
 void pw_col_init (void)
 {
@@ -276,17 +273,19 @@ void pw_col_choose (void)
     }
 
     window = gtk_dialog_new_with_buttons (_("Choose Columns"), NULL, 0,
-     GTK_STOCK_OK, GTK_RESPONSE_ACCEPT, GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
+     GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT, GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
      NULL);
     gtk_window_set_default_size ((GtkWindow *) window, 400, 300);
+    gtk_dialog_set_default_response ((GtkDialog *) window, GTK_RESPONSE_ACCEPT);
+
     g_signal_connect (window, "response", (GCallback) response_cb, NULL);
     g_signal_connect (window, "destroy", (GCallback) destroy_cb, NULL);
 
-    GtkWidget * hbox = gtk_hbox_new (FALSE, 6);
+    GtkWidget * hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_box_pack_start ((GtkBox *) gtk_dialog_get_content_area ((GtkDialog *)
      window), hbox, TRUE, TRUE, 0);
 
-    GtkWidget * vbox = gtk_vbox_new (FALSE, 3);
+    GtkWidget * vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 3);
     gtk_box_pack_start ((GtkBox *) hbox, vbox, TRUE, TRUE, 0);
 
     GtkWidget * label = gtk_label_new (_("Available:"));
@@ -305,7 +304,7 @@ void pw_col_choose (void)
     audgui_list_add_column (avail_list, NULL, 0, G_TYPE_STRING, -1);
     gtk_container_add ((GtkContainer *) scroll, avail_list);
 
-    vbox = gtk_vbox_new (FALSE, 6);
+    vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
     gtk_box_pack_start ((GtkBox *) hbox, vbox, FALSE, FALSE, 0);
 
     GtkWidget * button = gtk_button_new ();
@@ -320,7 +319,7 @@ void pw_col_choose (void)
     gtk_box_pack_start ((GtkBox *) vbox, button, TRUE, FALSE, 0);
     g_signal_connect_swapped (button, "clicked", (GCallback) transfer, chosen);
 
-    vbox = gtk_vbox_new (FALSE, 3);
+    vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 3);
     gtk_box_pack_start ((GtkBox *) hbox, vbox, TRUE, TRUE, 0);
 
     label = gtk_label_new (_("Chosen:"));

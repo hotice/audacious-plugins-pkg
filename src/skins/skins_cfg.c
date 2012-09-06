@@ -19,10 +19,10 @@
  * Audacious or using our public API to be a derived work.
  */
 
+#include <string.h>
 #include <gtk/gtk.h>
 
 #include <audacious/debug.h>
-#include <audacious/gtk-compat.h>
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/preferences.h>
@@ -48,7 +48,7 @@ static const gchar * const skins_defaults[] = {
  "mainwin_use_bitmapfont", "TRUE",
  "playlist_font", "Sans Bold 8",
  "timer_mode", "0", /* TIMER_ELAPSED */
- "twoway_scroll", "TRUE",
+ "twoway_scroll", "FALSE",
 
  /* visualizer */
  "analyzer_falloff", "3", /* FALLOFF_FAST */
@@ -277,22 +277,22 @@ void skins_configure (void)
     GtkWidget *alignment95;
     GtkWidget *skin_view_scrolled_window;
 
-    appearance_page_vbox = gtk_vbox_new (FALSE, 0);
+    appearance_page_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
 
-    vbox37 = gtk_vbox_new (FALSE, 0);
+    vbox37 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start (GTK_BOX (appearance_page_vbox), vbox37, TRUE, TRUE, 0);
 
-    vbox38 = gtk_vbox_new (FALSE, 0);
+    vbox38 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start (GTK_BOX (vbox37), vbox38, FALSE, TRUE, 0);
 
-    hbox12 = gtk_hbox_new (FALSE, 0);
+    hbox12 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start (GTK_BOX (vbox38), hbox12, TRUE, TRUE, 0);
 
     alignment94 = gtk_alignment_new (0.5, 0.5, 1, 1);
     gtk_box_pack_start (GTK_BOX (hbox12), alignment94, TRUE, TRUE, 0);
     gtk_alignment_set_padding (GTK_ALIGNMENT (alignment94), 0, 4, 0, 0);
 
-    hbox13 = gtk_hbox_new (FALSE, 0);
+    hbox13 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add (GTK_CONTAINER (alignment94), hbox13);
 
     label103 = gtk_label_new_with_mnemonic (_("<b>_Skin</b>"));
@@ -303,7 +303,7 @@ void skins_configure (void)
     alignment95 = gtk_alignment_new (0.5, 0.5, 1, 1);
     gtk_box_pack_start (GTK_BOX (vbox38), alignment95, TRUE, TRUE, 0);
     gtk_widget_set_size_request (alignment95, -1, 172);
-    gtk_alignment_set_padding (GTK_ALIGNMENT (alignment95), 0, 0, 12, 0);
+    gtk_alignment_set_padding (GTK_ALIGNMENT (alignment95), 0, 12, 12, 0);
 
     skin_view_scrolled_window = gtk_scrolled_window_new (NULL, NULL);
     gtk_container_add (GTK_CONTAINER (alignment95), skin_view_scrolled_window);
@@ -327,7 +327,7 @@ void skins_configure (void)
                      G_CALLBACK(mainwin_drag_data_received),
                      skin_view);
 
-    GtkWidget * hbox = gtk_hbox_new (FALSE, 6);
+    GtkWidget * hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_box_pack_start ((GtkBox *) appearance_page_vbox, hbox, FALSE, FALSE, 0);
 
     GtkWidget * button = gtk_button_new_from_stock (GTK_STOCK_CLOSE);

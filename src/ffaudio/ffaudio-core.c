@@ -4,19 +4,18 @@
  *                  Matti Hämäläinen <ccr@tnsp.org>
  * Copyright © 2011 John Lindgren <john.lindgren@tds.net>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
+ *
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
  */
 
 /*
@@ -25,6 +24,8 @@
  * by us.
  */
 
+#include <glib.h>
+
 #undef FFAUDIO_DOUBLECHECK  /* Doublecheck probing result for debugging purposes */
 #undef FFAUDIO_NO_BLACKLIST /* Don't blacklist any recognized codecs/formats */
 
@@ -32,13 +33,10 @@
 #include "ffaudio-stdinc.h"
 #include <audacious/i18n.h>
 #include <audacious/debug.h>
-#include <libaudgui/libaudgui.h>
-#include <libaudgui/libaudgui-gtk.h>
 #include <audacious/audtag.h>
 #include <libaudcore/audstrings.h>
 
 static GMutex *ctrl_mutex = NULL;
-static GCond *ctrl_cond = NULL;
 static gint64 seek_value = -1;
 static gboolean stop_flag = FALSE;
 
@@ -78,7 +76,6 @@ static gboolean ffaudio_init (void)
     av_lockmgr_register (lockmgr);
 
     ctrl_mutex = g_mutex_new();
-    ctrl_cond = g_cond_new();
 
     return TRUE;
 }
@@ -88,7 +85,6 @@ ffaudio_cleanup(void)
 {
     AUDDBG("cleaning up\n");
     g_mutex_free(ctrl_mutex);
-    g_cond_free(ctrl_cond);
 
     if (extension_dict)
         g_hash_table_destroy (extension_dict);
@@ -510,9 +506,6 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
                 errcount = 0;
         }
         seek_value = -1;
-        g_cond_signal(ctrl_cond);
-
-
         g_mutex_unlock(ctrl_mutex);
 
         /* Read next frame (or more) of data */
@@ -551,10 +544,7 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
             if (seek_value != -1)
             {
                 if (!seekable)
-                {
                     seek_value = -1;
-                    g_cond_signal(ctrl_cond);
-                }
                 else
                 {
                     g_mutex_unlock(ctrl_mutex);
@@ -588,16 +578,6 @@ static gboolean ffaudio_play (InputPlayback * playback, const gchar * filename,
             av_free_packet(&pkt);
     }
 
-    g_mutex_lock(ctrl_mutex);
-
-    while (!stop_flag && playback->output->buffer_playing())
-        g_usleep(20000);
-
-    playback->output->close_audio();
-
-    g_cond_signal(ctrl_cond); /* wake up any waiting request */
-    g_mutex_unlock(ctrl_mutex);
-
 error_exit:
 
     AUDDBG("decode loop finished, shutting down\n");
@@ -623,7 +603,6 @@ static void ffaudio_stop(InputPlayback * playback)
     {
         stop_flag = TRUE;
         playback->output->abort_write();
-        g_cond_signal(ctrl_cond);
     }
 
     g_mutex_unlock (ctrl_mutex);
@@ -647,12 +626,18 @@ static void ffaudio_seek (InputPlayback * playback, gint time)
     {
         seek_value = time;
         playback->output->abort_write();
-        g_cond_signal(ctrl_cond);
-        g_cond_wait(ctrl_cond, ctrl_mutex);
     }
 
     g_mutex_unlock(ctrl_mutex);
 }
+
+static const char ffaudio_about[] =
+ "Multi-format audio decoding plugin for Audacious using\n"
+ "FFmpeg multimedia framework (http://www.ffmpeg.org/)\n"
+ "\n"
+ "Audacious plugin by:\n"
+ "William Pitcock <nenolod@nenolod.net>\n"
+ "Matti Hämäläinen <ccr@tnsp.org>";
 
 static const gchar *ffaudio_fmts[] = {
     /* musepack, SV7/SV8 */
@@ -692,57 +677,11 @@ static const gchar *ffaudio_fmts[] = {
     NULL
 };
 
-static gchar * version_string (gint version)
-{
-    gint major = version >> 16;
-    gint minor = (version >> 8) & 0xff;
-    gint micro = version & 0xff;
-    return g_strdup_printf ("%d.%d.%d", major, minor, micro);
-}
-
-static void
-ffaudio_about(void)
-{
-    static GtkWidget *aboutbox = NULL;
-
-    if (aboutbox == NULL)
-    {
-        gchar * avcodec_local = version_string (avcodec_version ());
-        gchar * avcodec_build = version_string (LIBAVCODEC_VERSION_INT);
-        gchar * avformat_local = version_string (avformat_version ());
-        gchar * avformat_build = version_string (LIBAVFORMAT_VERSION_INT);
-        gchar * avutil_local = version_string (avutil_version ());
-        gchar * avutil_build = version_string (LIBAVUTIL_VERSION_INT);
-
-        gchar *description = g_strdup_printf(
-        _("Multi-format audio decoding plugin for Audacious based on\n"
-        "FFmpeg multimedia framework (http://www.ffmpeg.org/)\n"
-        "Copyright (c) 2000-2009 Fabrice Bellard, et al.\n"
-        "\n"
-        "Audacious plugin by:\n"
-        "            William Pitcock <nenolod@nenolod.net>,\n"
-        "            Matti Hämäläinen <ccr@tnsp.org>\n"
-        "\n"
-        "libavcodec %s (%s)\n"
-        "libavformat %s (%s)\n"
-        "libavutil %s (%s)\n"),
-         avcodec_local, avcodec_build, avformat_local, avformat_build, avutil_local, avutil_build);
-
-        audgui_simple_message (& aboutbox, GTK_MESSAGE_INFO,
-         _("About FFaudio Plugin"), description);
-
-        g_free(description);
-        g_free (avcodec_local);
-        g_free (avcodec_build);
-        g_free (avformat_local);
-        g_free (avformat_build);
-        g_free (avutil_local);
-        g_free (avutil_build);
-    }
-}
-
 AUD_INPUT_PLUGIN
 (
+    .name = N_("FFmpeg Plugin"),
+    .domain = PACKAGE,
+    .about_text = ffaudio_about,
     .init = ffaudio_init,
     .cleanup = ffaudio_cleanup,
     .is_our_file_from_vfs = ffaudio_probe,
@@ -751,8 +690,6 @@ AUD_INPUT_PLUGIN
     .stop = ffaudio_stop,
     .pause = ffaudio_pause,
     .mseek = ffaudio_seek,
-    .about = ffaudio_about,
-    .name = "FFmpeg Support",
     .extensions = ffaudio_fmts,
     .update_song_tuple = ffaudio_write_tag,
 

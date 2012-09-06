@@ -23,7 +23,6 @@
 #include <gtk/gtk.h>
 #include <stdlib.h>
 
-#include <audacious/gtk-compat.h>
 #include <audacious/misc.h>
 #include <audacious/playlist.h>
 #include <libaudcore/audstrings.h>
@@ -38,8 +37,6 @@ struct format_info input;
 
 static GtkWidget *configure_win = NULL, *configure_vbox;
 static GtkWidget *path_hbox, *path_label, *path_dirbrowser;
-static GtkWidget *configure_bbox, *configure_ok, *configure_cancel;
-
 static GtkWidget *fileext_hbox, *fileext_label, *fileext_combo, *plugin_button;
 
 enum fileext_t
@@ -158,29 +155,6 @@ static void file_cleanup (void)
     file_path = NULL;
 }
 
-void file_about (void)
-{
-    static GtkWidget * dialog;
-
-    audgui_simple_message (& dialog, GTK_MESSAGE_INFO,
-     _("About FileWriter-Plugin"),
-     "FileWriter-Plugin\n\n"
-     "This program is free software; you can redistribute it and/or modify\n"
-     "it under the terms of the GNU General Public License as published by\n"
-     "the Free Software Foundation; either version 2 of the License, or\n"
-     "(at your option) any later version.\n"
-     "\n"
-     "This program is distributed in the hope that it will be useful,\n"
-     "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-     "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
-     "GNU General Public License for more details.\n"
-     "\n"
-     "You should have received a copy of the GNU General Public License\n"
-     "along with this program; if not, write to the Free Software\n"
-     "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,\n"
-     "USA.");
-}
-
 static VFSFile * safe_create (const gchar * filename)
 {
     if (! vfs_file_test (filename, G_FILE_TEST_EXISTS))
@@ -291,7 +265,7 @@ static gint file_open(gint fmt, gint rate, gint nch)
     if (output_file == NULL)
         return 0;
 
-    convert_init(fmt, plugin->format_required, nch);
+    convert_init (fmt, plugin->format_required (fmt), nch);
 
     rv = (plugin->open)();
 
@@ -334,21 +308,6 @@ static void file_flush(gint time)
     samples_written = time * (gint64) input.channels * input.frequency / 1000;
 }
 
-static void file_set_written_time (gint time)
-{
-    /* Guesswork:
-     * If time = 0, we are starting a new song and need to open a new file.  If
-     * time > 0, we have already done this, and we are just setting the time
-     * counter. */
-    if (! time)
-    {
-        file_close ();
-        file_open (input.format, input.frequency, input.channels);
-    }
-
-    samples_written = time * (gint64) input.channels * input.frequency / 1000;
-}
-
 static void file_pause (gboolean p)
 {
 }
@@ -358,8 +317,14 @@ static gint file_get_time (void)
     return samples_written * 1000 / (input.channels * input.frequency);
 }
 
-static void configure_ok_cb(gpointer data)
+static void configure_response_cb (GtkWidget * window, int response)
 {
+    if (response != GTK_RESPONSE_OK)
+    {
+        gtk_widget_destroy (window);
+        return;
+    }
+
     fileext = gtk_combo_box_get_active(GTK_COMBO_BOX(fileext_combo));
 
     g_free (file_path);
@@ -378,9 +343,7 @@ static void configure_ok_cb(gpointer data)
     aud_set_bool ("filewriter", "save_original", save_original);
     aud_set_bool ("filewriter", "use_suffix", use_suffix);
 
-    gtk_widget_destroy(configure_win);
-    if (path_dirbrowser)
-        gtk_widget_destroy(path_dirbrowser);
+    gtk_widget_destroy (window);
 }
 
 static void fileext_cb(GtkWidget *combo, gpointer data)
@@ -438,36 +401,21 @@ static void filenamefromfilename_cb(GtkWidget *button, gpointer data)
     }
 }
 
-
-static void configure_destroy(void)
-{
-    if (path_dirbrowser)
-        gtk_widget_destroy(path_dirbrowser);
-}
-
 static void file_configure(void)
 {
     if (!configure_win)
     {
-        configure_win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-        gtk_window_set_type_hint(GTK_WINDOW(configure_win), GDK_WINDOW_TYPE_HINT_DIALOG);
+        configure_win = gtk_dialog_new_with_buttons
+         (_("FileWriter Configuration"), NULL, 0, GTK_STOCK_CANCEL,
+         GTK_RESPONSE_CANCEL, GTK_STOCK_OK, GTK_RESPONSE_OK, NULL);
 
-        g_signal_connect (configure_win, "destroy", (GCallback)
-         configure_destroy, NULL);
+        g_signal_connect (configure_win, "response", (GCallback) configure_response_cb, NULL);
         g_signal_connect (configure_win, "destroy", (GCallback)
          gtk_widget_destroyed, & configure_win);
 
-        gtk_window_set_title(GTK_WINDOW(configure_win),
-                             _("File Writer Configuration"));
-        gtk_window_set_position(GTK_WINDOW(configure_win), GTK_WIN_POS_MOUSE);
+        configure_vbox = gtk_dialog_get_content_area ((GtkDialog *) configure_win);
 
-        gtk_container_set_border_width(GTK_CONTAINER(configure_win), 10);
-
-        configure_vbox = gtk_vbox_new(FALSE, 10);
-        gtk_container_add(GTK_CONTAINER(configure_win), configure_vbox);
-
-
-        fileext_hbox = gtk_hbox_new(FALSE, 5);
+        fileext_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_box_pack_start(GTK_BOX(configure_vbox), fileext_hbox, FALSE, FALSE, 0);
 
         fileext_label = gtk_label_new(_("Output file format:"));
@@ -493,14 +441,9 @@ static void file_configure(void)
         g_signal_connect(G_OBJECT(plugin_button), "clicked", G_CALLBACK(plugin_configure_cb), NULL);
         gtk_box_pack_end(GTK_BOX(fileext_hbox), plugin_button, FALSE, FALSE, 0);
 
+        gtk_box_pack_start(GTK_BOX(configure_vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
 
-
-
-        gtk_box_pack_start(GTK_BOX(configure_vbox), gtk_hseparator_new(), FALSE, FALSE, 0);
-
-
-
-        saveplace_hbox = gtk_hbox_new(FALSE, 5);
+        saveplace_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_add(GTK_CONTAINER(configure_vbox), saveplace_hbox);
 
         saveplace = gtk_radio_button_new_with_label(NULL, _("Save into original directory"));
@@ -515,7 +458,7 @@ static void file_configure(void)
         g_signal_connect(G_OBJECT(saveplace), "toggled", G_CALLBACK(saveplace_custom_cb), NULL);
         gtk_box_pack_start(GTK_BOX(saveplace_hbox), saveplace, FALSE, FALSE, 0);
 
-        path_hbox = gtk_hbox_new(FALSE, 5);
+        path_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_box_pack_start(GTK_BOX(configure_vbox), path_hbox, FALSE, FALSE, 0);
 
         path_label = gtk_label_new(_("Output file folder:"));
@@ -530,15 +473,9 @@ static void file_configure(void)
         if (save_original)
             gtk_widget_set_sensitive(path_hbox, FALSE);
 
+        gtk_box_pack_start(GTK_BOX(configure_vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
 
-
-
-        gtk_box_pack_start(GTK_BOX(configure_vbox), gtk_hseparator_new(), FALSE, FALSE, 0);
-
-
-
-
-        filenamefrom_hbox = gtk_hbox_new(FALSE, 5);
+        filenamefrom_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_add(GTK_CONTAINER(configure_vbox), filenamefrom_hbox);
 
         filenamefrom_label = gtk_label_new(_("Get filename from:"));
@@ -557,9 +494,6 @@ static void file_configure(void)
         if (!filenamefromtags)
             gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(filenamefrom_toggle), TRUE);
 
-
-
-
         use_suffix_toggle = gtk_check_button_new_with_label(_("Don't strip file name extension"));
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(use_suffix_toggle), use_suffix);
         gtk_box_pack_start(GTK_BOX(configure_vbox), use_suffix_toggle, FALSE, FALSE, 0);
@@ -567,57 +501,47 @@ static void file_configure(void)
         if (filenamefromtags)
             gtk_widget_set_sensitive(use_suffix_toggle, FALSE);
 
-
-
-
-        gtk_box_pack_start(GTK_BOX(configure_vbox), gtk_hseparator_new(), FALSE, FALSE, 0);
-
-
-
+        gtk_box_pack_start(GTK_BOX(configure_vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
 
         prependnumber_toggle = gtk_check_button_new_with_label(_("Prepend track number to filename"));
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(prependnumber_toggle), prependnumber);
         gtk_box_pack_start(GTK_BOX(configure_vbox), prependnumber_toggle, FALSE, FALSE, 0);
 
-
-
-        configure_bbox = gtk_hbutton_box_new();
-        gtk_button_box_set_layout(GTK_BUTTON_BOX(configure_bbox),
-                                  GTK_BUTTONBOX_END);
-        gtk_box_pack_start(GTK_BOX(configure_vbox), configure_bbox,
-                           FALSE, FALSE, 0);
-
-        configure_cancel = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-        g_signal_connect_swapped (configure_cancel, "clicked", (GCallback)
-         gtk_widget_destroy, configure_win);
-        gtk_box_pack_start(GTK_BOX(configure_bbox), configure_cancel,
-                           TRUE, TRUE, 0);
-
-        configure_ok = gtk_button_new_from_stock(GTK_STOCK_OK);
-        g_signal_connect (configure_ok, "clicked", (GCallback) configure_ok_cb,
-         NULL);
-        gtk_box_pack_start(GTK_BOX(configure_bbox), configure_ok,
-                           TRUE, TRUE, 0);
-
         gtk_widget_show_all(configure_win);
     }
 }
 
+static const char file_about[] =
+ "This program is free software; you can redistribute it and/or modify\n"
+ "it under the terms of the GNU General Public License as published by\n"
+ "the Free Software Foundation; either version 2 of the License, or\n"
+ "(at your option) any later version.\n"
+ "\n"
+ "This program is distributed in the hope that it will be useful,\n"
+ "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+ "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+ "GNU General Public License for more details.\n"
+ "\n"
+ "You should have received a copy of the GNU General Public License\n"
+ "along with this program; if not, write to the Free Software\n"
+ "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,\n"
+ "USA.";
+
 AUD_OUTPUT_PLUGIN
 (
- .name = "FileWriter",
+ .name = N_("FileWriter Plugin"),
+ .domain = PACKAGE,
+ .about_text = file_about,
  .init = file_init,
  .cleanup = file_cleanup,
- .about = file_about,
  .configure = file_configure,
  .probe_priority = 0,
  .open_audio = file_open,
  .close_audio = file_close,
  .write_audio = file_write,
  .drain = file_drain,
- .written_time = file_get_time,
  .output_time = file_get_time,
  .pause = file_pause,
  .flush = file_flush,
- .set_written_time = file_set_written_time,
+ .force_reopen = TRUE
 )

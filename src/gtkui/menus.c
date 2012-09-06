@@ -2,28 +2,25 @@
  * menus.c
  * Copyright 2011 John Lindgren
  *
- * This file is part of Audacious.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * Audacious is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation, version 2 or version 3 of the License.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- * Audacious is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
  *
- * You should have received a copy of the GNU General Public License along with
- * Audacious. If not, see <http://www.gnu.org/licenses/>.
- *
- * The Audacious team does not consider modular code linking to Audacious or
- * using our public API to be a derived work.
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
+ * the use of this software.
  */
 
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
 #include <audacious/drct.h>
-#include <audacious/gtk-compat.h>
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/playlist.h>
@@ -66,6 +63,8 @@ struct MenuItem {
     gboolean sep;
 };
 
+int menu_tab_playlist_id = -1; /* should really be stored in the menu somehow */
+
 static void open_files (void) {audgui_run_filebrowser (TRUE); }
 static void open_url (void) {audgui_show_add_url_window (TRUE); }
 static void add_files (void) {audgui_run_filebrowser (FALSE); }
@@ -96,12 +95,34 @@ static void pl_new (void)
     aud_playlist_set_active (aud_playlist_count () - 1);
 }
 
+static void pl_play (void) {aud_drct_play_playlist (aud_playlist_get_active ()); }
 static void pl_refresh (void) {aud_playlist_rescan (aud_playlist_get_active ()); }
 static void pl_remove_failed (void) {aud_playlist_remove_failed (aud_playlist_get_active ()); }
+static void pl_rename (void) {ui_playlist_notebook_edit_tab_title (aud_playlist_get_active ()); }
 static void pl_close (void) {audgui_confirm_playlist_delete (aud_playlist_get_active ()); }
 static void pl_refresh_sel (void) {aud_playlist_rescan_selected (aud_playlist_get_active ()); }
 static void pl_select_all (void) {aud_playlist_select_all (aud_playlist_get_active (), TRUE); }
-static void pl_rename (void) {ui_playlist_notebook_edit_tab_title (NULL); }
+
+static void pl_tab_play (void)
+{
+    int playlist = aud_playlist_by_unique_id (menu_tab_playlist_id);
+    if (playlist >= 0)
+        aud_drct_play_playlist (playlist);
+}
+
+static void pl_tab_rename (void)
+{
+    int playlist = aud_playlist_by_unique_id (menu_tab_playlist_id);
+    if (playlist >= 0)
+        ui_playlist_notebook_edit_tab_title (playlist);
+}
+
+static void pl_tab_close (void)
+{
+    int playlist = aud_playlist_by_unique_id (menu_tab_playlist_id);
+    if (playlist >= 0)
+        audgui_confirm_playlist_delete (playlist);
+}
 
 static GtkWidget * get_services_main (void) {return aud_get_plugin_menu (AUD_MENU_MAIN); }
 static GtkWidget * get_services_pl (void) {return aud_get_plugin_menu (AUD_MENU_PLAYLIST_RCLICK); }
@@ -121,8 +142,15 @@ static void volume_down (void)
 }
 
 static gboolean menu_bar_get (void) {return aud_get_bool ("gtkui", "menu_visible"); }
-static gboolean info_bar_get (void) {return aud_get_bool ("gtkui", "infoarea_visible"); }
+static gboolean infoarea_get (void) {return aud_get_bool ("gtkui", "infoarea_visible"); }
+static gboolean infoarea_vis_get (void) {return aud_get_bool ("gtkui", "infoarea_show_vis"); }
 static gboolean status_bar_get (void) {return aud_get_bool ("gtkui", "statusbar_visible"); }
+static gboolean close_button_get (void) {return aud_get_bool ("gtkui", "close_button_visible"); }
+static void close_button_set (gboolean show)
+{
+    aud_set_bool ("gtkui", "close_button_visible", show);
+    show_close_buttons (show);
+}
 static gboolean column_headers_get (void) {return aud_get_bool ("gtkui", "playlist_headers"); }
 static gboolean autoscroll_get (void) {return aud_get_bool ("gtkui", "autoscroll"); }
 static void autoscroll_set (gboolean on) {aud_set_bool ("gtkui", "autoscroll", on); }
@@ -133,16 +161,18 @@ static const struct MenuItem file_items[] = {
  {N_("_Add Files ..."), GTK_STOCK_ADD, 'o', SHIFT | CTRL, .func = add_files},
  {N_("Add U_RL ..."), GTK_STOCK_NETWORK, 'l', SHIFT | CTRL, .func = add_url},
  {.sep = TRUE},
+ {N_("_Search Library"), GTK_STOCK_FIND, 'y', CTRL, .func = activate_search_tool},
+ {.sep = TRUE},
  {N_("A_bout ..."), GTK_STOCK_ABOUT, .func = audgui_show_about_window},
  {N_("_Preferences ..."), GTK_STOCK_PREFERENCES, .func = aud_show_prefs_window},
  {N_("_Quit"), GTK_STOCK_QUIT, 'q', CTRL, .func = aud_drct_quit}};
 
 static const struct MenuItem playback_items[] = {
- {N_("_Play"), GTK_STOCK_MEDIA_PLAY, GDK_Return, CTRL, .func = aud_drct_play},
+ {N_("_Play"), GTK_STOCK_MEDIA_PLAY, GDK_KEY_Return, CTRL, .func = aud_drct_play},
  {N_("Paus_e"), GTK_STOCK_MEDIA_PAUSE, ',', CTRL, .func = aud_drct_pause},
  {N_("_Stop"), GTK_STOCK_MEDIA_STOP, '.', CTRL, .func = aud_drct_stop},
- {N_("Pre_vious"), GTK_STOCK_MEDIA_PREVIOUS, GDK_Up, ALT, .func = aud_drct_pl_prev},
- {N_("_Next"), GTK_STOCK_MEDIA_NEXT, GDK_Down, ALT, .func = aud_drct_pl_next},
+ {N_("Pre_vious"), GTK_STOCK_MEDIA_PREVIOUS, GDK_KEY_Up, ALT, .func = aud_drct_pl_prev},
+ {N_("_Next"), GTK_STOCK_MEDIA_NEXT, GDK_KEY_Down, ALT, .func = aud_drct_pl_next},
  {.sep = TRUE},
  {N_("_Repeat"), NULL, 'r', CTRL, .get = repeat_get, repeat_set, "set repeat"},
  {N_("S_huffle"), NULL, 's', CTRL, .get = shuffle_get, shuffle_set, "set shuffle"},
@@ -150,7 +180,7 @@ static const struct MenuItem playback_items[] = {
  {N_("Stop _After This Song"), NULL, 'm', CTRL, .get = stop_after_get, stop_after_set, "set stop_after_current_song"},
  {.sep = TRUE},
  {N_("Song _Info ..."), GTK_STOCK_INFO, 'i', CTRL, .func = audgui_infowin_show_current},
- {N_("Jump to _Time ..."), GTK_STOCK_JUMP_TO, .func = audgui_jump_to_time},
+ {N_("Jump to _Time ..."), GTK_STOCK_JUMP_TO, 'k', CTRL, .func = audgui_jump_to_time},
  {N_("_Jump to Song ..."), GTK_STOCK_JUMP_TO, 'j', CTRL, .func = audgui_jump_to_track}};
 
 static const struct MenuItem sort_items[] = {
@@ -166,18 +196,20 @@ static const struct MenuItem sort_items[] = {
  {N_("_Random Order"), .func = pl_random}};
 
 static const struct MenuItem playlist_items[] = {
- {N_("_Refresh"), GTK_STOCK_REFRESH, GDK_F5, .func = pl_refresh},
+ {N_("_Play This Playlist"), GTK_STOCK_MEDIA_PLAY, GDK_KEY_Return, SHIFT | CTRL, .func = pl_play},
+ {N_("_Refresh"), GTK_STOCK_REFRESH, GDK_KEY_F5, .func = pl_refresh},
  {N_("Remove _Unavailable Files"), GTK_STOCK_REMOVE, .func = pl_remove_failed},
  {.sep = TRUE},
  {N_("_Sort"), GTK_STOCK_SORT_ASCENDING, .items = sort_items, G_N_ELEMENTS (sort_items)},
  {.sep = TRUE},
  {N_("_New"), GTK_STOCK_NEW, 't', CTRL, .func = pl_new},
+ {N_("Ren_ame ..."), GTK_STOCK_EDIT, GDK_KEY_F2, .func = pl_rename},
  {N_("_Close"), GTK_STOCK_CLOSE, 'w', CTRL, .func = pl_close},
  {.sep = TRUE},
  {N_("_Import ..."), GTK_STOCK_OPEN, .func = audgui_import_playlist},
  {N_("_Export ..."), GTK_STOCK_SAVE, .func = audgui_export_playlist},
  {.sep = TRUE},
- {N_("_Playlist Manager ..."), AUD_STOCK_PLAYLIST, 'p', CTRL, .func = audgui_playlist_manager},
+ {N_("Playlist _Manager ..."), AUD_STOCK_PLAYLIST, 'p', CTRL, .func = audgui_playlist_manager},
  {N_("_Queue Manager ..."), AUD_STOCK_QUEUETOGGLE, 'u', CTRL, .func = audgui_queue_manager_show}};
 
 static const struct MenuItem output_items[] = {
@@ -193,9 +225,11 @@ static const struct MenuItem view_items[] = {
  {N_("_Visualizations"), .get_sub = audgui_create_vis_menu},
  {.sep = TRUE},
  {N_("Show _Menu Bar"), NULL, 'm', SHIFT | CTRL, .get = menu_bar_get, show_menu},
- {N_("Show I_nfo Bar"), NULL, 'i', SHIFT | CTRL, .get = info_bar_get, show_infoarea},
+ {N_("Show I_nfo Bar"), NULL, 'i', SHIFT | CTRL, .get = infoarea_get, show_infoarea},
+ {N_("Show Info Bar Vis_ualization"), .get = infoarea_vis_get, show_infoarea_vis},
  {N_("Show _Status Bar"), NULL, 's', SHIFT | CTRL, .get = status_bar_get, show_statusbar},
  {.sep = TRUE},
+ {N_("Show Close _Buttons"), NULL, .get = close_button_get, close_button_set, "close_button_visible"},
  {N_("Show Column _Headers"), .get = column_headers_get, playlist_show_headers},
  {N_("Choose _Columns ..."), .func = pw_col_choose},
  {N_("Scrol_l on Song Change"), .get = autoscroll_get, autoscroll_set}};
@@ -211,7 +245,7 @@ static const struct MenuItem main_items[] = {
 static const struct MenuItem rclick_items[] = {
  {N_("Song _Info ..."), GTK_STOCK_INFO, 'i', ALT, .func = playlist_song_info},
  {N_("_Queue/Unqueue"), AUD_STOCK_QUEUETOGGLE, 'q', ALT, .func = playlist_queue_toggle},
- {N_("_Refresh"), GTK_STOCK_REFRESH, GDK_F6, .func = pl_refresh_sel},
+ {N_("_Refresh"), GTK_STOCK_REFRESH, GDK_KEY_F6, .func = pl_refresh_sel},
  {.sep = TRUE},
  {N_("Cu_t"), GTK_STOCK_CUT, .func = playlist_cut},
  {N_("_Copy"), GTK_STOCK_COPY, .func = playlist_copy},
@@ -221,8 +255,9 @@ static const struct MenuItem rclick_items[] = {
  {N_("_Services"), .get_sub = get_services_pl}};
 
 static const struct MenuItem tab_items[] = {
- {N_("_Rename"), GTK_STOCK_EDIT, GDK_F2, .func = pl_rename},
- {N_("_Close"), GTK_STOCK_CLOSE, .func = pl_close}};
+ {N_("_Play"), GTK_STOCK_MEDIA_PLAY, .func = pl_tab_play},
+ {N_("_Rename ..."), GTK_STOCK_EDIT, .func = pl_tab_rename},
+ {N_("_Close"), GTK_STOCK_CLOSE, .func = pl_tab_close}};
 
 static void toggled_cb (GtkCheckMenuItem * check, const struct MenuItem * item)
 {

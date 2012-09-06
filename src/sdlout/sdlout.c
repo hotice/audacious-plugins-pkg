@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include <glib.h>
 #include <SDL.h>
 #include <SDL_audio.h>
 
@@ -37,10 +36,20 @@
 
 #define VOLUME_RANGE 40 /* decibels */
 
+#define sdlout_error(...) do { \
+    SPRINTF (sdlout_error_buf, "SDL error: " __VA_ARGS__); \
+    aud_interface_show_error (sdlout_error_buf); \
+} while (0)
+
+static const char * const sdl_defaults[] = {
+ "vol_left", "100",
+ "vol_right", "100",
+ NULL};
+
 static pthread_mutex_t sdlout_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t sdlout_cond = PTHREAD_COND_INITIALIZER;
 
-static volatile int vol_left = 100, vol_right = 100;
+static volatile int vol_left, vol_right;
 
 static int sdlout_chan, sdlout_rate;
 
@@ -55,6 +64,11 @@ static struct timeval block_time;
 
 int sdlout_init (void)
 {
+    aud_config_set_defaults ("sdlout", sdl_defaults);
+
+    vol_left = aud_get_int ("sdlout", "vol_left");
+    vol_right = aud_get_int ("sdlout", "vol_right");
+
     if (SDL_Init (SDL_INIT_AUDIO) < 0)
     {
         fprintf (stderr, "Failed to init SDL: %s.\n", SDL_GetError ());
@@ -79,6 +93,9 @@ void sdlout_set_volume (int left, int right)
 {
     vol_left = left;
     vol_right = right;
+
+    aud_set_int ("sdlout", "vol_left", left);
+    aud_set_int ("sdlout", "vol_right", right);
 }
 
 static void apply_mono_volume (unsigned char * data, int len)
@@ -272,22 +289,6 @@ void sdlout_drain (void)
         pthread_cond_wait (& sdlout_cond, & sdlout_mutex);
 
     pthread_mutex_unlock (& sdlout_mutex);
-}
-
-void sdlout_set_written_time (int time)
-{
-    AUDDBG ("Setting time counter to %d.\n", time);
-    pthread_mutex_lock (& sdlout_mutex);
-    frames_written = (int64_t) time * sdlout_rate / 1000;
-    pthread_mutex_unlock (& sdlout_mutex);
-}
-
-int sdlout_written_time (void)
-{
-    pthread_mutex_lock (& sdlout_mutex);
-    int time = (int64_t) frames_written * 1000 / sdlout_rate;
-    pthread_mutex_unlock (& sdlout_mutex);
-    return time;
 }
 
 int sdlout_output_time (void)

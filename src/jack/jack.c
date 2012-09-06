@@ -7,17 +7,17 @@
  */
 
 #include <dlfcn.h>
+#include <limits.h>
 #include <stdio.h>
-#include "config.h"
-#include "bio2jack.h" /* includes for the bio2jack library */
-#include "jack.h"
 #include <string.h>
 
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
-#include <libaudgui/libaudgui.h>
-#include <libaudgui/libaudgui-gtk.h>
+
+#include "config.h"
+#include "bio2jack.h" /* includes for the bio2jack library */
+#include "jack.h"
 
 /* set to 1 for verbose output */
 #define VERBOSE_OUTPUT          0
@@ -44,7 +44,7 @@ jackconfig jack_cfg;
 static int driver = 0; /* handle to the jack output device */
 
 typedef struct format_info {
-  gint format;
+  int format;
   long    frequency;
   int     channels;
   long    bps;
@@ -54,8 +54,8 @@ static format_info_t input;
 static format_info_t effect;
 static format_info_t output;
 
-static gboolean output_opened; /* true if we have a connection to jack */
-static gboolean paused;
+static bool_t output_opened; /* true if we have a connection to jack */
+static bool_t paused;
 
 
 /* Giacomo's note: removed the destructor from the original xmms-jack, cause
@@ -121,28 +121,11 @@ static void jack_get_volume(int *l, int *r)
 }
 
 
-/* Return the number of milliseconds of audio data that has been */
-/* written out to the device */
-static gint jack_get_written_time(void)
-{
-  long return_val;
-  return_val = JACK_GetPosition(driver, MILLISECONDS, WRITTEN);
-
-  TRACE("returning %ld milliseconds\n", return_val);
-  return return_val;
-}
-
-static void jack_set_written_time(gint time)
-{
-  JACK_SetPosition(driver, MILLISECONDS, time);
-}
-
-
 /* Return the current number of milliseconds of audio data that has */
 /* been played out of the audio device, not including the buffer */
-static gint jack_get_output_time(void)
+static int jack_get_output_time(void)
 {
-  gint return_val;
+  int return_val;
 
   /* don't try to get any values if the device is still closed */
   if(JACK_GetState(driver) == CLOSED)
@@ -159,9 +142,9 @@ static gint jack_get_output_time(void)
 /* NOTE: this was confusing at first BUT, if the device is open and there */
 /* is no more audio to be played, then the device is NOT PLAYING */
 #if 0
-static gint jack_playing(void)
+static int jack_playing(void)
 {
-  gint return_val;
+  int return_val;
 
   /* If we are playing see if we ACTUALLY have something to play */
   if(JACK_GetState(driver) == PLAYING)
@@ -199,7 +182,7 @@ void jack_set_port_connection_mode()
   JACK_SetPortConnectionMode(mode);
 }
 
-static const gchar * const jack_defaults[] = {
+static const char * const jack_defaults[] = {
  "isTraceEnabled", "FALSE",
  "port_connection_mode", "CONNECT_ALL",
  "volume_left", "25",
@@ -207,7 +190,7 @@ static const gchar * const jack_defaults[] = {
  NULL};
 
 /* Initialize necessary things */
-static gboolean jack_init (void)
+static bool_t jack_init (void)
 {
   aud_config_set_defaults ("jack", jack_defaults);
 
@@ -234,7 +217,7 @@ static gboolean jack_init (void)
 
 
 /* Return the amount of data that can be written to the device */
-static gint audacious_jack_free(void)
+static int audacious_jack_free(void)
 {
   unsigned long return_val = JACK_GetBytesFreeSpace(driver);
   unsigned long tmp;
@@ -250,10 +233,10 @@ static gint audacious_jack_free(void)
     TRACE("adjusting from %ld to %ld free bytes to compensate for frequency differences\n", tmp, return_val);
   }
 
-  if(return_val > G_MAXINT)
+  if(return_val > INT_MAX)
   {
-      TRACE("Warning: return_val > G_MAXINT\n");
-      return_val = G_MAXINT;
+      TRACE("Warning: return_val > INT_MAX\n");
+      return_val = INT_MAX;
   }
 
   TRACE("free space of %ld bytes\n", return_val);
@@ -274,7 +257,7 @@ static void jack_close(void)
 
 
 /* Open the device up */
-static gint jack_open(gint fmt, gint sample_rate, gint num_channels)
+static int jack_open(int fmt, int sample_rate, int num_channels)
 {
   int bits_per_sample;
   int floating_point = FALSE;
@@ -349,7 +332,7 @@ static gint jack_open(gint fmt, gint sample_rate, gint num_channels)
   retval = JACK_Open(&driver, bits_per_sample, floating_point, &rate, output.channels);
   output.frequency = rate; /* avoid compile warning as output.frequency differs in type
                               from what JACK_Open() wants for the type of the rate parameter */
-  if((retval == ERR_RATE_MISMATCH))
+  if(retval == ERR_RATE_MISMATCH)
   {
     TRACE("set the resampling rate properly");
     return 0;
@@ -368,7 +351,7 @@ static gint jack_open(gint fmt, gint sample_rate, gint num_channels)
 
 
 /* write some audio out to the device */
-static void jack_write(gpointer ptr, gint length)
+static void jack_write(void * ptr, int length)
 {
   long written;
 
@@ -393,7 +376,7 @@ static void jack_write(gpointer ptr, gint length)
 /* the number of milliseconds of offset passed in */
 /* This is done so the driver itself keeps track of */
 /* current playing position of the mp3 */
-static void jack_flush(gint ms_offset_time)
+static void jack_flush(int ms_offset_time)
 {
   TRACE("setting values for ms_offset_time of %d\n", ms_offset_time);
 
@@ -410,7 +393,7 @@ static void jack_flush(gint ms_offset_time)
 
 
 /* Pause the jack device */
-static void jack_pause (gboolean p)
+static void jack_pause (bool_t p)
 {
   TRACE("p == %d\n", p);
 
@@ -424,31 +407,18 @@ static void jack_pause (gboolean p)
     JACK_SetState(driver, PLAYING);
 }
 
-
-static void jack_about(void)
-{
-    static GtkWidget *aboutbox = NULL;
-
-    if (aboutbox == NULL)
-    {
-        gchar *description = g_strdup_printf(
-            _("XMMS jack Driver 0.17\n\n"
-              "xmms-jack.sf.net\nChris Morgan<cmorgan@alum.wpi.edu>\n\n"
-              "Audacious port by\nGiacomo Lozito from develia.org"));
-
-        audgui_simple_message (& aboutbox, GTK_MESSAGE_INFO,
-         _("About JACK Output Plugin 0.17"), description);
-
-        g_free(description);
-    }
-}
+static const char jack_about[] =
+ "Based on xmms-jack, by Chris Morgan:\n"
+ "http://xmms-jack.sourceforge.net/\n\n"
+ "Ported to Audacious by Giacomo Lozito";
 
 AUD_OUTPUT_PLUGIN
 (
-    .name = "JACK",
+    .name = N_("JACK Output"),
+    .domain = PACKAGE,
+    .about_text = jack_about,
     .init = jack_init,
     .cleanup = jack_cleanup,
-    .about = jack_about,
 #if 0
     .configure = jack_configure,
 #endif
@@ -460,7 +430,5 @@ AUD_OUTPUT_PLUGIN
     .flush = jack_flush,
     .pause = jack_pause,
     .buffer_free = audacious_jack_free,
-    .output_time = jack_get_output_time,
-    .written_time = jack_get_written_time,
-    .set_written_time = jack_set_written_time
+    .output_time = jack_get_output_time
 )

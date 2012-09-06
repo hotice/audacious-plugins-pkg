@@ -1,6 +1,6 @@
 /*
  *  Blur Scope plugin for Audacious
- *  Copyright (C) 2010-2011 John Lindgren
+ *  Copyright (C) 2010-2012 John Lindgren
  *
  *  Based on BMP - Cross-platform multimedia player:
  *  Copyright (C) 2003-2004  BMP development team.
@@ -23,14 +23,17 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include <gtk/gtk.h>
+#include <math.h>
 #include <string.h>
 
-#include <audacious/gtk-compat.h>
+#include <gtk/gtk.h>
+
+#include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
+#include <audacious/preferences.h>
 
-#include "blur_scope.h"
+#include "config.h"
 
 #define D_WIDTH 64
 #define D_HEIGHT 32
@@ -40,13 +43,23 @@ static void bscope_cleanup(void);
 static void bscope_clear (void);
 static void bscope_render (const gfloat * data);
 static void /* GtkWidget */ * bscope_get_widget (void);
+static void /* GtkWidget */ * bscope_get_color_chooser (void);
+
+static const PreferencesWidget bscope_widgets[] = {
+ {WIDGET_LABEL, N_("<b>Color</b>")},
+ {WIDGET_CUSTOM, .data = {.populate = bscope_get_color_chooser}}};
+
+static const PluginPreferences bscope_prefs = {
+ .widgets = bscope_widgets,
+ .n_widgets = G_N_ELEMENTS (bscope_widgets)};
 
 AUD_VIS_PLUGIN
 (
-    .name = "Blur Scope",                       /* description */
+    .name = N_("Blur Scope"),
+    .domain = PACKAGE,
+    .prefs = & bscope_prefs,
     .init = bscope_init,                /* init */
     .cleanup = bscope_cleanup,             /* cleanup */
-    .configure = bscope_configure,           /* configure */
     .clear = bscope_clear,
     .render_mono_pcm = bscope_render,
     .get_widget = bscope_get_widget,
@@ -60,7 +73,7 @@ static const gchar * const bscope_defaults[] = {
  "color", "16727935", /* 0xFF3F7F */
  NULL};
 
-gint color;
+static gint color;
 
 static gboolean bscope_init (void)
 {
@@ -114,19 +127,11 @@ static gboolean configure_event (GtkWidget * widget, GdkEventConfigure * event)
     return TRUE;
 }
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 static gboolean draw_cb (GtkWidget * widget, cairo_t * cr)
 {
     bscope_draw_to_cairo (cr);
     return TRUE;
 }
-#else
-static gboolean expose_event (GtkWidget * widget)
-{
-    bscope_draw ();
-    return TRUE;
-}
-#endif
 
 static void /* GtkWidget */ * bscope_get_widget (void)
 {
@@ -134,15 +139,14 @@ static void /* GtkWidget */ * bscope_get_widget (void)
     gtk_widget_set_size_request (area, D_WIDTH, D_HEIGHT);
     bscope_resize (D_WIDTH, D_HEIGHT);
 
-#if GTK_CHECK_VERSION (3, 0, 0)
     g_signal_connect (area, "draw", (GCallback) draw_cb, NULL);
-#else
-    g_signal_connect (area, "expose-event", (GCallback) expose_event, NULL);
-#endif
     g_signal_connect (area, "configure-event", (GCallback) configure_event, NULL);
     g_signal_connect (area, "destroy", (GCallback) gtk_widget_destroyed, & area);
 
-    return area;
+    GtkWidget * frame = gtk_frame_new (NULL);
+    gtk_frame_set_shadow_type ((GtkFrame *) frame, GTK_SHADOW_IN);
+    gtk_container_add ((GtkContainer *) frame, area);
+    return frame;
 }
 
 static void bscope_clear (void)
@@ -201,4 +205,30 @@ static void bscope_render (const gfloat * data)
     }
 
     bscope_draw ();
+}
+
+static void color_set_cb (GtkWidget * chooser)
+{
+    GdkRGBA rgba;
+    gtk_color_button_get_rgba ((GtkColorButton *) chooser, & rgba);
+
+    int red = round (rgba.red * 255);
+    int green = round (rgba.green * 255);
+    int blue = round (rgba.blue * 255);
+    color = (red << 16) | (green << 8) | blue;
+}
+
+static void /* GtkWidget */ * bscope_get_color_chooser (void)
+{
+    GdkRGBA rgba = {
+     .red = ((color & 0xff0000) >> 16) / 255.0,
+     .green = ((color & 0xff00) >> 8) / 255.0,
+     .blue = (color & 0xff) / 255.0};
+
+    GtkWidget * chooser = gtk_color_button_new_with_rgba (& rgba);
+    gtk_color_button_set_use_alpha ((GtkColorButton *) chooser, FALSE);
+
+    g_signal_connect (chooser, "color-set", (GCallback) color_set_cb, NULL);
+
+    return chooser;
 }

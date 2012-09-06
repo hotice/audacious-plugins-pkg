@@ -18,11 +18,12 @@
 *
 */
 
-
 #include "i_configure-alsa.h"
+
+#ifdef AMIDIPLUG_ALSA
+
 #include "backend-alsa/b-alsa-config.h"
 #include "backend-alsa/backend-alsa-icon.xpm"
-
 
 enum
 {
@@ -216,19 +217,10 @@ void i_configure_gui_tab_alsa( GtkWidget * alsa_page_alignment ,
                                gpointer backend_list_p ,
                                gpointer commit_button )
 {
-  GtkWidget *alsa_page_vbox;
-  GtkWidget *title_widget;
-  GtkWidget *content_vbox; /* this vbox will contain two items of equal space (50%/50%) */
   GSList * backend_list = backend_list_p;
-  gboolean alsa_module_ok = FALSE;
-  gchar * alsa_module_pathfilename;
+  gchar * alsa_module_pathfilename = NULL;
 
-  alsa_page_vbox = gtk_vbox_new( FALSE , 0 );
-
-  title_widget = i_configure_gui_draw_title( _("ALSA BACKEND CONFIGURATION") );
-  gtk_box_pack_start( GTK_BOX(alsa_page_vbox) , title_widget , FALSE , FALSE , 2 );
-
-  content_vbox = gtk_vbox_new( TRUE , 2 );
+  GtkWidget * content_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
 
   /* check if the ALSA module is available */
   while ( backend_list != NULL )
@@ -236,14 +228,13 @@ void i_configure_gui_tab_alsa( GtkWidget * alsa_page_alignment ,
     amidiplug_sequencer_backend_name_t * mn = backend_list->data;
     if ( !strcmp( mn->name , "alsa" ) )
     {
-      alsa_module_ok = TRUE;
       alsa_module_pathfilename = mn->filename;
       break;
     }
     backend_list = backend_list->next;
   }
 
-  if ( alsa_module_ok )
+  if (alsa_module_pathfilename)
   {
     GtkListStore *port_store, *mixer_card_store;
     GtkWidget *port_lv, *port_lv_sw, *port_lv_frame;
@@ -340,9 +331,12 @@ void i_configure_gui_tab_alsa( GtkWidget * alsa_page_alignment ,
     gtk_tree_view_append_column( GTK_TREE_VIEW(port_lv), port_lv_portname_col );
     port_lv_sel = gtk_tree_view_get_selection( GTK_TREE_VIEW(port_lv) );
     gtk_tree_selection_set_mode( GTK_TREE_SELECTION(port_lv_sel) , GTK_SELECTION_NONE );
+
     port_lv_sw = gtk_scrolled_window_new( NULL , NULL );
-    gtk_scrolled_window_set_policy( GTK_SCROLLED_WINDOW(port_lv_sw),
-                                    GTK_POLICY_NEVER, GTK_POLICY_ALWAYS );
+    gtk_scrolled_window_set_shadow_type ((GtkScrolledWindow *) port_lv_sw, GTK_SHADOW_IN);
+    gtk_scrolled_window_set_policy ((GtkScrolledWindow *) port_lv_sw,
+     GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+
     port_lv_frame = gtk_frame_new( _("ALSA output ports") );
     gtk_container_add( GTK_CONTAINER(port_lv_sw) , port_lv );
     gtk_container_add( GTK_CONTAINER(port_lv_frame) , port_lv_sw );
@@ -422,16 +416,8 @@ void i_configure_gui_tab_alsa( GtkWidget * alsa_page_alignment ,
     free_port_list( wports_h );
     g_module_close( alsa_module );
   }
-  else
-  {
-    /* display "not available" information */
-    GtkWidget * info_label;
-    info_label = gtk_label_new( _("ALSA Backend not loaded or not available") );
-    gtk_box_pack_start( GTK_BOX(alsa_page_vbox) , info_label , FALSE , FALSE , 2 );
-  }
 
-  gtk_box_pack_start( GTK_BOX(alsa_page_vbox) , content_vbox , TRUE , TRUE , 2 );
-  gtk_container_add( GTK_CONTAINER(alsa_page_alignment) , alsa_page_vbox );
+  gtk_container_add ((GtkContainer *) alsa_page_alignment, content_vbox);
 }
 
 
@@ -441,7 +427,7 @@ void i_configure_gui_tablabel_alsa( GtkWidget * alsa_page_alignment ,
 {
   GtkWidget *pagelabel_vbox, *pagelabel_image, *pagelabel_label;
   GdkPixbuf *pagelabel_image_pix;
-  pagelabel_vbox = gtk_vbox_new( FALSE , 1 );
+  pagelabel_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1 );
   pagelabel_image_pix = gdk_pixbuf_new_from_xpm_data( (const gchar **)backend_alsa_icon_xpm );
   pagelabel_image = gtk_image_new_from_pixbuf( pagelabel_image_pix ); g_object_unref( pagelabel_image_pix );
   pagelabel_label = gtk_label_new( "" );
@@ -539,3 +525,5 @@ void i_configure_cfg_alsa_save( pcfg_t * cfgfile )
   i_pcfg_write_string( cfgfile , "alsa" , "alsa_mixer_ctl_name" , alsacfg->alsa_mixer_ctl_name );
   i_pcfg_write_integer( cfgfile , "alsa" , "alsa_mixer_ctl_id" , alsacfg->alsa_mixer_ctl_id );
 }
+
+#endif /* AMIDIPLUG_ALSA */

@@ -145,7 +145,7 @@ void i_fileinfo_gui( const gchar * filename_uri )
   g_signal_connect( G_OBJECT(fileinfowin) , "destroy" , G_CALLBACK(gtk_widget_destroyed) , &fileinfowin );
   gtk_container_set_border_width( GTK_CONTAINER(fileinfowin), 10 );
 
-  fileinfowin_vbox = gtk_vbox_new( FALSE , 10 );
+  fileinfowin_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 10 );
   gtk_container_add( GTK_CONTAINER(fileinfowin) , fileinfowin_vbox );
 
   /* pango attributes */
@@ -157,7 +157,7 @@ void i_fileinfo_gui( const gchar * filename_uri )
 
   /******************
    *** TITLE LINE ***/
-  title_hbox = gtk_hbox_new( FALSE , 5 );
+  title_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5 );
   gtk_box_pack_start( GTK_BOX(fileinfowin_vbox) , title_hbox , FALSE , FALSE , 0 );
 
   title_icon_pixbuf = gdk_pixbuf_new_from_xpm_data( (const gchar **)amidiplug_xpm_midiicon );
@@ -175,12 +175,12 @@ void i_fileinfo_gui( const gchar * filename_uri )
   gtk_widget_set_size_request( GTK_WIDGET(title_name_v_entry) , 200 , -1 );
   gtk_box_pack_start(GTK_BOX(title_hbox) , title_name_v_entry , TRUE , TRUE , 0 );
 
-  fileinfowin_columns_hbox = gtk_hbox_new( FALSE , 2 );
+  fileinfowin_columns_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2 );
   gtk_box_pack_start( GTK_BOX(fileinfowin_vbox) , fileinfowin_columns_hbox , TRUE , TRUE , 0 );
 
   /*********************
    *** MIDI INFO BOX ***/
-  midiinfoboxes_vbox = gtk_vbox_new( FALSE , 2 );
+  midiinfoboxes_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2 );
   /* pick the entire space if both comments and lyrics boxes are not displayed,
      pick only required space if at least one of them is displayed */
   if (( amidiplug_cfg_ap.ap_opts_comments_extract == 0 ) &&
@@ -208,7 +208,7 @@ void i_fileinfo_gui( const gchar * filename_uri )
   i_fileinfo_table_add_entry( _("Length (msec):") , value_gstring->str , info_table , 1 , pangoattrlist );
   /* midi num of tracks */
   G_STRING_PRINTF( value_gstring , "%i" , mf->num_tracks );
-  i_fileinfo_table_add_entry( _("Num of Tracks:") , value_gstring->str , info_table , 2 , pangoattrlist );
+  i_fileinfo_table_add_entry( _("No. of Tracks:") , value_gstring->str , info_table , 2 , pangoattrlist );
   /* midi bpm */
   if ( bpm > 0 )
     G_STRING_PRINTF( value_gstring , "%i" , bpm ); /* fixed bpm */
@@ -229,7 +229,7 @@ void i_fileinfo_gui( const gchar * filename_uri )
 
   /**********************************
    *** MIDI COMMENTS/LYRICS BOXES ***/
-  miditextboxes_vbox = gtk_vbox_new( FALSE , 2 );
+  miditextboxes_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2 );
   gtk_box_pack_start( GTK_BOX(fileinfowin_columns_hbox) , miditextboxes_vbox , TRUE , TRUE , 0 );
 
   text_frame_tl = gtk_label_new( "" );
@@ -237,7 +237,7 @@ void i_fileinfo_gui( const gchar * filename_uri )
                         _("<span size=\"smaller\"> MIDI Comments and Lyrics </span>") );
   gtk_box_pack_start( GTK_BOX(miditextboxes_vbox) , text_frame_tl , FALSE , FALSE , 0 );
 
-  miditextboxes_paned = gtk_vpaned_new();
+  miditextboxes_paned = gtk_paned_new (GTK_ORIENTATION_VERTICAL);
   gtk_box_pack_start( GTK_BOX(miditextboxes_vbox) , miditextboxes_paned , TRUE , TRUE , 0 );
 
   text_frame = gtk_frame_new( NULL );
@@ -324,7 +324,7 @@ void i_fileinfo_gui( const gchar * filename_uri )
 
   /**************
    *** FOOTER ***/
-  footer_hbbox = gtk_hbutton_box_new();
+  footer_hbbox = gtk_button_box_new (GTK_ORIENTATION_HORIZONTAL);
   gtk_button_box_set_layout( GTK_BUTTON_BOX(footer_hbbox) , GTK_BUTTONBOX_END );
   footer_bclose = gtk_button_new_from_stock( GTK_STOCK_CLOSE );
   g_signal_connect( G_OBJECT(footer_bclose) , "clicked" , G_CALLBACK(i_fileinfo_ev_close) , fileinfowin );
@@ -349,7 +349,8 @@ void i_fileinfo_gui( const gchar * filename_uri )
     filename_utf8 = g_strconcat( convert_str , _("  (invalid UTF-8)") , NULL );
     g_free(convert_str);
   }
-  title = g_strdup_printf( "%s - " PLAYER_NAME , g_basename(filename_utf8));
+
+  title = g_path_get_basename (filename_utf8);
   gtk_window_set_title( GTK_WINDOW(fileinfowin) , title);
   g_free(title);
   /* set the text for the filename header too */

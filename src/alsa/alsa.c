@@ -1,6 +1,6 @@
 /*
  * ALSA Output Plugin for Audacious
- * Copyright 2009-2011 John Lindgren
+ * Copyright 2009-2012 John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -46,7 +46,6 @@
 #include <unistd.h>
 
 #include <alsa/asoundlib.h>
-#include <glib.h>
 
 #include <audacious/debug.h>
 #include <audacious/misc.h>
@@ -65,8 +64,8 @@ do { \
 
 #define CHECK_RECOVER(function, ...) \
 do { \
-    int error2; \
-    CHECK_VAL_RECOVER (error2, function, __VA_ARGS__); \
+    int CHECK_RECOVER_error; \
+    CHECK_VAL_RECOVER (CHECK_RECOVER_error, function, __VA_ARGS__); \
 } while (0)
 
 static snd_pcm_t * alsa_handle;
@@ -335,7 +334,7 @@ static int convert_aud_format (int aud_format)
         {FMT_U32_BE, SND_PCM_FORMAT_U32_BE},
     };
 
-    for (int count = 0; count < G_N_ELEMENTS (table); count ++)
+    for (int count = 0; count < sizeof table / sizeof table[0]; count ++)
     {
         if (table[count].aud_format == aud_format)
             return table[count].format;
@@ -542,22 +541,6 @@ void alsa_drain (void)
 FAILED:
     pthread_mutex_unlock (& alsa_mutex);
     return;
-}
-
-void alsa_set_written_time (int time)
-{
-    AUDDBG ("Setting time counter to %d.\n", time);
-    pthread_mutex_lock (& alsa_mutex);
-    alsa_written = (int64_t) time * alsa_rate / 1000;
-    pthread_mutex_unlock (& alsa_mutex);
-}
-
-int alsa_written_time (void)
-{
-    pthread_mutex_lock (& alsa_mutex);
-    int time = (int64_t) alsa_written * 1000 / alsa_rate;
-    pthread_mutex_unlock (& alsa_mutex);
-    return time;
 }
 
 int alsa_output_time (void)

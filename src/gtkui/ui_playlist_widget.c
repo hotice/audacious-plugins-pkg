@@ -1,22 +1,20 @@
 /*
  * ui_playlist_widget.c
- * Copyright 2011 John Lindgren
+ * Copyright 2011-2012 John Lindgren, William Pitcock, and Michał Lipski
  *
- * This file is part of Audacious.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * Audacious is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation, version 2 or version 3 of the License.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- * Audacious is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
  *
- * You should have received a copy of the GNU General Public License along with
- * Audacious. If not, see <http://www.gnu.org/licenses/>.
- *
- * The Audacious team does not consider modular code linking to Audacious or
- * using our public API to be a derived work.
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
+ * the use of this software.
  */
 
 #include <string.h>
@@ -28,6 +26,7 @@
 #include <audacious/misc.h>
 #include <audacious/playlist.h>
 #include <libaudgui/libaudgui.h>
+#include <libaudgui/libaudgui-gtk.h>
 #include <libaudgui/list.h>
 
 #include "config.h"
@@ -37,15 +36,18 @@
 
 static const GType pw_col_types[PW_COLS] = {G_TYPE_INT, G_TYPE_STRING,
  G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
- G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING};
-static const gboolean pw_col_widths[PW_COLS] = {7, -1, -1, 4, -1, 2, 3, 7, -1,
- -1, -1, 3};
+ G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+ G_TYPE_STRING};
+static const gboolean pw_col_widths[PW_COLS] = {7, -1, -1, 4, -1, 2, -1, 3, 7,
+ -1, -1, -1, 3};
 static const gboolean pw_col_label[PW_COLS] = {FALSE, TRUE, TRUE, TRUE, TRUE,
- FALSE, FALSE, FALSE, TRUE, TRUE, TRUE, FALSE};
+ FALSE, TRUE, FALSE, FALSE, TRUE, TRUE, TRUE, FALSE};
 
 typedef struct {
     gint list;
     GList * queue;
+    gint popup_source, popup_pos;
+    gboolean popup_shown;
 } PlaylistWidgetData;
 
 static void set_int_from_tuple (GValue * value, const Tuple * tuple, gint field)
@@ -111,7 +113,8 @@ static void get_value (void * user, gint row, gint column, GValue * value)
         aud_playlist_entry_describe (data->list, row, & title, & artist,
          & album, TRUE);
     else if (column == PW_COL_YEAR || column == PW_COL_TRACK || column ==
-     PW_COL_FILENAME || column == PW_COL_PATH || column == PW_COL_BITRATE)
+     PW_COL_GENRE || column == PW_COL_FILENAME || column == PW_COL_PATH ||
+     column == PW_COL_BITRATE)
         tuple = aud_playlist_entry_get_tuple (data->list, row, TRUE);
 
     switch (column)
@@ -133,6 +136,9 @@ static void get_value (void * user, gint row, gint column, GValue * value)
         break;
     case PW_COL_TRACK:
         set_int_from_tuple (value, tuple, FIELD_TRACK_NUMBER);
+        break;
+    case PW_COL_GENRE:
+        set_string_from_tuple (value, tuple, FIELD_GENRE);
         break;
     case PW_COL_QUEUED:
         set_queued (value, data->list, row);
@@ -183,8 +189,8 @@ static void select_all (void * user, gboolean selected)
 static void activate_row (void * user, gint row)
 {
     gint list = ((PlaylistWidgetData *) user)->list;
-    aud_playlist_set_playing (list);
     aud_playlist_set_position (list, row);
+    aud_playlist_set_playing (list);
     aud_drct_play ();
 }
 
@@ -205,6 +211,61 @@ static void shift_rows (void * user, gint row, gint before)
         before += playlist_count_selected_in_range (list, before, row - before);
 
     aud_playlist_shift (list, row, before - row);
+}
+
+static gboolean popup_show (PlaylistWidgetData * data)
+{
+    audgui_infopopup_show (data->list, data->popup_pos);
+    data->popup_shown = TRUE;
+
+    g_source_remove (data->popup_source);
+    data->popup_source = 0;
+    return FALSE;
+}
+
+static void popup_hide (PlaylistWidgetData * data)
+{
+    if (data->popup_source)
+    {
+        g_source_remove (data->popup_source);
+        data->popup_source = 0;
+    }
+
+    if (data->popup_shown)
+    {
+        audgui_infopopup_hide ();
+        data->popup_shown = FALSE;
+    }
+
+    data->popup_pos = -1;
+}
+
+static void popup_trigger (PlaylistWidgetData * data, gint pos)
+{
+    popup_hide (data);
+
+    data->popup_pos = pos;
+    data->popup_source = g_timeout_add (aud_get_int (NULL, "filepopup_delay") *
+     100, (GSourceFunc) popup_show, data);
+}
+
+static void mouse_motion (void * user, GdkEventMotion * event, gint row)
+{
+    PlaylistWidgetData * data = (PlaylistWidgetData *) user;
+
+    if (row < 0)
+    {
+        popup_hide (data);
+        return;
+    }
+
+    if (aud_get_bool (NULL, "show_filepopup_for_tuple") && data->popup_pos != row)
+        popup_trigger (data, row);
+}
+
+static void mouse_leave (void * user, GdkEventMotion * event, gint row)
+{
+    popup_hide ((PlaylistWidgetData *) user);
 }
 
 static void get_data (void * user, void * * data, gint * length)
@@ -233,6 +294,8 @@ static const AudguiListCallbacks callbacks = {
  .activate_row = activate_row,
  .right_click = right_click,
  .shift_rows = shift_rows,
+ .mouse_motion = mouse_motion,
+ .mouse_leave = mouse_leave,
  .data_type = "text/uri-list",
  .get_data = get_data,
  .receive_data = receive_data};
@@ -301,35 +364,12 @@ GtkWidget * ui_playlist_widget_new (gint playlist)
     PlaylistWidgetData * data = g_malloc0 (sizeof (PlaylistWidgetData));
     data->list = playlist;
     data->queue = NULL;
+    data->popup_source = 0;
+    data->popup_pos = -1;
+    data->popup_shown = FALSE;
 
     GtkWidget * list = audgui_list_new (& callbacks, data,
      aud_playlist_entry_count (playlist));
-
-    if (aud_get_bool ("gtkui", "custom_playlist_colors"))
-    {
-        GdkColor c;
-        gchar * tmp;
-
-        tmp = aud_get_string ("gtkui", "playlist_bg");
-        gdk_color_parse (tmp, & c);
-        gtk_widget_modify_base(list, GTK_STATE_NORMAL, &c);
-
-        tmp = aud_get_string ("gtkui", "playlist_fg");
-        gdk_color_parse (tmp, & c);
-        gtk_widget_modify_text(list, GTK_STATE_NORMAL, &c);
-    }
-
-    gchar * font = aud_get_string ("gtkui", "playlist_font");
-    if (font[0])
-    {
-        PangoFontDescription *desc;
-
-        desc = pango_font_description_from_string (font);
-        gtk_widget_modify_font(list, desc);
-
-        pango_font_description_free(desc);
-    }
-    g_free (font);
 
     gtk_tree_view_set_headers_visible ((GtkTreeView *) list,
      aud_get_bool ("gtkui", "playlist_headers"));
@@ -399,6 +439,8 @@ void ui_playlist_widget_update (GtkWidget * widget, gint type, gint at,
             audgui_list_delete_rows (widget, at, -diff);
 
         audgui_list_set_highlight (widget, aud_playlist_get_position (data->list));
+
+        ui_playlist_widget_scroll (widget);
     }
 
     if (type >= PLAYLIST_UPDATE_METADATA)
@@ -406,4 +448,27 @@ void ui_playlist_widget_update (GtkWidget * widget, gint type, gint at,
 
     audgui_list_update_selection (widget, at, count);
     update_queue (widget, data);
+}
+
+void ui_playlist_widget_scroll (GtkWidget * widget)
+{
+    PlaylistWidgetData * data = audgui_list_get_user (widget);
+    g_return_if_fail (data);
+
+    gint row = -1;
+
+    if (gtk_widget_get_realized (widget))
+    {
+        gint x, y;
+        audgui_get_mouse_coords (widget, & x, & y);
+        row = audgui_list_row_at_point (widget, x, y);
+    }
+
+    /* Only update the info popup if it is already shown or about to be shown;
+     * this makes sure that it doesn't pop up when the Audacious window isn't
+     * even visible. */
+    if (row >= 0 && (data->popup_source || data->popup_shown))
+        popup_trigger (data, row);
+    else
+        popup_hide (data);
 }

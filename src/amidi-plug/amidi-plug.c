@@ -36,7 +36,8 @@ static Tuple * amidiplug_get_song_tuple (const gchar * filename_uri, VFSFile *
 
 AUD_INPUT_PLUGIN
 (
-    .name = "AMIDI-Plug (MIDI Player)",
+    .name = N_("AMIDI-Plug (MIDI Player)"),
+    .domain = PACKAGE,
     .init = amidiplug_init,
     .about = amidiplug_aboutbox,
     .configure = amidiplug_configure,
@@ -407,9 +408,6 @@ static gboolean amidiplug_play (InputPlayback * playback, const gchar *
     }
   }
 
-  if (! backend.autonomous_audio)
-      playback->output->close_audio ();
-
   return TRUE;
 }
 
@@ -697,15 +695,7 @@ static void amidiplug_play_loop (InputPlayback * playback)
    midifile.skip_offset);
 
   if (! backend.autonomous_audio)
-  {
       audio_stop ();
-
-      if (! stopped)
-      {
-          while (playback->output->buffer_playing ())
-              g_usleep (20000);
-      }
-  }
 
   backend.seq_off ();
   backend.seq_stop ();

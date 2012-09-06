@@ -1,20 +1,20 @@
-/*  Audacious - Cross-platform multimedia player
- *  Copyright (C) 2005-2012  Audacious development team
+/*
+ * ui_playlist_notebook.c
+ * Copyright 2010-2012 Michał Lipski and John Lindgren
  *
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; under version 3 of the License.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses>.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
  *
- *  The Audacious team does not consider modular code linking to
- *  Audacious or using our public API to be a derived work.
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
+ * the use of this software.
  */
 
 #include "config.h"
@@ -23,7 +23,7 @@
 #include <gtk/gtk.h>
 
 #include <audacious/debug.h>
-#include <audacious/gtk-compat.h>
+#include <audacious/drct.h>
 #include <audacious/misc.h>
 #include <audacious/playlist.h>
 #include <audacious/plugin.h>
@@ -37,20 +37,13 @@
 
 #define CURRENT_POS (-2)
 
-#if GTK_CHECK_VERSION(2, 20, 0)
-#define HAVE_ADD_BUTTON
-#endif
-
 static GtkWidget * notebook = NULL;
 static GQueue follow_queue = G_QUEUE_INIT;
 static gint highlighted = -1;
 
-static GtkWidget *ui_playlist_notebook_tab_title_editing;
-
 static gint switch_handler = 0;
 static gint reorder_handler = 0;
 
-#ifdef HAVE_ADD_BUTTON
 static void add_button_cb (GtkButton * button, void * unused)
 {
     aud_playlist_insert (-1);
@@ -70,33 +63,24 @@ static void make_add_button (GtkWidget * notebook)
 
     gtk_notebook_set_action_widget ((GtkNotebook *) notebook, button, GTK_PACK_END);
 }
-#endif
 
 static void close_button_cb (GtkWidget * button, void * id)
 {
     audgui_confirm_playlist_delete (aud_playlist_by_unique_id (GPOINTER_TO_INT (id)));
 }
 
-#if ! GTK_CHECK_VERSION (3, 0, 0)
-static void close_button_style_set(GtkWidget * button, GtkRcStyle * previous_style,
- gpointer user_data)
-{
-    gint w, h;
-    gtk_icon_size_lookup_for_settings (gtk_widget_get_settings (button), GTK_ICON_SIZE_MENU, &w, &h);
-    gtk_widget_set_size_request (button, w + 2, h + 2);
-}
-#endif
-
-static GtkWidget * make_close_button (gint list)
+static GtkWidget * make_close_button (GtkWidget * ebox, gint list)
 {
     GtkWidget * button = gtk_button_new ();
+    GtkWidget * image = gtk_image_new_from_stock (GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU);
+    gtk_button_set_image ((GtkButton *) button, image);
     gtk_button_set_relief ((GtkButton *) button, GTK_RELIEF_NONE);
     gtk_button_set_focus_on_click ((GtkButton *) button, FALSE);
     gtk_widget_set_name (button, "gtkui-tab-close-button");
+    g_object_set_data ((GObject *) ebox, "close_button", button);
     g_signal_connect (button, "clicked", (GCallback) close_button_cb,
      GINT_TO_POINTER (aud_playlist_get_unique_id (list)));
 
-#if GTK_CHECK_VERSION (3, 0, 0)
     GtkCssProvider * provider = gtk_css_provider_new ();
     gtk_css_provider_load_from_data (provider,
      "#gtkui-tab-close-button {"
@@ -113,27 +97,28 @@ static GtkWidget * make_close_button (gint list)
      GTK_STYLE_PROVIDER (provider),
      GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     g_object_unref (provider);
-#else
-    gtk_rc_parse_string (
-     "style \"gtkui-tab-close-button-style\" {"
-     " GtkWidget::focus-padding = 0"
-     " GtkWidget::focus-line-width = 0"
-     " xthickness = 0"
-     " ythickness = 0 }"
-     "widget \"*.gtkui-tab-close-button\" style \"gtkui-tab-close-button-style\""
-    );
 
-    g_signal_connect (button, "style-set", (GCallback) close_button_style_set, NULL);
-#endif
+    if (aud_get_bool ("gtkui", "close_button_visible"))
+        gtk_widget_show (button);
 
-    GtkWidget * icon = gtk_image_new_from_stock (GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU);
-    gtk_container_add ((GtkContainer *) button, icon);
+    return button;
+}
 
-    GtkWidget * align = gtk_alignment_new (1.0, 0.5, 0.0, 0.0);
-    gtk_container_add ((GtkContainer *) align, button);
+void show_close_buttons (gboolean show)
+{
+    gint pages = gtk_notebook_get_n_pages ((GtkNotebook *) notebook);
 
-    gtk_widget_show_all (align);
-    return align;
+    for (gint i = 0; i < pages; i ++)
+    {
+        GtkWidget * page = gtk_notebook_get_nth_page ((GtkNotebook *) notebook, i);
+        GtkWidget * ebox = gtk_notebook_get_tab_label ((GtkNotebook *) notebook, page);
+        GtkWidget * button = g_object_get_data ((GObject *) ebox, "close_button");
+
+        if (show)
+            gtk_widget_show (button);
+        else
+            gtk_widget_hide (button);
+    }
 }
 
 GtkNotebook *ui_playlist_get_notebook(void)
@@ -147,47 +132,39 @@ static void tab_title_reset(GtkWidget *ebox)
     GtkWidget *entry = g_object_get_data(G_OBJECT(ebox), "entry");
     gtk_widget_hide(entry);
     gtk_widget_show(label);
-
-    ui_playlist_notebook_tab_title_editing = NULL;
 }
 
 static void tab_title_save(GtkEntry *entry, gpointer ebox)
 {
+    int id = GPOINTER_TO_INT (g_object_get_data ((GObject *) ebox, "playlist-id"));
     GtkWidget *label = g_object_get_data(G_OBJECT(ebox), "label");
 
-    aud_playlist_set_title(aud_playlist_get_active(), gtk_entry_get_text(entry));
+    aud_playlist_set_title (aud_playlist_by_unique_id (id), gtk_entry_get_text (entry));
     gtk_widget_hide(GTK_WIDGET(entry));
     gtk_widget_show(label);
-
-    ui_playlist_notebook_tab_title_editing = NULL;
 }
 
 static gboolean tab_key_press_cb(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
-    if (event->keyval == GDK_Escape)
+    if (event->keyval == GDK_KEY_Escape)
         tab_title_reset(widget);
 
     return FALSE;
 }
 
-static gboolean tab_button_press_cb(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+static gboolean tab_button_press_cb(GtkWidget *ebox, GdkEventButton *event, gpointer user_data)
 {
+    int id = GPOINTER_TO_INT (g_object_get_data ((GObject *) ebox, "playlist-id"));
+    int playlist = aud_playlist_by_unique_id (id);
+
     if (event->type == GDK_2BUTTON_PRESS && event->button == 1)
-        ui_playlist_notebook_edit_tab_title(widget);
+        aud_drct_play_playlist (playlist);
 
     if (event->type == GDK_BUTTON_PRESS && event->button == 2)
-    {
-        GtkWidget *page = g_object_get_data(G_OBJECT(widget), "page");
-        audgui_confirm_playlist_delete(gtk_notebook_page_num(UI_PLAYLIST_NOTEBOOK, page));
-    }
+        audgui_confirm_playlist_delete (playlist);
 
     if (event->type == GDK_BUTTON_PRESS && event->button == 3)
-    {
-        GtkWidget *page = g_object_get_data(G_OBJECT(widget), "page");
-
-        gtk_notebook_set_current_page(UI_PLAYLIST_NOTEBOOK, gtk_notebook_page_num(UI_PLAYLIST_NOTEBOOK, page));
-        popup_menu_tab (event->button, event->time);
-    }
+        popup_menu_tab (event->button, event->time, playlist);
 
     return FALSE;
 }
@@ -198,12 +175,7 @@ static void tab_changed (GtkNotebook * notebook, GtkWidget * page, gint
     GtkWidget * treeview = playlist_get_treeview (page_num);
 
     if (treeview != NULL)
-    {
         aud_playlist_set_active (page_num);
-
-        if (ui_playlist_notebook_tab_title_editing != NULL)
-            tab_title_reset(ui_playlist_notebook_tab_title_editing);
-    }
 }
 
 static void tab_reordered(GtkNotebook *notebook, GtkWidget *child, guint page_num, gpointer user_data)
@@ -236,38 +208,32 @@ static void set_tab_label (gint list, GtkLabel * label)
     str_unref (title);
 }
 
-void ui_playlist_notebook_edit_tab_title(GtkWidget *ebox)
+void ui_playlist_notebook_edit_tab_title (int playlist)
 {
-    if (!gtk_notebook_get_show_tabs(UI_PLAYLIST_NOTEBOOK))
-        return;
-
-    if (ebox == NULL || !GTK_IS_EVENT_BOX(ebox))
-    {
-        GtkWidget *page = gtk_notebook_get_nth_page(UI_PLAYLIST_NOTEBOOK, aud_playlist_get_active());
-        ebox = gtk_notebook_get_tab_label(UI_PLAYLIST_NOTEBOOK, page);
-    }
+    GtkWidget * page = gtk_notebook_get_nth_page (UI_PLAYLIST_NOTEBOOK, playlist);
+    GtkWidget * ebox = gtk_notebook_get_tab_label (UI_PLAYLIST_NOTEBOOK, page);
 
     GtkWidget *label = g_object_get_data(G_OBJECT(ebox), "label");
     GtkWidget *entry = g_object_get_data(G_OBJECT(ebox), "entry");
     gtk_widget_hide(label);
 
-    gchar * title = aud_playlist_get_title (aud_playlist_get_active ());
+    gchar * title = aud_playlist_get_title (playlist);
     gtk_entry_set_text ((GtkEntry *) entry, title);
     str_unref (title);
     gtk_widget_grab_focus(entry);
     gtk_editable_select_region(GTK_EDITABLE(entry), 0, -1);
     gtk_widget_show(entry);
-
-    ui_playlist_notebook_tab_title_editing = ebox;
 }
 
 void ui_playlist_notebook_create_tab(gint playlist)
 {
     GtkWidget *scrollwin, *treeview;
     GtkWidget *label, *entry, *ebox, *hbox;
+    GtkAdjustment *vscroll;
     gint position = aud_playlist_get_position (playlist);
 
     scrollwin = gtk_scrolled_window_new(NULL, NULL);
+    vscroll = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(scrollwin));
 
     treeview = ui_playlist_widget_new(playlist);
     g_object_set_data(G_OBJECT(scrollwin), "treeview", treeview);
@@ -279,7 +245,7 @@ void ui_playlist_notebook_create_tab(gint playlist)
     ebox = gtk_event_box_new();
     gtk_event_box_set_visible_window ((GtkEventBox *) ebox, FALSE);
 
-    hbox = gtk_hbox_new (FALSE, 2);
+    hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 2);
 
     label = gtk_label_new ("");
     set_tab_label (playlist, (GtkLabel *) label);
@@ -291,7 +257,7 @@ void ui_playlist_notebook_create_tab(gint playlist)
     gtk_widget_show_all(ebox);
     gtk_widget_hide(entry);
 
-    gtk_box_pack_end ((GtkBox *) hbox, make_close_button (playlist), FALSE, FALSE, 0);
+    gtk_box_pack_end ((GtkBox *) hbox, make_close_button (ebox, playlist), FALSE, FALSE, 0);
 
     g_object_set_data(G_OBJECT(ebox), "label", label);
     g_object_set_data(G_OBJECT(ebox), "entry", entry);
@@ -300,8 +266,9 @@ void ui_playlist_notebook_create_tab(gint playlist)
     gtk_notebook_insert_page (UI_PLAYLIST_NOTEBOOK, scrollwin, ebox, playlist);
     gtk_notebook_set_tab_reorderable(UI_PLAYLIST_NOTEBOOK, scrollwin, TRUE);
 
-    g_object_set_data ((GObject *) treeview, "playlist-id",
-     GINT_TO_POINTER (aud_playlist_get_unique_id (playlist)));
+    int id = aud_playlist_get_unique_id (playlist);
+    g_object_set_data ((GObject *) ebox, "playlist-id", GINT_TO_POINTER (id));
+    g_object_set_data ((GObject *) treeview, "playlist-id", GINT_TO_POINTER (id));
 
     if (position >= 0)
     {
@@ -314,6 +281,8 @@ void ui_playlist_notebook_create_tab(gint playlist)
     g_signal_connect(ebox, "button-press-event", G_CALLBACK(tab_button_press_cb), NULL);
     g_signal_connect(ebox, "key-press-event", G_CALLBACK(tab_key_press_cb), NULL);
     g_signal_connect(entry, "activate", G_CALLBACK(tab_title_save), ebox);
+    g_signal_connect_swapped (vscroll, "value-changed",
+     G_CALLBACK(ui_playlist_widget_scroll), treeview);
 }
 
 void ui_playlist_notebook_populate(void)
@@ -536,12 +505,8 @@ static void destroy_cb (void)
 GtkWidget * ui_playlist_notebook_new (void)
 {
     notebook = gtk_notebook_new ();
-    gtk_container_set_border_width ((GtkContainer *) notebook, 2);
     gtk_notebook_set_scrollable ((GtkNotebook *) notebook, TRUE);
-
-#ifdef HAVE_ADD_BUTTON
     make_add_button (notebook);
-#endif
 
     g_signal_connect (notebook, "destroy", (GCallback) destroy_cb, NULL);
     return notebook;

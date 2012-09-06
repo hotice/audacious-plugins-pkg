@@ -18,22 +18,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <glib.h>
+#include <audacious/i18n.h>
+#include <audacious/plugin.h>
 
 #include "config.h"
 
-#include <audacious/plugin.h>
+static int voice_channels;
 
-static gint voice_channels;
-
-static void voice_start(gint *channels, gint *rate)
+static void voice_start(int *channels, int *rate)
 {
 	voice_channels = *channels;
 }
 
-static void voice_process(gfloat **d, gint *samples)
+static void voice_process(float **d, int *samples)
 {
-	gfloat *f = *d, *end;
+	float *f = *d, *end;
 	end = *d + *samples;
 
 	if (voice_channels != 2 || samples == 0)
@@ -41,7 +40,7 @@ static void voice_process(gfloat **d, gint *samples)
 
 	for (f = *d; f < end; f += 2)
 	{
-		gfloat left, right;
+		float left, right;
 
 		left = (f[1] - f[0]);
 		right = (f[0] - f[1]);
@@ -51,33 +50,16 @@ static void voice_process(gfloat **d, gint *samples)
 	}
 }
 
-static void voice_finish(gfloat **d, gint *samples)
+static void voice_finish(float **d, int *samples)
 {
 	voice_process(d, samples);
 }
 
-static void voice_flush(void)
-{
-
-}
-
-static gint voice_decoder_to_output_time(gint time)
-{
-	return time;
-}
-
-static gint voice_output_to_decoder_time(gint time)
-{
-	return time;
-}
-
 AUD_EFFECT_PLUGIN
 (
-	.name = "Voice Removal",
+	.name = N_("Voice Removal"),
+	.domain = PACKAGE,
 	.start = voice_start,
 	.process = voice_process,
-	.finish = voice_finish,
-	.flush = voice_flush,
-	.decoder_to_output_time = voice_decoder_to_output_time,
-	.output_to_decoder_time = voice_output_to_decoder_time
+	.finish = voice_finish
 )

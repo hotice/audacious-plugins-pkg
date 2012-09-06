@@ -194,14 +194,7 @@ static gboolean vtx_play(InputPlayback * playback, const gchar * filename,
             playback->output->write_audio(sndbuf, SNDBUFSIZE);
 
         if (eof)
-        {
-            AUDDBG("EOF.\n");
-
-            while (!stop_flag && playback->output->buffer_playing())
-                g_usleep(10000);
-
             goto CLEANUP;
-        }
     }
 
 CLEANUP:
@@ -211,8 +204,6 @@ CLEANUP:
     stop_flag = TRUE;
     g_cond_signal(seek_cond); /* wake up any waiting request */
     g_mutex_unlock(seek_mutex);
-
-    playback->output->close_audio();
 
 ERR_NO_CLOSE:
 
@@ -258,12 +249,18 @@ void vtx_pause(InputPlayback * playback, gboolean pause)
     g_mutex_unlock(seek_mutex);
 }
 
+static const char vtx_about[] =
+ "Vortex file format player by Sashnov Alexander <sashnov@ngs.ru>\n"
+ "Based on in_vtx.dll by Roman Sherbakov <v_soft@microfor.ru>\n"
+ "Audacious plugin by Pavel Vymetalek <pvymetalek@seznam.cz>";
+
 AUD_INPUT_PLUGIN
 (
-    .name = "VTX Audio",
+    .name = N_("VTX Decoder"),
+    .domain = PACKAGE,
+    .about_text = vtx_about,
     .init = vtx_init,
     .cleanup = vtx_cleanup,
-    .about = vtx_about,
     .play = vtx_play,
     .stop = vtx_stop,
     .pause = vtx_pause,
