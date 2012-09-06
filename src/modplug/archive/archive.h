@@ -7,26 +7,23 @@
 #ifndef __MODPLUG_ARCHIVE_H__INCLUDED__
 #define __MODPLUG_ARCHIVE_H__INCLUDED__
 
-#include "../stddefs.h"
+#include <stdint.h>
 #include <string>
-#include <cctype>
-
-using namespace std;
 
 class Archive
 {
 protected:
-	uint32 mSize;
-	void* mMap;
-	
-	//This version of IsOurFile is slightly different...
-	static bool IsOurFile(const string& aFileName);
+    uint32_t mSize;
+    void* mMap;
+
+    //This version of IsOurFile is slightly different...
+    static bool IsOurFile(const std::string& aFileName);
 
 public:
-	virtual ~Archive();
-	
-	inline uint32 Size() {return mSize;}
-	inline void* Map() {return mMap;}
+    virtual ~Archive();
+
+    inline uint32_t Size() {return mSize;}
+    inline void* Map() {return mMap;}
 };
 
 #endif

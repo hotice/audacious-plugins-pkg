@@ -8,21 +8,20 @@
 #define __MODPLUG_ARCH_RAW_H__INCLUDED__
 
 #include "archive.h"
-#include <string>
 
 extern "C" {
-#include <audacious/plugin.h>
+#include <libaudcore/vfs.h>
 }
 
 class arch_Raw: public Archive
 {
-	VFSFile *mFileDesc;
+    VFSFile *mFileDesc;
 
 public:
-	arch_Raw(const string& aFileName);
-	virtual ~arch_Raw();
+    arch_Raw(const std::string& aFileName);
+    virtual ~arch_Raw();
 
-	static bool ContainsMod(const string& aFileName);
+    static bool ContainsMod(const std::string& aFileName);
 };
 
 #endif

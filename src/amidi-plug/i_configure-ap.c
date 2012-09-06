@@ -20,7 +20,6 @@
 
 #include <gtk/gtk.h>
 
-#include <audacious/gtk-compat.h>
 
 #include "i_configure-ap.h"
 #include "amidi-plug-icon.xpm"
@@ -46,10 +45,9 @@ void i_configure_ev_backendlv_info( gpointer backend_lv )
   if ( gtk_tree_selection_get_selected( sel , &store , &iter ) )
   {
     GtkWidget *bidialog;
-    GdkGeometry bi_hints;
-    GtkWidget *title_label, *title_frame;
-    GtkWidget *filename_entry, *filename_frame;
-    GtkWidget *description_label, *description_frame;
+    GtkWidget *title_label;
+    GtkWidget *filename_label;
+    GtkWidget *description_label;
     GtkWidget *parent_window = gtk_widget_get_toplevel( backend_lv );
     gchar *longname_title, *longname, *filename, *description;
     gtk_tree_model_get( GTK_TREE_MODEL(store) , &iter ,
@@ -60,41 +58,27 @@ void i_configure_ev_backendlv_info( gpointer backend_lv )
                                             GTK_WINDOW(parent_window) ,
                                             GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_MODAL ,
                                             GTK_STOCK_OK , GTK_RESPONSE_NONE , NULL );
-    bi_hints.min_width = 360; bi_hints.min_height = -1;
-    gtk_window_set_geometry_hints( GTK_WINDOW(bidialog) , GTK_WIDGET(bidialog) ,
-                                   &bi_hints , GDK_HINT_MIN_SIZE );
+    gtk_window_set_resizable ((GtkWindow *) bidialog, FALSE);
 
     longname_title = g_markup_printf_escaped( "<span size=\"larger\" weight=\"bold\" >%s</span>" , longname );
-    title_frame = gtk_frame_new( NULL );
     title_label = gtk_label_new( "" );
     gtk_label_set_markup( GTK_LABEL(title_label) , longname_title );
     g_free( longname_title ); g_free( longname );
-    gtk_container_add( GTK_CONTAINER(title_frame) , title_label );
     gtk_box_pack_start ((GtkBox *) gtk_dialog_get_content_area ((GtkDialog *)
-     bidialog), title_frame, FALSE, FALSE, 0);
+     bidialog), title_label, FALSE, FALSE, 0);
 
-    filename_frame = gtk_frame_new( NULL );
-    filename_entry = gtk_entry_new();
-    gtk_entry_set_text( GTK_ENTRY(filename_entry) , filename );
-    gtk_entry_set_alignment( GTK_ENTRY(filename_entry) , 0.5 );
-    gtk_editable_set_editable( GTK_EDITABLE(filename_entry) , FALSE );
-    gtk_entry_set_has_frame( GTK_ENTRY(filename_entry) , FALSE );
+    filename_label = gtk_label_new (filename);
     g_free( filename );
-    gtk_container_add( GTK_CONTAINER(filename_frame) , filename_entry );
     gtk_box_pack_start ((GtkBox *) gtk_dialog_get_content_area ((GtkDialog *)
-     bidialog), filename_frame, FALSE, FALSE, 0);
+     bidialog), filename_label, FALSE, FALSE, 0);
 
-    description_frame = gtk_frame_new( NULL );
     description_label = gtk_label_new( description );
-    gtk_misc_set_padding( GTK_MISC(description_label) , 4 , 4 );
     gtk_label_set_line_wrap( GTK_LABEL(description_label) , TRUE );
     g_free( description );
-    gtk_container_add( GTK_CONTAINER(description_frame) , description_label );
     gtk_box_pack_start ((GtkBox *) gtk_dialog_get_content_area ((GtkDialog *)
-     bidialog), description_frame, FALSE, FALSE, 0);
+     bidialog), description_label, FALSE, FALSE, 0);
 
     gtk_widget_show_all( bidialog );
-    gtk_window_set_focus( GTK_WINDOW(bidialog) , NULL );
     gtk_dialog_run( GTK_DIALOG(bidialog) );
     gtk_widget_destroy( bidialog );
   }
@@ -171,9 +155,6 @@ void i_configure_gui_tab_ap( GtkWidget * ap_page_alignment ,
                                gpointer backend_list_p ,
                                gpointer commit_button )
 {
-  GtkWidget *ap_page_vbox;
-  GtkWidget *title_widget;
-  GtkWidget *content_vbox; /* this vbox will contain two items of equal space (50%/50%) */
   GtkWidget *settings_vbox; /* this vbox will contain all settings vbox (playback, advanced) */
   GtkWidget *settplay_frame, *settplay_vbox;
   GtkWidget *settplay_transpose_and_drumshift_hbox;
@@ -191,12 +172,7 @@ void i_configure_gui_tab_ap( GtkWidget * ap_page_alignment ,
   GtkTreeIter iter;
   GSList * backend_list = backend_list_p;
 
-  ap_page_vbox = gtk_vbox_new( FALSE , 0 );
-
-  title_widget = i_configure_gui_draw_title( _("AMIDI-PLUG PREFERENCES") );
-  gtk_box_pack_start( GTK_BOX(ap_page_vbox) , title_widget , FALSE , FALSE , 2 );
-
-  content_vbox = gtk_vbox_new( TRUE , 2 );
+  GtkWidget * content_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
 
   backend_store = gtk_list_store_new( LISTBACKEND_N_COLUMNS , G_TYPE_STRING , G_TYPE_STRING ,
                                       G_TYPE_STRING , G_TYPE_STRING , G_TYPE_INT );
@@ -205,6 +181,9 @@ void i_configure_gui_tab_ap( GtkWidget * ap_page_alignment ,
   gtk_tree_sortable_set_sort_column_id( GTK_TREE_SORTABLE(backend_store) ,
                                         GTK_TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID ,
                                         GTK_SORT_ASCENDING );
+
+  gboolean backend_lv_iter_selected_valid = FALSE;
+
   while ( backend_list != NULL )
   {
     amidiplug_sequencer_backend_name_t * mn = backend_list->data;
@@ -215,34 +194,45 @@ void i_configure_gui_tab_ap( GtkWidget * ap_page_alignment ,
                          LISTBACKEND_DESC_COLUMN , mn->desc ,
                          LISTBACKEND_FILENAME_COLUMN , mn->filename ,
                          LISTBACKEND_PPOS_COLUMN , mn->ppos , -1 );
+
     if ( !strcmp( mn->name , amidiplug_cfg_ap.ap_seq_backend ) )
+    {
       backend_lv_iter_selected = iter;
+      backend_lv_iter_selected_valid = TRUE;
+    }
+
     backend_list = backend_list->next;
   }
 
   backend_lv_frame = gtk_frame_new( _("Backend selection") );
+
   backend_lv = gtk_tree_view_new_with_model( GTK_TREE_MODEL(backend_store) );
+  gtk_tree_view_set_headers_visible ((GtkTreeView *) backend_lv, FALSE);
   g_object_unref( backend_store );
+
   backend_lv_text_rndr = gtk_cell_renderer_text_new();
-  backend_lv_name_col = gtk_tree_view_column_new_with_attributes( _("Available backends") ,
+  backend_lv_name_col = gtk_tree_view_column_new_with_attributes( NULL ,
                                                                   backend_lv_text_rndr ,
                                                                   "text" , 1 , NULL );
   gtk_tree_view_append_column( GTK_TREE_VIEW(backend_lv), backend_lv_name_col );
 
   backend_lv_sel = gtk_tree_view_get_selection( GTK_TREE_VIEW(backend_lv) );
   gtk_tree_selection_set_mode( GTK_TREE_SELECTION(backend_lv_sel) , GTK_SELECTION_BROWSE );
-  gtk_tree_selection_select_iter( GTK_TREE_SELECTION(backend_lv_sel) , &backend_lv_iter_selected );
+
+  if (backend_lv_iter_selected_valid)
+    gtk_tree_selection_select_iter (backend_lv_sel, & backend_lv_iter_selected);
 
   backend_lv_sw = gtk_scrolled_window_new( NULL , NULL );
-  gtk_scrolled_window_set_policy( GTK_SCROLLED_WINDOW(backend_lv_sw) ,
-                                  GTK_POLICY_NEVER , GTK_POLICY_ALWAYS );
+  gtk_scrolled_window_set_shadow_type ((GtkScrolledWindow *) backend_lv_sw, GTK_SHADOW_IN);
+  gtk_scrolled_window_set_policy ((GtkScrolledWindow *) backend_lv_sw,
+   GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_container_add( GTK_CONTAINER(backend_lv_sw) , backend_lv );
   g_signal_connect_swapped( G_OBJECT(commit_button) , "ap-commit" ,
                             G_CALLBACK(i_configure_ev_backendlv_commit) , backend_lv );
 
-  backend_lv_hbox = gtk_hbox_new( FALSE , 0 );
+  backend_lv_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0 );
   gtk_box_pack_start( GTK_BOX(backend_lv_hbox) , backend_lv_sw , TRUE , TRUE , 0 );
-  backend_lv_vbbox = gtk_vbox_new( FALSE , 2 );
+  backend_lv_vbbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2 );
   gtk_box_pack_start( GTK_BOX(backend_lv_hbox) , backend_lv_vbbox , FALSE , FALSE , 3 );
   backend_lv_infobt = gtk_button_new();
   gtk_button_set_image( GTK_BUTTON(backend_lv_infobt) ,
@@ -252,13 +242,13 @@ void i_configure_gui_tab_ap( GtkWidget * ap_page_alignment ,
   gtk_box_pack_start( GTK_BOX(backend_lv_vbbox) , backend_lv_infobt , FALSE , FALSE , 0 );
   gtk_container_add( GTK_CONTAINER(backend_lv_frame) , backend_lv_hbox );
 
-  settings_vbox = gtk_vbox_new( FALSE , 2 );
+  settings_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2 );
 
   settplay_frame = gtk_frame_new( _("Playback settings") );
-  settplay_vbox = gtk_vbox_new( FALSE , 0 );
+  settplay_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0 );
   gtk_container_set_border_width( GTK_CONTAINER(settplay_vbox), 4 );
-  settplay_transpose_and_drumshift_hbox = gtk_hbox_new( FALSE , 12 );
-  settplay_transpose_hbox = gtk_hbox_new( FALSE , 0 );
+  settplay_transpose_and_drumshift_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 12 );
+  settplay_transpose_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0 );
   settplay_transpose_label1 = gtk_label_new( _("Transpose: ") );
   settplay_transpose_spinbt = gtk_spin_button_new_with_range( -20 , 20 , 1 );
   gtk_spin_button_set_value( GTK_SPIN_BUTTON(settplay_transpose_spinbt) ,
@@ -267,7 +257,7 @@ void i_configure_gui_tab_ap( GtkWidget * ap_page_alignment ,
   gtk_box_pack_start( GTK_BOX(settplay_transpose_hbox) , settplay_transpose_spinbt , FALSE , FALSE , 2 );
   gtk_box_pack_start( GTK_BOX(settplay_transpose_and_drumshift_hbox) ,
                       settplay_transpose_hbox , FALSE , FALSE , 0 );
-  settplay_drumshift_hbox = gtk_hbox_new( FALSE , 0 );
+  settplay_drumshift_hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0 );
   settplay_drumshift_label1 = gtk_label_new( _("Drum shift: ") );
   settplay_drumshift_spinbt = gtk_spin_button_new_with_range( 0 , 127 , 1 );
   gtk_spin_button_set_value( GTK_SPIN_BUTTON(settplay_drumshift_spinbt) ,
@@ -287,7 +277,7 @@ void i_configure_gui_tab_ap( GtkWidget * ap_page_alignment ,
   gtk_box_pack_start( GTK_BOX(settings_vbox) , settplay_frame , TRUE , TRUE , 0 );
 
   settadva_frame = gtk_frame_new( _("Advanced settings") );
-  settadva_vbox = gtk_vbox_new( FALSE , 0 );
+  settadva_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0 );
   gtk_container_set_border_width( GTK_CONTAINER(settadva_vbox), 4 );
   settadva_precalc_checkbt = gtk_check_button_new_with_label(
                                _("pre-calculate length of MIDI files in playlist") );
@@ -315,8 +305,8 @@ void i_configure_gui_tab_ap( GtkWidget * ap_page_alignment ,
 
   gtk_box_pack_start( GTK_BOX(content_vbox) , backend_lv_frame , TRUE , TRUE , 0 );
   gtk_box_pack_start( GTK_BOX(content_vbox) , settings_vbox , TRUE , TRUE , 0 );
-  gtk_box_pack_start( GTK_BOX(ap_page_vbox) , content_vbox , TRUE , TRUE , 2 );
-  gtk_container_add( GTK_CONTAINER(ap_page_alignment) , ap_page_vbox );
+
+  gtk_container_add ((GtkContainer *) ap_page_alignment, content_vbox);
 }
 
 
@@ -326,7 +316,7 @@ void i_configure_gui_tablabel_ap( GtkWidget * ap_page_alignment ,
 {
   GtkWidget *pagelabel_vbox, *pagelabel_image, *pagelabel_label;
   GdkPixbuf *pagelabel_image_pix;
-  pagelabel_vbox = gtk_vbox_new( FALSE , 1 );
+  pagelabel_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 1 );
   pagelabel_image_pix = gdk_pixbuf_new_from_xpm_data( (const gchar **)amidi_plug_icon_xpm );
   pagelabel_image = gtk_image_new_from_pixbuf( pagelabel_image_pix ); g_object_unref( pagelabel_image_pix );
   pagelabel_label = gtk_label_new( "" );

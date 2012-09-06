@@ -1,6 +1,6 @@
 /*
  * Copyright (C) Tony Arcieri <bascule@inferno.tusculum.edu>
- * Copyright (C) 2001-2002  Haavard Kvaalen <havardk@xmms.org>
+ * Copyright (C) 2001-2002 Håvard Kvålen <havardk@xmms.org>
  * Copyright (C) 2007 William Pitcock <nenolod@sacredspiral.co.uk>
  * Copyright (C) 2008 Cristi Măgherușan <majeru@gentoo.ro>
  * Copyright (C) 2008 Eugene Zagidullin <e.asphyx@gmail.com>
@@ -43,8 +43,6 @@
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
 #include <libaudcore/audstrings.h>
-#include <libaudgui/libaudgui.h>
-#include <libaudgui/libaudgui-gtk.h>
 
 #include "vorbis.h"
 
@@ -85,7 +83,6 @@ ov_callbacks vorbis_callbacks_stream = {
 static gint seek_value;
 static gboolean stop_flag = FALSE;
 static GMutex * seek_mutex = NULL;
-static GCond * seek_cond = NULL;
 
 static gint
 vorbis_check_fd(const gchar *filename, VFSFile *stream)
@@ -366,7 +363,6 @@ static gboolean vorbis_play (InputPlayback * playback, const gchar * filename,
             ov_time_seek (& vf, (double) seek_value / 1000);
             playback->output->flush (seek_value);
             seek_value = -1;
-            g_cond_signal (seek_cond);
         }
 
         g_mutex_unlock (seek_mutex);
@@ -379,9 +375,6 @@ static gboolean vorbis_play (InputPlayback * playback, const gchar * filename,
         if (bytes <= 0)
         {
 DRAIN:
-            while (playback->output->buffer_playing ())
-                g_usleep (10000);
-
             break;
         }
 
@@ -416,10 +409,6 @@ DRAIN:
             if (vi->rate != samplerate || vi->channels != channels) {
                 samplerate = vi->rate;
                 channels = vi->channels;
-                while (playback->output->buffer_playing())
-                    g_usleep(1000);
-
-                playback->output->close_audio();
 
                 if (!playback->output->open_audio(FMT_FLOAT, vi->rate, vi->channels)) {
                     error = TRUE;
@@ -445,10 +434,7 @@ stop_processing:
 
     g_mutex_lock (seek_mutex);
     stop_flag = TRUE;
-    g_cond_signal (seek_cond); /* wake up any waiting request */
     g_mutex_unlock (seek_mutex);
-
-    playback->output->close_audio ();
 
 play_cleanup:
 
@@ -465,7 +451,6 @@ static void vorbis_stop (InputPlayback * playback)
     {
         stop_flag = TRUE;
         playback->output->abort_write ();
-        g_cond_signal (seek_cond);
     }
 
     g_mutex_unlock (seek_mutex);
@@ -489,8 +474,6 @@ static void vorbis_mseek (InputPlayback * playback, gint time)
     {
         seek_value = time;
         playback->output->abort_write ();
-        g_cond_signal (seek_cond);
-        g_cond_wait (seek_cond, seek_mutex);
     }
 
     g_mutex_unlock (seek_mutex);
@@ -565,35 +548,9 @@ ERR:
     return FALSE;
 }
 
-static void vorbis_aboutbox (void)
-{
-    static GtkWidget * about_window = NULL;
-
-    audgui_simple_message (& about_window, GTK_MESSAGE_INFO,
-     _("About Ogg Vorbis Audio Plugin"),
-     /*
-      * I18N: UTF-8 Translation: "Haavard Kvaalen" ->
-      * "H\303\245vard Kv\303\245len"
-      */
-     _("Ogg Vorbis Plugin by the Xiph.org Foundation\n\n"
-     "Original code by\n"
-     "Tony Arcieri <bascule@inferno.tusculum.edu>\n"
-     "Contributions from\n"
-     "Chris Montgomery <monty@xiph.org>\n"
-     "Peter Alm <peter@xmms.org>\n"
-     "Michael Smith <msmith@labyrinth.edu.au>\n"
-     "Jack Moffitt <jack@icecast.org>\n"
-     "Jorn Baayen <jorn@nl.linux.org>\n"
-     "Haavard Kvaalen <havardk@xmms.org>\n"
-     "Gian-Carlo Pascutto <gcp@sjeng.org>\n"
-     "Eugene Zagidullin <e.asphyx@gmail.com>\n\n"
-     "Visit the Xiph.org Foundation at http://www.xiph.org/\n"));
-}
-
 static gboolean vorbis_init (void)
 {
     seek_mutex = g_mutex_new();
-    seek_cond = g_cond_new();
     return TRUE;
 }
 
@@ -601,17 +558,33 @@ static void
 vorbis_cleanup(void)
 {
     g_mutex_free(seek_mutex);
-    g_cond_free(seek_cond);
 }
+
+static const char vorbis_about[] =
+ "Audacious Ogg Vorbis Decoder\n\n"
+ "Based on the Xiph.org Foundation's Ogg Vorbis Plugin:\n"
+ "http://www.xiph.org/\n\n"
+ "Original code by:\n"
+ "Tony Arcieri <bascule@inferno.tusculum.edu>\n\n"
+ "Contributions from:\n"
+ "Chris Montgomery <monty@xiph.org>\n"
+ "Peter Alm <peter@xmms.org>\n"
+ "Michael Smith <msmith@labyrinth.edu.au>\n"
+ "Jack Moffitt <jack@icecast.org>\n"
+ "Jorn Baayen <jorn@nl.linux.org>\n"
+ "Håvard Kvålen <havardk@xmms.org>\n"
+ "Gian-Carlo Pascutto <gcp@sjeng.org>\n"
+ "Eugene Zagidullin <e.asphyx@gmail.com>";
 
 static const gchar *vorbis_fmts[] = { "ogg", "ogm", "oga", NULL };
 static const gchar * const mimes[] = {"application/ogg", NULL};
 
 AUD_INPUT_PLUGIN
 (
-    .name = "Ogg Vorbis",
+    .name = N_("Ogg Vorbis Decoder"),
+    .domain = PACKAGE,
+    .about_text = vorbis_about,
     .init = vorbis_init,
-    .about = vorbis_aboutbox,
     .play = vorbis_play,
     .stop = vorbis_stop,
     .pause = vorbis_pause,

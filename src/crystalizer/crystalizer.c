@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2008 William Pitcock <nenolod@nenolod.net>
- * Copyright (c) 2010 John Lindgren <john.lindgren@tds.net>
+ * Copyright (c) 2010-2012 John Lindgren <john.lindgren@tds.net>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -20,149 +20,75 @@
 
 #include "config.h"
 
-#include <gtk/gtk.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <audacious/gtk-compat.h>
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
+#include <audacious/preferences.h>
 
-static gboolean init (void);
-static void configure(void);
-static void cryst_start (gint * channels, gint * rate);
-static void cryst_process (gfloat * * data, gint * samples);
+static bool_t init (void);
+static void cryst_start (int * channels, int * rate);
+static void cryst_process (float * * data, int * samples);
 static void cryst_flush ();
-static void cryst_finish (gfloat * * data, gint * samples);
-static gint cryst_decoder_to_output_time (gint time);
-static gint cryst_output_to_decoder_time (gint time);
+static void cryst_finish (float * * data, int * samples);
+
+static const char * const cryst_defaults[] = {
+ "intensity", "1",
+ NULL};
+
+static const PreferencesWidget cryst_widgets[] = {
+ {WIDGET_LABEL, N_("<b>Crystalizer</b>")},
+ {WIDGET_SPIN_BTN, N_("Intensity:"),
+  .cfg_type = VALUE_FLOAT, .csect = "crystalizer", .cname = "intensity",
+  .data = {.spin_btn = {0, 10, 0.1}}}};
+
+static const PluginPreferences cryst_prefs = {
+ .widgets = cryst_widgets,
+ .n_widgets = sizeof cryst_widgets / sizeof cryst_widgets[0]};
 
 AUD_EFFECT_PLUGIN
 (
-    .name = "Crystalizer", /* Description */
+    .name = N_("Crystalizer"),
+    .domain = PACKAGE,
+    .prefs = & cryst_prefs,
     .init = init,
-    .configure = configure,
     .start = cryst_start,
     .process = cryst_process,
     .flush = cryst_flush,
     .finish = cryst_finish,
-    .decoder_to_output_time = cryst_decoder_to_output_time,
-    .output_to_decoder_time = cryst_output_to_decoder_time,
-    .preserves_format = TRUE,
+    .preserves_format = TRUE
 )
 
-static GtkWidget *conf_dialog = NULL;
-static gdouble value;
-static gint cryst_channels;
-static gfloat * cryst_prev;
+static int cryst_channels;
+static float * cryst_prev;
 
-static const gchar * const cryst_defaults[] = {
- "intensity", "1",
- NULL};
-
-static gboolean init (void)
+static bool_t init (void)
 {
-	aud_config_set_defaults ("crystalizer", cryst_defaults);
-	value = aud_get_double ("crystalizer", "intensity");
-
-	return TRUE;
+    aud_config_set_defaults ("crystalizer", cryst_defaults);
+    return TRUE;
 }
 
-/* conf dialog stuff stolen from stereo plugin --nenolod */
-static void conf_ok_cb (GtkButton * button, GtkAdjustment * adj)
-{
-	value = gtk_adjustment_get_value (adj);
-	aud_set_double ("crystalizer", "intensity", value);
-
-	gtk_widget_destroy(conf_dialog);
-}
-
-static void conf_cancel_cb(GtkButton * button, gpointer data)
-{
-	gtk_widget_destroy(conf_dialog);
-}
-
-static void conf_apply_cb (GtkButton * button, GtkAdjustment * adj)
-{
-	value = gtk_adjustment_get_value (adj);
-}
-
-static void configure(void)
-{
-	GtkWidget *hbox, *label, *scale, *button, *bbox;
-	GtkAdjustment * adjustment;
-
-	if (conf_dialog != NULL)
-		return;
-
-	conf_dialog = gtk_dialog_new();
-	g_signal_connect (conf_dialog, "destroy", (GCallback)
-	 gtk_widget_destroyed, & conf_dialog);
-	gtk_window_set_title(GTK_WINDOW(conf_dialog), _("Configure Crystalizer"));
-
-	label = gtk_label_new(_("Effect intensity:"));
-	gtk_box_pack_start ((GtkBox *) gtk_dialog_get_content_area
-	 ((GtkDialog *) conf_dialog), label, TRUE, TRUE, 0);
-	gtk_widget_show(label);
-
-	hbox = gtk_hbox_new(FALSE, 10);
-	gtk_box_pack_start ((GtkBox *) gtk_dialog_get_content_area
-	 ((GtkDialog *) conf_dialog), hbox, TRUE, TRUE, 10);
-	gtk_widget_show(hbox);
-
-	adjustment = (GtkAdjustment *) gtk_adjustment_new (value, 0, 15 + 1,
-	 0.1, 1, 1);
-	scale = gtk_hscale_new(GTK_ADJUSTMENT(adjustment));
-	gtk_box_pack_start(GTK_BOX(hbox), scale, TRUE, TRUE, 10);
-	gtk_widget_show(scale);
-
-	bbox = gtk_hbutton_box_new();
-	gtk_button_box_set_layout(GTK_BUTTON_BOX(bbox), GTK_BUTTONBOX_END);
-	gtk_box_pack_start ((GtkBox *) gtk_dialog_get_action_area ((GtkDialog *)
-	 conf_dialog), bbox, TRUE, TRUE, 0);
-
-	button = gtk_button_new_with_label(_("Ok"));
-	gtk_widget_set_can_default (button, TRUE);
-	gtk_box_pack_start(GTK_BOX(bbox), button, TRUE, TRUE, 0);
-	g_signal_connect (button, "clicked", (GCallback) conf_ok_cb, adjustment);
-	gtk_widget_grab_default(button);
-	gtk_widget_show(button);
-
-	button = gtk_button_new_with_label(_("Cancel"));
-	gtk_widget_set_can_default (button, TRUE);
-	gtk_box_pack_start(GTK_BOX(bbox), button, TRUE, TRUE, 0);
-	g_signal_connect (button, "clicked", (GCallback) conf_cancel_cb, NULL);
-	gtk_widget_show(button);
-
-	button = gtk_button_new_with_label(_("Apply"));
-	gtk_widget_set_can_default (button, TRUE);
-	gtk_box_pack_start(GTK_BOX(bbox), button, TRUE, TRUE, 0);
-	g_signal_connect (button, "clicked", (GCallback) conf_apply_cb,
-	 adjustment);
-	gtk_widget_show(button);
-
-	gtk_widget_show(bbox);
-
-	gtk_widget_show(conf_dialog);
-}
-
-static void cryst_start (gint * channels, gint * rate)
+static void cryst_start (int * channels, int * rate)
 {
     cryst_channels = * channels;
-    cryst_prev = g_realloc (cryst_prev, sizeof (gfloat) * cryst_channels);
-    memset (cryst_prev, 0, sizeof (gfloat) * cryst_channels);
+    cryst_prev = realloc (cryst_prev, sizeof (float) * cryst_channels);
+    memset (cryst_prev, 0, sizeof (float) * cryst_channels);
 }
 
-static void cryst_process (gfloat * * data, gint * samples)
+static void cryst_process (float * * data, int * samples)
 {
-    gfloat * f = * data;
-    gfloat * end = f + (* samples);
-    gint channel;
+    float value = aud_get_double ("crystalizer", "intensity");
+    float * f = * data;
+    float * end = f + (* samples);
+    int channel;
 
     while (f < end)
     {
         for (channel = 0; channel < cryst_channels; channel ++)
         {
-            gfloat current = * f;
+            float current = * f;
 
             * f ++ = current + (current - cryst_prev[channel]) * value;
             cryst_prev[channel] = current;
@@ -172,20 +98,10 @@ static void cryst_process (gfloat * * data, gint * samples)
 
 static void cryst_flush ()
 {
-    memset (cryst_prev, 0, sizeof (gfloat) * cryst_channels);
+    memset (cryst_prev, 0, sizeof (float) * cryst_channels);
 }
 
-static void cryst_finish (gfloat * * data, gint * samples)
+static void cryst_finish (float * * data, int * samples)
 {
     cryst_process (data, samples);
-}
-
-static gint cryst_decoder_to_output_time (gint time)
-{
-    return time;
-}
-
-static gint cryst_output_to_decoder_time (gint time)
-{
-    return time;
 }

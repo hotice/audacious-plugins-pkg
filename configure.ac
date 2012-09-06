@@ -5,7 +5,7 @@ dnl ***
 dnl Initialize
 dnl ==========
 AC_PREREQ([2.59])
-AC_INIT([audacious-plugins], [3.2.3])
+AC_INIT([audacious-plugins], [3.3.1])
 AC_COPYRIGHT([(C) 2005-2012 Audacious Team])
 
 AC_SUBST([PACKAGE], [AC_PACKAGE_TARNAME])
@@ -33,12 +33,14 @@ if test "$MSGFMT" = ":" ; then
     AC_MSG_ERROR([msgfmt was not found; have you installed gettext?])
 fi
 
+LIBS="$LIBS $LIBINTL"
+
 dnl Check for Audacious
 dnl ===================
 
-PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 3.2],
+PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 3.3],
     [],
-    [AC_MSG_ERROR([Cannot find Audacious 3.2; have you installed Audacious yet?])]
+    [AC_MSG_ERROR([Cannot find Audacious 3.3; have you installed Audacious yet?])]
 )
 
 CPPFLAGS="$CPPFLAGS $AUDACIOUS_CFLAGS"
@@ -48,61 +50,29 @@ dnl Default Set of Plugins
 dnl ======================
 
 INPUT_PLUGINS="tonegen metronom vtx"
-OUTPUT_PLUGINS="null"
-EFFECT_PLUGINS="compressor crossfade crystalizer ladspa mixer sndstretch stereo_plugin voice_removal echo_plugin"
+OUTPUT_PLUGINS=""
+EFFECT_PLUGINS="compressor crossfade crystalizer ladspa mixer stereo_plugin voice_removal echo_plugin"
 GENERAL_PLUGINS="alarm albumart search-tool"
 VISUALIZATION_PLUGINS="blur_scope cairo-spectrum"
 CONTAINER_PLUGINS="audpl m3u pls asx"
 TRANSPORT_PLUGINS="unix-io"
 
-dnl Check for GTK+
-dnl ==============
-
-AC_ARG_ENABLE([gtk3],
- [AS_HELP_STRING([--disable-gtk3], [Use GTK2 even if GTK3 is present])],
- [use_gtk3=$enableval], [use_gtk3=yes])
-
-if test $use_gtk3 = yes ; then
-    PKG_CHECK_MODULES([GTK], [gtk+-3.0 >= 3.0.0], [use_gtk3=yes], [use_gtk3=no])
-fi
-
-if test $use_gtk3 = no ; then
-    PKG_CHECK_MODULES([GTK], [gtk+-2.0 >= 2.12.0], [use_gtk3=no],
-     AC_MSG_ERROR([Cannot find GTK headers.  Aborting ...]))
-fi
-
-AC_SUBST([GTK_LIBS])
-AC_SUBST([GTK_CFLAGS])
-
 dnl Check for GIO
 dnl =============
 
 AC_ARG_ENABLE(gio,
- AS_HELP_STRING([--enable-gio], [enable GIO support (default=disabled)]),
- enable_gio=$enableval, enable_gio=no)
+ AS_HELP_STRING([--disable-gio], [disable GIO support]),
+ enable_gio=$enableval, enable_gio=yes)
 
 if test "x$enable_gio" = "xyes"; then
-    PKG_CHECK_MODULES(GIO, [gio-2.0 >= 2.0], [enable_gio=yes], [enable_gio=no])
+    PKG_CHECK_MODULES(GIO, [gio-2.0 >= 2.22], [enable_gio=yes], [enable_gio=no])
 fi
 
 if test "x$enable_gio" = "xyes"; then
     TRANSPORT_PLUGINS="$TRANSPORT_PLUGINS gio"
+    AC_SUBST(GIO_CFLAGS)
+    AC_SUBST(GIO_LIBS)
 fi
-
-### ---------------------------------------------------------------------------
-dnl Pthread support
-dnl ===============
-PTHREAD_LIBS=
-PTHREAD_CFLAGS=
-
-AC_CHECK_LIB(pthread, pthread_create, PTHREAD_LIBS="-lpthread",
-  [AC_CHECK_LIB(pthreads, pthread_create, PTHREAD_LIBS="-lpthreads",
-	[AC_CHECK_LIB(pthreadGC2, pthread_create, PTHREAD_LIBS="-lpthreadGC2")]
-  )]
-)
-
-AC_SUBST([PTHREAD_LIBS])
-AC_SUBST([PTHREAD_CFLAGS])
 
 dnl IPv6 support
 dnl ========================
@@ -202,11 +172,7 @@ AC_ARG_ENABLE(hotkey,
 )
 
 if test "x$enable_hotkey" = "xyes"; then
-    if test $use_gtk3 = yes ; then
-        PKG_CHECK_MODULES(GDKX11, [gdk-x11-3.0], [have_hotkey="yes"], [have_hotkey="no"])
-    else
-        PKG_CHECK_MODULES(GDKX11, [gdk-x11-2.0], [have_hotkey="yes"], [have_hotkey="no"])
-    fi
+    PKG_CHECK_MODULES(GDKX11, [gdk-x11-3.0], [have_hotkey="yes"], [have_hotkey="no"])
 else
     AC_MSG_RESULT([*** X11 Global Hotkey plugin disabled per user request ***])
     have_hotkey="no"
@@ -239,6 +205,21 @@ if test "x$have_gnomeshortcuts" = "xyes"; then
     GENERAL_PLUGINS="$GENERAL_PLUGINS gnomeshortcuts"
 fi
 
+dnl Linux Infrared Remote Control (LIRC)
+dnl ====================================
+
+AC_ARG_ENABLE(lirc,
+ AS_HELP_STRING([--disable-lirc], [disable LIRC support (default=enabled)]),
+ [enable_lirc=$enableval], [enable_lirc=yes])
+
+if test $enable_lirc = yes ; then
+    AC_CHECK_HEADERS([lirc/lirc_client.h], [enable_lirc=yes], [enable_lirc=no])
+fi
+
+if test $enable_lirc = yes ; then
+	GENERAL_PLUGINS="$GENERAL_PLUGINS lirc"
+fi
+
 dnl Song Change
 dnl ===========
 
@@ -263,15 +244,6 @@ AC_ARG_ENABLE(statusicon,
  [  --disable-statusicon    disable X11 Status Icon plugin (default=enabled)],
  [have_statusicon=$enableval], [have_statusicon="yes"])
 
-if test $have_statusicon = yes ; then
-    if test $use_gtk3 != yes ; then
-        PKG_CHECK_MODULES(GTK216, [gtk+-2.0 >= 2.16.0], [have_statusicon=yes],
-         [have_statusicon=no])
-    fi
-else
-    AC_MSG_RESULT([*** X11 Status Icon plugin disabled per user request ***])
-fi
-
 if test "x$have_statusicon" = "xyes"; then
     GENERAL_PLUGINS="$GENERAL_PLUGINS statusicon"
 fi
@@ -281,7 +253,7 @@ dnl *** Audacious OSD plugin (pangocairo-based)
 AC_ARG_ENABLE(aosd,
     [  --disable-aosd          disable Audacious OSD plugin (default=enabled)],
     [enable_aosd=$enableval],
-    [enable_aosd="guess"]
+    [enable_aosd="yes"]
 )
 
 AC_ARG_ENABLE(aosd_xcomp,
@@ -290,7 +262,7 @@ AC_ARG_ENABLE(aosd_xcomp,
     [enable_aosd_xcomp="yes"]
 )
 
-if test "x$enable_aosd" = "xguess"; then
+if test "x$enable_aosd" = "xyes"; then
     have_aosd="yes"
     PKG_CHECK_MODULES(PANGO,[pango >= 1.14.7],,
         [have_aosd="no"
@@ -320,24 +292,8 @@ if test "x$enable_aosd" = "xguess"; then
         have_aosd_xcomp="no"
     fi
 else
-    if test "x$enable_aosd" = "xyes"; then
-        AC_MSG_RESULT([*** Audacious OSD plugin has been forcefully enabled ***])
-        have_aosd="yes"
-        if test "x$enable_aosd_xcomp" = "xyes"; then
-            have_aosd_xcomp="yes"
-            PKG_CHECK_MODULES(XCOMPOSITE, xcomposite,
-                [AC_DEFINE([HAVE_XCOMPOSITE],[],[X Composite extension available])],
-                [have_aosd_xcomp="no"
-                AC_MSG_RESULT([*** X Composite extension not found, composite support for Audacious OSD will not be compiled ***])]
-            )
-        else
-            AC_MSG_RESULT([*** X Composite support for Audacious OSD plugin disabled per user request ***])
-            have_aosd_xcomp="no"
-        fi
-    else
-        AC_MSG_RESULT([*** Audacious OSD plugin disabled per user request ***])
-        have_aosd="no"
-    fi
+    AC_MSG_RESULT([*** Audacious OSD plugin disabled per user request ***])
+    have_aosd="no"
 fi
 
 if test "x$have_aosd" = "xyes"; then
@@ -353,7 +309,7 @@ AC_ARG_ENABLE(notify,
  [enable_notify=$enableval], [enable_notify="yes"])
 
 if test "x$enable_notify" = "xyes"; then
-    PKG_CHECK_MODULES(NOTIFY, [libnotify], [have_notify="yes"], [have_notify="no"])
+    PKG_CHECK_MODULES(NOTIFY, [libnotify >= 0.7], [have_notify="yes"], [have_notify="no"])
 else
     have_notify="no"
 fi
@@ -595,23 +551,13 @@ fi
 dnl OSS output
 dnl ==========
 
-AC_ARG_ENABLE(oss,
- [  --enable-oss            enable OSS3 output plugin],
- [enable_oss="$enableval"],
- [enable_oss="no"]
-)
-
 AC_ARG_ENABLE(oss4,
- [  --disable-oss4          disable OSS4 output plugin],
- [enable_oss4="$enableval"],
- [enable_oss4="yes"]
-)
+ AS_HELP_STRING([--disable-oss4],[disable OSS4 output plugin]),
+ [enable_oss4="$enableval"], [enable_oss4="yes"])
 
-have_oss="no"
-have_oss4="no"
 OSS_CFLAGS=""
 
-if test "$enable_oss" = "yes" || test "$enable_oss4" = "yes" ; then
+if test "$enable_oss4" = "yes" ; then
     if test -f "/etc/oss.conf"; then
         . "/etc/oss.conf"
         OSS_CFLAGS="-I$OSSLIBDIR/include"
@@ -619,44 +565,25 @@ if test "$enable_oss" = "yes" || test "$enable_oss4" = "yes" ; then
 
     OLD_CPPFLAGS="$CPPFLAGS"
     CPPFLAGS="$CPPFLAGS $OSS_CFLAGS"
+    AC_CHECK_HEADERS([sys/soundcard.h soundcard.h])
+    AC_MSG_CHECKING(for OSS4)
 
-    AC_CHECK_HEADERS([sys/soundcard.h soundcard.h],
-     [have_oss="yes"], [have_oss="$have_oss"])
+    AC_EGREP_CPP(yes,
+     [#ifdef HAVE_SYS_SOUNDCARD_H
+      #include <sys/soundcard.h>
+      #elif defined HAVE_SOUNDCARD_H
+      #include <soundcard.h>
+      #endif
+      #if OSS_VERSION >= 0x40000 || SOUND_VERSION >= 0x40000
+          yes
+      #endif],
+     [enable_oss4="yes"], [enable_oss4="no"])
 
-    if test "$enable_oss4" = "yes" && test "$have_oss" = "yes" ; then
-        AC_MSG_CHECKING(for OSS4)
-
-        AC_EGREP_CPP(yes,
-            [#ifdef HAVE_SYS_SOUNDCARD_H
-             #include <sys/soundcard.h>
-             #else
-             #include <soundcard.h>
-             #endif
-             #if OSS_VERSION >= 0x40000 || SOUND_VERSION >= 0x40000
-                 yes
-             #endif],
-            [have_oss4="yes"],
-            [have_oss4="no"])
-
-        AC_MSG_RESULT([$have_oss4])
-    fi
-
+    AC_MSG_RESULT([$enable_oss4])
     CPPFLAGS="$OLD_CPPFLAGS"
 fi
 
 AC_SUBST(OSS_CFLAGS)
-
-if test "$enable_oss" = "yes" && test "$have_oss" = "no" ; then
-    enable_oss="no"
-fi
-
-if test "$enable_oss" = "yes"; then
-    OUTPUT_PLUGINS="$OUTPUT_PLUGINS OSS"
-fi
-
-if test "$enable_oss4" = "yes" && test "$have_oss4" = "no" ; then
-    enable_oss4="no"
-fi
 
 if test "$enable_oss4" = "yes"; then
     OUTPUT_PLUGINS="$OUTPUT_PLUGINS oss4"
@@ -696,6 +623,26 @@ if test $enable_sdlout = yes ; then
 	OUTPUT_PLUGINS="$OUTPUT_PLUGINS sdlout"
 fi
 
+dnl *** sndio output
+
+AC_ARG_ENABLE(sndio,
+    [  --disable-sndio         disable sndio output plugin (default=enabled) ],
+    [have_sndio=$enableval],
+    [have_sndio=yes]
+)
+
+if test "x$have_sndio" = "xyes"; then
+    AC_CHECK_HEADER(sndio.h,, have_sndio=no)
+    if test x$have_sndio = xyes; then
+        AC_CHECK_LIB(sndio, sio_open, haves_sndio=yes, have_sndio=no)
+    fi
+fi
+
+if test "x$have_sndio" = "xyes"; then
+    OUTPUT_PLUGINS="$OUTPUT_PLUGINS sndio"
+    SNDIO_LIBS="-lsndio"
+    AC_SUBST(SNDIO_LIBS)
+fi
 
 dnl *** amidi-plug (note: to avoid checking twice ALSA, this should appear somewhere after the alsa output plugin check)
 
@@ -786,6 +733,14 @@ if test "x$enable_amidiplug" = "xyes"; then
     fi
   fi
   AC_SUBST(AMIDIPLUG_BACKENDS)
+
+  if test "$enable_amidiplug_alsa" = "yes" ; then
+    AC_DEFINE([AMIDIPLUG_ALSA], [1], [Define if amidi-plug ALSA backend is to be built])
+  fi
+
+  if test "$enable_amidiplug_fluidsynth" = "yes" ; then
+    AC_DEFINE([AMIDIPLUG_FLUIDSYNTH], [1], [Define if amidi-plug FluidSynth backend is to be built])
+  fi
 fi
 
 dnl Audio CD
@@ -878,42 +833,6 @@ else
     have_mms=no
     AC_MSG_RESULT([*** mms plugin disabled by request ***])
 fi
-
-dnl SMB
-dnl ===
-
-AC_ARG_ENABLE(smb,
- AS_HELP_STRING([--enable-smb], [enable SMB transport (default=disabled)]),
- [enable_smb="$enableval"], [enable_smb="no"])
-
-if test $enable_smb = yes ; then
-    AC_CHECK_HEADERS([libsmbclient.h], [enable_smb=yes], [enable_smb=no])
-
-    if test $enable_smb = yes ; then
-        TRANSPORT_PLUGINS="$TRANSPORT_PLUGINS smb"
-    else
-        AC_MSG_RESULT([*** libsmbclient not found; SMB client disabled])
-    fi
-fi
-
-dnl *** MTP Upload
-
-AC_ARG_ENABLE(mtp_up,
-[  --disable-mtp_up           disable mtp upload support. (default=enabled)],
-[have_mtp_up=$enableval],
-[have_mtp_up=yes])
-
-if test "x$have_mtp_up" = "xyes"; then
-    have_mtp_up=yes
-    PKG_CHECK_MODULES(MTP, [libmtp >= 0.3.5], [GENERAL_PLUGINS="$GENERAL_PLUGINS mtp_up" ], [have_mtp_up="no"])
-    MTP_LIBS=`pkg-config --libs libmtp`
-    MTP_CFLAGS=`pkg-config --cflags libmtp`
-else
-    have_mtp_up=no
-    AC_MSG_RESULT([*** mtp upload plugin disabled by request ***])
-fi
-AC_SUBST(MTP_LIBS)
-AC_SUBST(MTP_CFLAGS)
 
 dnl XSPF
 dnl ----
@@ -1039,6 +958,22 @@ if test "x$enable_resample" = "xyes"; then
 	EFFECT_PLUGINS="$EFFECT_PLUGINS resample"
 fi
 
+dnl Speed and Pitch effect plugin
+dnl =============================
+
+AC_ARG_ENABLE(speedpitch,
+ AS_HELP_STRING([--disable-speedpitch],[disable Speed and Pitch effect plugin]),
+ [enable_speedpitch="$enableval"], [enable_speedpitch="yes"])
+
+if test "x$enable_speedpitch" = "xyes"; then
+    PKG_CHECK_MODULES([SAMPLERATE], [samplerate],
+     [enable_speedpitch=yes], [enable_speedpitch=no])
+fi
+
+if test "x$enable_speedpitch" = "xyes"; then
+	EFFECT_PLUGINS="$EFFECT_PLUGINS speed-pitch"
+fi
+
 dnl GTK Interface
 dnl =============
 
@@ -1139,6 +1074,7 @@ echo "  Output Plugins"
 echo "  --------------"
 echo "  Open Sound System (oss4):               $enable_oss4"
 echo "  Advanced Linux Sound Arch. (alsa):      $have_alsa"
+echo "  Sndio (sndio):                          $have_sndio"
 echo "  PulseAudio (pulse):                     $have_pulse"
 echo "  Jack Audio Connection Kit (jack):       $enable_jack"
 echo "  Simple DirectMedia Layer (sdlout):      $enable_sdlout"
@@ -1146,8 +1082,6 @@ echo "  FileWriter:                             $enable_filewriter"
 echo "    -> FileWriter MP3 output part:        $have_lame"
 echo "    -> FileWriter Vorbis output part:     $enable_vorbis"
 echo "    -> FileWriter FLAC output part:       $have_writer_flac"
-echo "  Null Audio output (null):               yes"
-echo "  Open Sound System v3 (deprecated):      $enable_oss"
 echo
 echo "  Input Plugins"
 echo "  -------------"
@@ -1178,6 +1112,7 @@ echo "  General"
 echo "  -------"
 echo "  Alarm:                                  yes"
 echo "  Album Art:                              yes"
+echo "  Linux Infrared Remote Control (LIRC)    $enable_lirc"
 echo "  MPRIS 2 Server:                         $enable_mpris2"
 echo "  Search Tool:                            yes"
 echo "  Song Change:                            $enable_songchange"
@@ -1188,7 +1123,6 @@ echo "  libnotify OSD:                          $have_notify"
 echo "  Global Hotkey Plugin:                   $have_hotkey"
 echo "  Gnome Shortcuts Plugin:                 $have_gnomeshortcuts"
 echo "  AudioScrobbler Client:                  $have_scrobbler"
-echo "  Upload to MTP device:                   $have_mtp_up"
 echo "  LyricWiki viewer:                       $enable_lyricwiki"
 echo
 echo "  Effect"
@@ -1199,10 +1133,10 @@ echo "  Dynamic Range Compressor:               yes"
 echo "  Echo/Surround:                          yes"
 echo "  Extra Stereo:                           yes"
 echo "  LADSPA Host:                            yes"
-echo "  SndStretch:                             yes"
 echo "  Voice Removal:                          yes"
 echo "  Bauer stereophonic-to-binaural (bs2b):  $have_bs2b"
 echo "  Sample Rate Converter (resample):       $enable_resample"
+echo "  Speed and Pitch:                        $enable_speedpitch"
 echo
 echo "  Visualization"
 echo "  -------------"
@@ -1213,8 +1147,7 @@ echo "  Transport"
 echo "  ---------"
 echo "  neon-based http/https:                  $have_neon"
 echo "  libmms-based mms:                       $have_mms"
-echo "  GIO transport (experimental):           $enable_gio"
-echo "  SMB transport (experimental):           $enable_smb"
+echo "  GIO:                                    $enable_gio"
 echo
 echo "  Container"
 echo "  ---------"

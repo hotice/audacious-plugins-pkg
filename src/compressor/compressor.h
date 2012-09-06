@@ -17,10 +17,7 @@
  * the use of this software.
  */
 
-extern double compressor_center, compressor_range;
-
 void compressor_config_load (void);
-void compressor_config_save (void);
 
 int compressor_init (void);
 void compressor_cleanup (void);
@@ -28,5 +25,4 @@ void compressor_start (int * channels, int * rate);
 void compressor_process (float * * data, int * samples);
 void compressor_flush (void);
 void compressor_finish (float * * data, int * samples);
-int compressor_decoder_to_output_time (int time);
-int compressor_output_to_decoder_time (int time);
+int compressor_adjust_delay (int delay);

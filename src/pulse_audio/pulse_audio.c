@@ -26,7 +26,6 @@
 #include <string.h>
 #include <limits.h>
 
-#include <gtk/gtk.h>
 #include <pulse/pulseaudio.h>
 
 #include <audacious/debug.h>
@@ -34,8 +33,6 @@
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
 #include <audacious/i18n.h>
-#include <libaudgui/libaudgui.h>
-#include <libaudgui/libaudgui-gtk.h>
 
 #define ERROR(...) do {fprintf (stderr, "pulseaudio: " __VA_ARGS__); putchar ('\n');} while (0)
 
@@ -235,7 +232,7 @@ fail:
         pa_threaded_mainloop_unlock(mainloop);
 }
 
-static void pulse_pause (gboolean b)
+static void pulse_pause (bool_t b)
 {
     pa_operation *o = NULL;
     int success = 0;
@@ -308,32 +305,6 @@ fail:
 
     do_trigger = !!l;
     return (int) l;
-}
-
-static int pulse_get_written_time(void) {
-    int r = 0;
-
-    CHECK_CONNECTED(0);
-
-    pa_threaded_mainloop_lock(mainloop);
-    CHECK_DEAD_GOTO(fail, 1);
-
-    r = written * (int64_t) 1000 / bytes_per_second;
-
-fail:
-    pa_threaded_mainloop_unlock(mainloop);
-
-    return r;
-}
-
-static void pulse_set_written_time (int time)
-{
-    pa_threaded_mainloop_lock (mainloop);
-
-    written = time * (int64_t) bytes_per_second / 1000;
-    flush_time = time;
-
-    pa_threaded_mainloop_unlock (mainloop);
 }
 
 static int pulse_get_output_time (void)
@@ -424,7 +395,7 @@ fail:
 }
 
 static void pulse_write(void* ptr, int length) {
-    gint writeoffs, remain, writable;
+    int writeoffs, remain, writable;
 
     CHECK_CONNECTED();
 
@@ -436,7 +407,7 @@ static void pulse_write(void* ptr, int length) {
          writeoffs < length;
          writeoffs += writable, remain -= writable)
     {
-         gpointer pptr = (char *) ptr + writeoffs;
+         void * pptr = (char *) ptr + writeoffs;
 
          writable = length - writeoffs;
          size_t fragsize = pa_stream_writable_size(stream);
@@ -486,15 +457,15 @@ static void pulse_close(void)
     volume_valid = 0;
 }
 
-static int pulse_open(gint fmt, int rate, int nch) {
+static int pulse_open(int fmt, int rate, int nch) {
     pa_sample_spec ss;
     pa_operation *o = NULL;
     int success;
 
-    g_assert(!mainloop);
-    g_assert(!context);
-    g_assert(!stream);
-    g_assert(!connected);
+    assert(!mainloop);
+    assert(!context);
+    assert(!stream);
+    assert(!connected);
 
     switch(fmt)
     {
@@ -662,7 +633,7 @@ fail:
     return FALSE;
 }
 
-static gboolean pulse_init (void)
+static bool_t pulse_init (void)
 {
     if (! pulse_open (FMT_S16_NE, 44100, 2))
         return FALSE;
@@ -671,33 +642,30 @@ static gboolean pulse_init (void)
     return TRUE;
 }
 
-static void pulse_about(void) {
-    static GtkWidget *dialog;
-    audgui_simple_message(& dialog, GTK_MESSAGE_INFO,
-            _("About Audacious PulseAudio Output Plugin"),
-            "Audacious PulseAudio Output Plugin\n\n"
-            "This program is free software; you can redistribute it and/or modify\n"
-            "it under the terms of the GNU General Public License as published by\n"
-            "the Free Software Foundation; either version 2 of the License, or\n"
-            "(at your option) any later version.\n"
-            "\n"
-            "This program is distributed in the hope that it will be useful,\n"
-            "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-            "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
-            "GNU General Public License for more details.\n"
-            "\n"
-            "You should have received a copy of the GNU General Public License\n"
-            "along with this program; if not, write to the Free Software\n"
-            "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,\n"
-            "USA.");
-}
+static const char pulse_about[] =
+ "Audacious PulseAudio Output Plugin\n\n"
+ "This program is free software; you can redistribute it and/or modify\n"
+ "it under the terms of the GNU General Public License as published by\n"
+ "the Free Software Foundation; either version 2 of the License, or\n"
+ "(at your option) any later version.\n"
+ "\n"
+ "This program is distributed in the hope that it will be useful,\n"
+ "but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+ "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
+ "GNU General Public License for more details.\n"
+ "\n"
+ "You should have received a copy of the GNU General Public License\n"
+ "along with this program; if not, write to the Free Software\n"
+ "Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,\n"
+ "USA.";
 
 AUD_OUTPUT_PLUGIN
 (
-        .name = "PulseAudio",
+        .name = N_("PulseAudio Output"),
+        .domain = PACKAGE,
+        .about_text = pulse_about,
         .probe_priority = 8,
         .init = pulse_init,
-        .about = pulse_about,
         .get_volume = pulse_get_volume,
         .set_volume = pulse_set_volume,
         .open_audio = pulse_open,
@@ -707,7 +675,5 @@ AUD_OUTPUT_PLUGIN
         .pause = pulse_pause,
         .buffer_free = pulse_free,
         .drain = pulse_drain,
-        .output_time = pulse_get_output_time,
-        .written_time = pulse_get_written_time,
-        .set_written_time = pulse_set_written_time,
+        .output_time = pulse_get_output_time
 )

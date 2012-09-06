@@ -1,62 +1,67 @@
-#include "config.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include <gtk/gtk.h>
 
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
+#include <audacious/preferences.h>
 
-#include "echo.h"
+#include "config.h"
 
-
-static gboolean init (void);
-static void cleanup(void);
-
+#define MAX_DELAY 1000
 #define MAX_SRATE 50000
 #define MAX_CHANNELS 2
-#define BYTES_PS sizeof(gfloat)
+#define BYTES_PS sizeof(float)
 #define BUFFER_SAMPLES (MAX_SRATE * MAX_DELAY / 1000)
 #define BUFFER_SHORTS (BUFFER_SAMPLES * MAX_CHANNELS)
 #define BUFFER_BYTES (BUFFER_SHORTS * BYTES_PS)
 
-static const gchar * const echo_defaults[] = {
+static const char * const echo_defaults[] = {
  "delay", "500",
  "feedback", "50",
  "volume", "50",
  NULL};
 
-static gfloat *buffer = NULL;
-gint echo_delay, echo_feedback, echo_volume;
+static const PreferencesWidget echo_widgets[] = {
+ {WIDGET_LABEL, N_("<b>Echo</b>")},
+ {WIDGET_SPIN_BTN, N_("Delay:"),
+  .cfg_type = VALUE_INT, .csect = "echo_plugin", .cname = "delay",
+  .data = {.spin_btn = {0, MAX_DELAY, 10, N_("ms")}}},
+ {WIDGET_SPIN_BTN, N_("Feedback:"),
+  .cfg_type = VALUE_INT, .csect = "echo_plugin", .cname = "feedback",
+  .data = {.spin_btn = {0, 100, 1, "%"}}},
+ {WIDGET_SPIN_BTN, N_("Volume:"),
+  .cfg_type = VALUE_INT, .csect = "echo_plugin", .cname = "volume",
+  .data = {.spin_btn = {0, 100, 1, "%"}}}};
+
+static const PluginPreferences echo_prefs = {
+ .widgets = echo_widgets,
+ .n_widgets = sizeof echo_widgets / sizeof echo_widgets[0]};
+
+static float *buffer = NULL;
 static int w_ofs;
 
-static gboolean init (void)
+static bool_t init (void)
 {
 	aud_config_set_defaults ("echo_plugin", echo_defaults);
-
-	echo_delay = aud_get_int ("echo_plugin", "delay");
-	echo_feedback = aud_get_int ("echo_plugin", "feedback");
-	echo_volume = aud_get_int ("echo_plugin", "volume");
-
 	return TRUE;
 }
 
 static void cleanup(void)
 {
-	g_free(buffer);
+	free(buffer);
 	buffer = NULL;
 }
 
-static gint echo_channels = 0;
-static gint echo_rate = 0;
+static int echo_channels = 0;
+static int echo_rate = 0;
 
-static void echo_start(gint *channels, gint *rate)
+static void echo_start(int *channels, int *rate)
 {
-	static gint old_srate, old_nch;
+	static int old_srate, old_nch;
 
 	if (buffer == NULL)
-		buffer = g_malloc0(BUFFER_BYTES + sizeof(gfloat));
+		buffer = malloc (BUFFER_BYTES);
 
 	echo_channels = *channels;
 	echo_rate = *rate;
@@ -70,29 +75,18 @@ static void echo_start(gint *channels, gint *rate)
 	}
 }
 
-static void echo_flush(void)
+static void echo_process(float **d, int *samples)
 {
+	int delay = aud_get_int ("echo_plugin", "delay");
+	int feedback = aud_get_int ("echo_plugin", "feedback");
+	int volume = aud_get_int ("echo_plugin", "volume");
 
-}
+	float in, out, buf;
+	int r_ofs;
+	float *data = *d;
+	float *end = *d + *samples;
 
-static gint echo_decoder_to_output_time(gint time)
-{
-	return time;
-}
-
-static gint echo_output_to_decoder_time(gint time)
-{
-	return time;
-}
-
-static void echo_process(gfloat **d, gint *samples)
-{
-	gfloat in, out, buf;
-	gint r_ofs;
-	gfloat *data = *d;
-	gfloat *end = *d + *samples;
-
-	r_ofs = w_ofs - (echo_rate * echo_delay / 1000) * echo_channels;
+	r_ofs = w_ofs - (echo_rate * delay / 1000) * echo_channels;
 	if (r_ofs < 0)
 		r_ofs += BUFFER_SHORTS;
 
@@ -101,8 +95,8 @@ static void echo_process(gfloat **d, gint *samples)
 		in = *data;
 
 		buf = buffer[r_ofs];
-		out = in + buf * echo_volume / 100;
-		buf = in + buf * echo_feedback / 100;
+		out = in + buf * volume / 100;
+		buf = in + buf * feedback / 100;
 		buffer[w_ofs] = buf;
 		*data = out;
 
@@ -113,22 +107,26 @@ static void echo_process(gfloat **d, gint *samples)
 	}
 }
 
-static void echo_finish(gfloat **d, gint *samples)
+static void echo_finish(float **d, int *samples)
 {
 	echo_process(d, samples);
 }
 
+static const char echo_about[] =
+ "Echo Plugin\n"
+ "By Johan Levin, 1999\n\n"
+ "Surround echo by Carl van Schaik, 1999";
+
 AUD_EFFECT_PLUGIN
 (
-	.name = "Echo",
+	.name = N_("Echo"),
+	.domain = PACKAGE,
+	.about_text = echo_about,
+	.prefs = & echo_prefs,
 	.init = init,
 	.cleanup = cleanup,
-	.about = echo_about,
-	.configure = echo_configure,
 	.start = echo_start,
 	.process = echo_process,
-	.flush = echo_flush,
 	.finish = echo_finish,
-	.decoder_to_output_time = echo_decoder_to_output_time,
-	.output_to_decoder_time = echo_output_to_decoder_time
+	.preserves_format = TRUE
 )

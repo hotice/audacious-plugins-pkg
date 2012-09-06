@@ -2,21 +2,19 @@
  * layout.c
  * Copyright 2011 John Lindgren
  *
- * This file is part of Audacious.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
- * Audacious is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation, version 2 or version 3 of the License.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions, and the following disclaimer.
  *
- * Audacious is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions, and the following disclaimer in the documentation
+ *    provided with the distribution.
  *
- * You should have received a copy of the GNU General Public License along with
- * Audacious. If not, see <http://www.gnu.org/licenses/>.
- *
- * The Audacious team does not consider modular code linking to Audacious or
- * using our public API to be a derived work.
+ * This software is provided "as is" and without any warranty, express or
+ * implied. In no event shall the authors be liable for any damages arising from
+ * the use of this software.
  */
 
 #include <string.h>
@@ -24,7 +22,6 @@
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
-#include <audacious/gtk-compat.h>
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/plugins.h>
@@ -60,6 +57,7 @@ GtkWidget * layout_new (void)
 {
     g_return_val_if_fail (! layout, NULL);
     layout = gtk_alignment_new (0, 0, 1, 1);
+    gtk_alignment_set_padding ((GtkAlignment *) layout, 3, 3, 3, 3);
     NULL_ON_DESTROY (layout);
     return layout;
 }
@@ -142,7 +140,7 @@ static GtkWidget * vbox_new (GtkWidget * widget, const gchar * name)
 {
     g_return_val_if_fail (widget && name, NULL);
 
-    GtkWidget * vbox = gtk_vbox_new (FALSE, 0);
+    GtkWidget * vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 2);
 
     GtkWidget * ebox = gtk_event_box_new ();
     gtk_box_pack_start ((GtkBox *) vbox, ebox, FALSE, FALSE, 0);
@@ -150,7 +148,6 @@ static GtkWidget * vbox_new (GtkWidget * widget, const gchar * name)
      widget);
 
     GtkWidget * label = gtk_label_new (NULL);
-    gtk_misc_set_padding ((GtkMisc *) label, 3, 0);
     gchar * markup = g_markup_printf_escaped ("<small><b>%s</b></small>", name);
     gtk_label_set_markup ((GtkLabel *) label, markup);
     g_free (markup);
@@ -185,7 +182,8 @@ static gboolean restore_size_cb (RestoreSizeData * d)
 
 static GtkWidget * paned_new (gboolean vertical, gboolean after, gint w, gint h)
 {
-    GtkWidget * paned = vertical ? gtk_vpaned_new () : gtk_hpaned_new ();
+    GtkWidget * paned = gtk_paned_new (vertical ? GTK_ORIENTATION_VERTICAL :
+     GTK_ORIENTATION_HORIZONTAL);
 
     GtkWidget * mine = gtk_alignment_new (0, 0, 1, 1);
     GtkWidget * next = gtk_alignment_new (0, 0, 1, 1);
@@ -254,7 +252,7 @@ static gboolean delete_cb (GtkWidget * widget)
 
 static gboolean escape_cb (GtkWidget * widget, GdkEventKey * event)
 {
-    if (event->keyval == GDK_Escape)
+    if (event->keyval == GDK_KEY_Escape)
     {
         layout_disable (widget);
         return TRUE;
@@ -324,6 +322,9 @@ static void item_add (Item * item)
         NULL_ON_DESTROY (item->window);
 
         gtk_window_set_title ((GtkWindow *) item->window, item->name);
+        gtk_container_set_border_width ((GtkContainer *) item->window, 2);
+        gtk_window_set_has_resize_grip ((GtkWindow *) item->window, FALSE);
+
         g_signal_connect_swapped (item->window, "delete-event", (GCallback)
          delete_cb, item->widget);
         g_signal_connect_swapped (item->window, "key-press-event", (GCallback)

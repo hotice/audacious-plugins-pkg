@@ -30,7 +30,6 @@
 
 #include <audacious/debug.h>
 #include <audacious/misc.h>
-#include <audacious/gtk-compat.h>
 
 #define MODES 4
 enum {MODE_AUTO = 4, MODE_JOINT = 1, MODE_STEREO = 0, MODE_MONO = 3};
@@ -38,25 +37,9 @@ static const gint modes[MODES] = {MODE_AUTO, MODE_JOINT, MODE_STEREO, MODE_MONO}
 static const gchar * const mode_names[MODES] = {N_("Auto"), N_("Joint Stereo"),
  N_("Stereo"), N_("Mono")};
 
-static void mp3_init(write_output_callback write_output_func);
-static void mp3_configure(void);
-static gint mp3_open(void);
-static void mp3_write(void *ptr, gint length);
-static void mp3_close(void);
 static gint (*write_output)(void *ptr, gint length);
 
-FileWriter mp3_plugin =
-{
-    .init = mp3_init,
-    .configure = mp3_configure,
-    .open = mp3_open,
-    .write = mp3_write,
-    .close = mp3_close,
-    .format_required = FMT_S16_NE,
-};
-
 static GtkWidget *configure_win = NULL;
-static GtkWidget *configure_bbox, *configure_ok, *configure_cancel;
 static GtkWidget *alg_quality_spin;
 static GtkWidget *alg_quality_hbox;
 static GtkAdjustment * alg_quality_adj;
@@ -656,8 +639,14 @@ static void id3_only_version(GtkToggleButton * togglebutton,
 
 /* Save Configuration */
 
-static void configure_ok_cb(gpointer data)
+static void configure_response_cb (GtkWidget * window, int response)
 {
+    if (response != GTK_RESPONSE_OK)
+    {
+        gtk_widget_destroy (window);
+        return;
+    }
+
     if (vbr_min_val > vbr_max_val)
         vbr_max_val = vbr_min_val;
 
@@ -683,7 +672,7 @@ static void configure_ok_cb(gpointer data)
     aud_set_int ("filewriter_mp3", "enforce_iso_val", enforce_iso_val);
     aud_set_int ("filewriter_mp3", "error_protect_val", error_protect_val);
 
-    gtk_widget_destroy(configure_win);
+    gtk_widget_destroy (window);
 }
 
 
@@ -694,33 +683,27 @@ static void configure_ok_cb(gpointer data)
 
 static void mp3_configure(void)
 {
-    gint i;
+    if (! configure_win)
+    {
+        configure_win = gtk_dialog_new_with_buttons (_("MP3 Configuration"),
+         NULL, 0, GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, GTK_STOCK_OK,
+         GTK_RESPONSE_OK, NULL);
 
-    if (!configure_win) {
-        configure_win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-        gtk_window_set_type_hint(GTK_WINDOW(configure_win), GDK_WINDOW_TYPE_HINT_DIALOG);
-
+        g_signal_connect (configure_win, "response", (GCallback) configure_response_cb, NULL);
         g_signal_connect (configure_win, "destroy", (GCallback)
          gtk_widget_destroyed, & configure_win);
-        gtk_window_set_title(GTK_WINDOW(configure_win),
-                             _("MP3 Configuration"));
-        gtk_window_set_position(GTK_WINDOW(configure_win),
-                                GTK_WIN_POS_MOUSE);
-        gtk_container_set_border_width(GTK_CONTAINER(configure_win), 5);
 
-        vbox = gtk_vbox_new(FALSE, 5);
-        gtk_container_add(GTK_CONTAINER(configure_win), vbox);
+        vbox = gtk_dialog_get_content_area ((GtkDialog *) configure_win);
 
         notebook = gtk_notebook_new();
         gtk_box_pack_start(GTK_BOX(vbox), notebook, TRUE, TRUE, 0);
 
-
         /* Quality */
 
-        quality_vbox = gtk_vbox_new(FALSE, 5);
+        quality_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(quality_vbox), 5);
 
-        quality_hbox1 = gtk_hbox_new(FALSE, 5);
+        quality_hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_box_pack_start(GTK_BOX(quality_vbox), quality_hbox1, FALSE,
                            FALSE, 0);
 
@@ -732,7 +715,7 @@ static void mp3_configure(void)
         gtk_box_pack_start(GTK_BOX(quality_hbox1), alg_quality_frame,
                            FALSE, FALSE, 0);
 
-        alg_quality_hbox = gtk_hbox_new(FALSE, 5);
+        alg_quality_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(alg_quality_hbox),
                                        10);
         gtk_container_add(GTK_CONTAINER(alg_quality_frame),
@@ -756,7 +739,7 @@ static void mp3_configure(void)
         gtk_box_pack_start(GTK_BOX(quality_hbox1), samplerate_frame, FALSE,
                            FALSE, 0);
 
-        samplerate_hbox = gtk_hbox_new(TRUE, 5);
+        samplerate_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(samplerate_hbox), 10);
         gtk_container_add(GTK_CONTAINER(samplerate_frame),
                           samplerate_hbox);
@@ -766,7 +749,7 @@ static void mp3_configure(void)
         if (! out_samplerate_val)
             gtk_combo_box_set_active ((GtkComboBox *) combo, 0);
 
-        for (i = 0; i < G_N_ELEMENTS (available_samplerates); i ++)
+        for (int i = 0; i < G_N_ELEMENTS (available_samplerates); i ++)
         {
             gchar buf[10];
             snprintf (buf, sizeof buf, "%d", available_samplerates[i]);
@@ -793,14 +776,14 @@ static void mp3_configure(void)
                            FALSE, 0);
 
         // vbox sorrounding hbox1 and hbox2
-        enc_quality_vbox = gtk_vbox_new(FALSE, 5);
+        enc_quality_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(enc_quality_vbox), 10);
 
         // pack vbox to frame
         gtk_container_add(GTK_CONTAINER(enc_quality_frame), enc_quality_vbox);
 
         // hbox1 for bitrate
-        hbox1 = gtk_hbox_new(FALSE, 5);
+        hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_add(GTK_CONTAINER(enc_quality_vbox), hbox1);
 
         // radio 1
@@ -817,7 +800,7 @@ static void mp3_configure(void)
 
         combo = gtk_combo_box_text_new ();
 
-        for (i = 0; i < G_N_ELEMENTS (available_bitrates); i ++)
+        for (int i = 0; i < G_N_ELEMENTS (available_bitrates); i ++)
         {
             gchar buf[10];
             snprintf (buf, sizeof buf, "%d", available_bitrates[i]);
@@ -831,7 +814,7 @@ static void mp3_configure(void)
         g_signal_connect (combo, "changed", (GCallback) bitrate_changed, NULL);
 
         // hbox2 for compression ratio
-        hbox2 = gtk_hbox_new(FALSE, 5);
+        hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_add(GTK_CONTAINER(enc_quality_vbox), hbox2);
 
         // radio 2
@@ -872,13 +855,13 @@ static void mp3_configure(void)
         gtk_box_pack_start(GTK_BOX(quality_vbox), mode_frame, FALSE, FALSE,
                            0);
 
-        mode_hbox = gtk_hbox_new(TRUE, 10);
+        mode_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
         gtk_container_set_border_width(GTK_CONTAINER(mode_hbox), 10);
         gtk_container_add(GTK_CONTAINER(mode_frame), mode_hbox);
 
         combo = gtk_combo_box_text_new ();
 
-        for (i = 0; i < MODES; i ++)
+        for (int i = 0; i < MODES; i ++)
         {
             gtk_combo_box_text_append_text ((GtkComboBoxText *) combo,
              _(mode_names[i]));
@@ -897,7 +880,7 @@ static void mp3_configure(void)
         gtk_box_pack_start(GTK_BOX(quality_vbox), misc_frame, FALSE, FALSE,
                            0);
 
-        misc_vbox = gtk_vbox_new(TRUE, 5);
+        misc_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(misc_vbox), 5);
         gtk_container_add(GTK_CONTAINER(misc_frame), misc_vbox);
 
@@ -928,10 +911,9 @@ static void mp3_configure(void)
         gtk_notebook_append_page(GTK_NOTEBOOK(notebook), quality_vbox,
                                  gtk_label_new(_("Quality")));
 
-
         /* VBR/ABR */
 
-        vbr_vbox = gtk_vbox_new(FALSE, 5);
+        vbr_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(vbr_vbox), 5);
 
         /* Toggle VBR */
@@ -940,7 +922,7 @@ static void mp3_configure(void)
         gtk_box_pack_start(GTK_BOX(vbr_vbox), vbr_toggle, FALSE, FALSE, 2);
         g_signal_connect (vbr_toggle, "toggled", (GCallback) toggle_vbr, NULL);
 
-        vbr_options_vbox = gtk_vbox_new(FALSE, 0);
+        vbr_options_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_container_add(GTK_CONTAINER(vbr_vbox), vbr_options_vbox);
         gtk_widget_set_sensitive(vbr_options_vbox, FALSE);
 
@@ -951,7 +933,7 @@ static void mp3_configure(void)
         gtk_box_pack_start(GTK_BOX(vbr_options_vbox), vbr_type_frame,
                            FALSE, FALSE, 2);
 
-        vbr_type_hbox = gtk_hbox_new(FALSE, 5);
+        vbr_type_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(vbr_type_hbox), 5);
         gtk_container_add(GTK_CONTAINER(vbr_type_frame), vbr_type_hbox);
 
@@ -984,12 +966,12 @@ static void mp3_configure(void)
         gtk_box_pack_start(GTK_BOX(vbr_options_vbox), vbr_frame, FALSE,
                            FALSE, 2);
 
-        vbr_options_vbox2 = gtk_vbox_new(FALSE, 5);
+        vbr_options_vbox2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(vbr_options_vbox2),
                                        5);
         gtk_container_add(GTK_CONTAINER(vbr_frame), vbr_options_vbox2);
 
-        vbr_options_hbox1 = gtk_hbox_new(FALSE, 5);
+        vbr_options_hbox1 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(vbr_options_hbox1),
                                        5);
         gtk_container_add(GTK_CONTAINER(vbr_options_vbox2),
@@ -1002,7 +984,7 @@ static void mp3_configure(void)
 
         combo = gtk_combo_box_text_new ();
 
-        for (i = 0; i < G_N_ELEMENTS (available_bitrates); i ++)
+        for (int i = 0; i < G_N_ELEMENTS (available_bitrates); i ++)
         {
             gchar buf[10];
             snprintf (buf, sizeof buf, "%d", available_bitrates[i]);
@@ -1016,7 +998,7 @@ static void mp3_configure(void)
          0);
         g_signal_connect (combo, "changed", (GCallback) vbr_min_changed, NULL);
 
-        vbr_options_hbox2 = gtk_hbox_new(FALSE, 5);
+        vbr_options_hbox2 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(vbr_options_hbox2),
                                        5);
         gtk_container_add(GTK_CONTAINER(vbr_options_vbox2),
@@ -1029,7 +1011,7 @@ static void mp3_configure(void)
 
         combo = gtk_combo_box_text_new ();
 
-        for (i = 0; i < G_N_ELEMENTS (available_bitrates); i ++)
+        for (int i = 0; i < G_N_ELEMENTS (available_bitrates); i ++)
         {
             gchar buf[10];
             snprintf (buf, sizeof buf, "%d", available_bitrates[i]);
@@ -1063,7 +1045,7 @@ static void mp3_configure(void)
                            FALSE, 2);
         gtk_widget_set_sensitive(abr_frame, FALSE);
 
-        abr_hbox = gtk_hbox_new(FALSE, 5);
+        abr_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(abr_hbox), 5);
         gtk_container_add(GTK_CONTAINER(abr_frame), abr_hbox);
 
@@ -1073,7 +1055,7 @@ static void mp3_configure(void)
 
         combo = gtk_combo_box_text_new ();
 
-        for (i = 0; i < G_N_ELEMENTS (available_bitrates); i ++)
+        for (int i = 0; i < G_N_ELEMENTS (available_bitrates); i ++)
         {
             gchar buf[10];
             snprintf (buf, sizeof buf, "%d", available_bitrates[i]);
@@ -1089,7 +1071,7 @@ static void mp3_configure(void)
 
         /* Quality Level */
 
-        vbr_options_hbox3 = gtk_hbox_new(FALSE, 5);
+        vbr_options_hbox3 = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(vbr_options_hbox3),
                                        5);
         gtk_container_add(GTK_CONTAINER(vbr_options_vbox),
@@ -1124,27 +1106,25 @@ static void mp3_configure(void)
             gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON
                                          (xing_header_toggle), TRUE);
 
-
         /* Add the Notebook */
 
         gtk_notebook_append_page(GTK_NOTEBOOK(notebook), vbr_vbox,
                                  gtk_label_new(_("VBR/ABR")));
 
-
         /* Tags */
 
-        tags_vbox = gtk_vbox_new(FALSE, 5);
+        tags_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(tags_vbox), 5);
 
         /* Frame Params */
 
-        tags_frames_frame = gtk_frame_new(_("Frame params:"));
+        tags_frames_frame = gtk_frame_new(_("Frame parameters:"));
         gtk_container_set_border_width(GTK_CONTAINER(tags_frames_frame),
                                        5);
         gtk_box_pack_start(GTK_BOX(tags_vbox), tags_frames_frame, FALSE,
                            FALSE, 2);
 
-        tags_frames_hbox = gtk_hbox_new(FALSE, 5);
+        tags_frames_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(tags_frames_hbox), 5);
         gtk_container_add(GTK_CONTAINER(tags_frames_frame),
                           tags_frames_hbox);
@@ -1178,7 +1158,7 @@ static void mp3_configure(void)
         gtk_box_pack_start(GTK_BOX(tags_vbox), tags_id3_frame, FALSE,
                            FALSE, 2);
 
-        tags_id3_vbox = gtk_vbox_new(FALSE, 5);
+        tags_id3_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
         gtk_container_set_border_width(GTK_CONTAINER(tags_id3_vbox), 5);
         gtk_container_add(GTK_CONTAINER(tags_id3_frame), tags_id3_vbox);
 
@@ -1190,7 +1170,7 @@ static void mp3_configure(void)
         g_signal_connect (tags_force_id3v2_toggle, "toggled", (GCallback)
          force_v2_toggle, NULL);
 
-        tags_id3_hbox = gtk_hbox_new(FALSE, 5);
+        tags_id3_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
         gtk_container_add(GTK_CONTAINER(tags_id3_vbox), tags_id3_hbox);
 
         tags_only_v1_toggle =
@@ -1224,31 +1204,6 @@ static void mp3_configure(void)
         gtk_notebook_append_page(GTK_NOTEBOOK(notebook), tags_vbox,
                                  gtk_label_new(_("Tags")));
 
-
-
-
-        /* The Rest */
-
-        /* Buttons */
-
-        configure_bbox = gtk_hbutton_box_new();
-        gtk_button_box_set_layout(GTK_BUTTON_BOX(configure_bbox),
-                                  GTK_BUTTONBOX_END);
-        gtk_box_pack_start(GTK_BOX(vbox), configure_bbox, FALSE, FALSE, 0);
-
-        configure_cancel = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-        g_signal_connect_swapped (configure_cancel, "clicked", (GCallback)
-         gtk_widget_destroy, configure_win);
-        gtk_box_pack_start(GTK_BOX(configure_bbox), configure_cancel, TRUE,
-                           TRUE, 0);
-
-        configure_ok = gtk_button_new_from_stock(GTK_STOCK_OK);
-        g_signal_connect (configure_ok, "clicked", (GCallback) configure_ok_cb,
-         NULL);
-        gtk_box_pack_start(GTK_BOX(configure_bbox), configure_ok, TRUE,
-                           TRUE, 0);
-        gtk_widget_show(configure_ok);
-
         /* Set States */
 
         if (vbr_on == 1)
@@ -1261,8 +1216,22 @@ static void mp3_configure(void)
         /* Show it! */
 
         gtk_widget_show_all(configure_win);
-
     }
 }
+
+static int mp3_format_required (int fmt)
+{
+    return FMT_S16_NE;
+}
+
+FileWriter mp3_plugin =
+{
+    .init = mp3_init,
+    .configure = mp3_configure,
+    .open = mp3_open,
+    .write = mp3_write,
+    .close = mp3_close,
+    .format_required = mp3_format_required,
+};
 
 #endif

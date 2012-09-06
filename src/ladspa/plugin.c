@@ -28,7 +28,6 @@
 #include <gtk/gtk.h>
 
 #include <audacious/i18n.h>
-#include <audacious/gtk-compat.h>
 #include <audacious/misc.h>
 #include <audacious/plugin.h>
 #include <libaudcore/audstrings.h>
@@ -47,7 +46,6 @@ Index * modules; /* (void *) */
 Index * plugins; /* (PluginData *) */
 Index * loadeds; /* (LoadedPlugin *) */
 
-GtkWidget * about_win;
 GtkWidget * config_win;
 GtkWidget * plugin_list;
 GtkWidget * loaded_list;
@@ -384,8 +382,6 @@ static int init (void)
 
 static void cleanup (void)
 {
-    if (about_win)
-        gtk_widget_destroy (about_win);
     if (config_win)
         gtk_widget_destroy (config_win);
 
@@ -407,24 +403,6 @@ static void cleanup (void)
     module_path = NULL;
 
     pthread_mutex_unlock (& mutex);
-}
-
-static void about (void)
-{
-    audgui_simple_message (& about_win, GTK_MESSAGE_INFO,
-     _("About LADSPA Host"), "LADSPA Host for Audacious\n"
-     "Copyright 2011 John Lindgren\n\n"
-     "Redistribution and use in source and binary forms, with or without "
-     "modification, are permitted provided that the following conditions are "
-     "met:\n\n"
-     "1. Redistributions of source code must retain the above copyright "
-     "notice, this list of conditions, and the following disclaimer.\n\n"
-     "2. Redistributions in binary form must reproduce the above copyright "
-     "notice, this list of conditions, and the following disclaimer in the "
-     "documentation provided with the distribution.\n\n"
-     "This software is provided \"as is\" and without any warranty, express or "
-     "implied. In no event shall the authors be liable for any damages arising "
-     "from the use of this software.");
 }
 
 static void set_module_path (GtkEntry * entry)
@@ -526,7 +504,7 @@ static void configure_plugin (LoadedPlugin * loaded)
     {
         ControlData * control = index_get (plugin->controls, i);
 
-        GtkWidget * hbox = gtk_hbox_new (0, 6);
+        GtkWidget * hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
         gtk_box_pack_start ((GtkBox *) vbox, hbox, 0, 0, 0);
 
         if (control->is_toggle)
@@ -587,7 +565,7 @@ static void configure (void)
 
     GtkWidget * vbox = gtk_dialog_get_content_area ((GtkDialog *) config_win);
 
-    GtkWidget * hbox = gtk_hbox_new (0, 6);
+    GtkWidget * hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_box_pack_start ((GtkBox *) vbox, hbox, 0, 0, 0);
 
     GtkWidget * label = gtk_label_new (_("Module paths:"));
@@ -605,40 +583,42 @@ static void configure (void)
     GtkWidget * entry = gtk_entry_new ();
     gtk_box_pack_start ((GtkBox *) hbox, entry, 1, 1, 0);
 
-    hbox = gtk_hbox_new (0, 6);
+    hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_box_pack_start ((GtkBox *) vbox, hbox, 1, 1, 0);
 
-    GtkWidget * vbox2 = gtk_vbox_new (0, 6);
+    GtkWidget * vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
     gtk_box_pack_start ((GtkBox *) hbox, vbox2, 1, 1, 0);
 
     label = gtk_label_new (_("Available plugins:"));
     gtk_box_pack_start ((GtkBox *) vbox2, label, 0, 0, 0);
 
     GtkWidget * scrolled = gtk_scrolled_window_new (NULL, NULL);
+    gtk_scrolled_window_set_shadow_type ((GtkScrolledWindow *) scrolled, GTK_SHADOW_IN);
     gtk_box_pack_start ((GtkBox *) vbox2, scrolled, 1, 1, 0);
 
     plugin_list = create_plugin_list ();
     gtk_container_add ((GtkContainer *) scrolled, plugin_list);
 
-    GtkWidget * hbox2 = gtk_hbox_new (0, 6);
+    GtkWidget * hbox2 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_box_pack_start ((GtkBox *) vbox2, hbox2, 0, 0, 0);
 
     GtkWidget * enable_button = gtk_button_new_with_label (_("Enable"));
     gtk_box_pack_end ((GtkBox *) hbox2, enable_button, 0, 0, 0);
 
-    vbox2 = gtk_vbox_new (0, 6);
+    vbox2 = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
     gtk_box_pack_start ((GtkBox *) hbox, vbox2, 1, 1, 0);
 
     label = gtk_label_new (_("Enabled plugins:"));
     gtk_box_pack_start ((GtkBox *) vbox2, label, 0, 0, 0);
 
     scrolled = gtk_scrolled_window_new (NULL, NULL);
+    gtk_scrolled_window_set_shadow_type ((GtkScrolledWindow *) scrolled, GTK_SHADOW_IN);
     gtk_box_pack_start ((GtkBox *) vbox2, scrolled, 1, 1, 0);
 
     loaded_list = create_loaded_list ();
     gtk_container_add ((GtkContainer *) scrolled, loaded_list);
 
-    hbox2 = gtk_hbox_new (0, 6);
+    hbox2 = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
     gtk_box_pack_start ((GtkBox *) vbox2, hbox2, 0, 0, 0);
 
     GtkWidget * disable_button = gtk_button_new_with_label (_("Disable"));
@@ -662,12 +642,17 @@ static void configure (void)
     gtk_widget_show_all (config_win);
 }
 
+static const char about[] =
+ "LADSPA Host for Audacious\n"
+ "Copyright 2011 John Lindgren";
+
 AUD_EFFECT_PLUGIN
 (
-    .name = "LADSPA Host",
+    .name = N_("LADSPA Host"),
+    .domain = PACKAGE,
+    .about_text = about,
     .init = init,
     .cleanup = cleanup,
-    .about = about,
     .configure = configure,
     .start = ladspa_start,
     .process = ladspa_process,

@@ -22,7 +22,6 @@
 #include "config.h"
 
 #include <gtk/gtk.h>
-#include <audacious/gtk-compat.h>
 #include <audacious/plugin.h>
 #include <audacious/i18n.h>
 #include <libaudgui/libaudgui.h>
@@ -85,23 +84,9 @@ static void bs2b_process (gfloat * * data, gint * samples)
     bs2b_cross_feed_f (bs2b, * data, (* samples) / 2);
 }
 
-static void bs2b_flush (void)
-{
-}
-
 static void bs2b_finish (gfloat * * data, gint * samples)
 {
     bs2b_process (data, samples);
-}
-
-static gint bs2b_decoder_to_output_time (gint time)
-{
-    return time;
-}
-
-static gint bs2b_output_to_decoder_time (gint time)
-{
-    return time;
 }
 
 static void feed_value_changed(GtkRange *range, gpointer data)
@@ -149,25 +134,21 @@ static void configure (void)
     {
         GtkWidget *vbox, *hbox, *button;
 
-        config_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-        gtk_window_set_type_hint ((GtkWindow *) config_window,
-                GDK_WINDOW_TYPE_HINT_DIALOG);
+        config_window = gtk_dialog_new_with_buttons
+         (_("Bauer Stereophonic-to-Binaural Preferences"), NULL, 0,
+         GTK_STOCK_CLOSE, GTK_RESPONSE_CLOSE, NULL);
         gtk_window_set_resizable ((GtkWindow *) config_window, FALSE);
-        gtk_window_set_title ((GtkWindow *) config_window,
-                    _("Bauer stereophonic-to-binaural Preferences"));
-        gtk_container_set_border_width ((GtkContainer *) config_window, 6);
         g_signal_connect (config_window, "destroy", (GCallback)
                 gtk_widget_destroyed, & config_window);
 
-        vbox = gtk_vbox_new (FALSE, 6);
-        gtk_container_add ((GtkContainer *) config_window, vbox);
+        vbox = gtk_dialog_get_content_area ((GtkDialog *) config_window);
 
-        hbox = gtk_hbox_new (FALSE, 6);
+        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
         gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
 
         gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new(_("Feed level:")), TRUE, FALSE, 0);
 
-        feed_slider = gtk_hscale_new_with_range(BS2B_MINFEED, BS2B_MAXFEED, 1.0);
+        feed_slider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, BS2B_MINFEED, BS2B_MAXFEED, 1.0);
         gtk_range_set_value (GTK_RANGE(feed_slider), feed_level);
         gtk_widget_set_size_request (feed_slider, 200, -1);
         gtk_box_pack_start ((GtkBox *) hbox, feed_slider, FALSE, FALSE, 0);
@@ -176,12 +157,12 @@ static void configure (void)
         g_signal_connect (feed_slider, "format-value", (GCallback) feed_format_value,
                 NULL);
 
-        hbox = gtk_hbox_new (FALSE, 6);
+        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
         gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
 
         gtk_box_pack_start (GTK_BOX(hbox), gtk_label_new(_("Cut frequency:")), TRUE, FALSE, 0);
 
-        fcut_slider = gtk_hscale_new_with_range(BS2B_MINFCUT, BS2B_MAXFCUT, 1.0);
+        fcut_slider = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, BS2B_MINFCUT, BS2B_MAXFCUT, 1.0);
         gtk_range_set_value (GTK_RANGE(fcut_slider), fcut_level);
         gtk_widget_set_size_request (fcut_slider, 200, -1);
         gtk_box_pack_start ((GtkBox *) hbox, fcut_slider, FALSE, FALSE, 0);
@@ -190,7 +171,7 @@ static void configure (void)
         g_signal_connect (fcut_slider, "format-value", (GCallback) fcut_format_value,
                 NULL);
 
-        hbox = gtk_hbox_new (FALSE, 6);
+        hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
         gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
 
         gtk_box_pack_start ((GtkBox *) hbox, gtk_label_new(_("Presets:")), TRUE, FALSE, 0);
@@ -204,16 +185,7 @@ static void configure (void)
         button = preset_button("J. Meier", BS2B_JMEIER_CLEVEL);
         gtk_box_pack_start ((GtkBox *) hbox, button, TRUE, FALSE, 0);
 
-        hbox = gtk_hbox_new (FALSE, 6);
-        gtk_box_pack_start ((GtkBox *) vbox, hbox, FALSE, FALSE, 0);
-
-        button = gtk_button_new_from_stock (GTK_STOCK_CLOSE);
-        gtk_box_pack_end ((GtkBox *) hbox, button, FALSE, FALSE, 0);
-        gtk_widget_set_can_default (button, TRUE);
-        gtk_widget_grab_default (button);
-        g_signal_connect_swapped (button, "clicked", (GCallback)
-                gtk_widget_destroy, config_window);
-
+        g_signal_connect (config_window, "response", (GCallback) gtk_widget_destroy, NULL);
         audgui_destroy_on_escape (config_window);
 
         gtk_widget_show_all (vbox);
@@ -224,15 +196,13 @@ static void configure (void)
 
 AUD_EFFECT_PLUGIN
 (
-    .name = "Bauer stereophonic-to-binaural",
+    .name = N_("Bauer Stereophonic-to-Binaural (BS2B)"),
+    .domain = PACKAGE,
     .init = init,
     .cleanup = cleanup,
     .configure = configure,
     .start = bs2b_start,
     .process = bs2b_process,
-    .flush = bs2b_flush,
     .finish = bs2b_finish,
-    .decoder_to_output_time = bs2b_decoder_to_output_time,
-    .output_to_decoder_time = bs2b_output_to_decoder_time,
-    .preserves_format = TRUE,
+    .preserves_format = TRUE
 )
