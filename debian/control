@@ -4,7 +4,8 @@ Priority: optional
 Maintainer: Debian Multimedia Maintainers <pkg-multimedia-maintainers@lists.alioth.debian.org>
 Uploaders: Chris Taylor <ctaylor@debian.org>,
            Bilal Akhtar <bilalakhtar@ubuntu.com>,
-           Cyril Lavier <cyril.lavier@davromaniak.eu>
+           Cyril Lavier <cyril.lavier@davromaniak.eu>,
+           Alessio Treglia <alessio@debian.org>
 Build-Depends: audacious-dev (>= 3.3),
                autoconf,
                debhelper (>= 9),
