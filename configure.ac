@@ -5,7 +5,7 @@ dnl ***
 dnl Initialize
 dnl ==========
 AC_PREREQ([2.59])
-AC_INIT([audacious-plugins], [3.3.1])
+AC_INIT([audacious-plugins], [3.3.2])
 AC_COPYRIGHT([(C) 2005-2012 Audacious Team])
 
 AC_SUBST([PACKAGE], [AC_PACKAGE_TARNAME])
@@ -882,7 +882,7 @@ AC_ARG_ENABLE(filewriter_mp3,
 )
 
 if test "x$enable_filewriter_mp3" = "xyes"; then
-   AC_CHECK_LIB(mp3lame -lm, lame_get_id3v2_tag, [have_lame=yes], [have_lame=no])
+   AC_CHECK_LIB(mp3lame, lame_get_id3v2_tag, [have_lame=yes], [have_lame=no], [-lm])
    if test "x$have_lame" = "xyes"; then
       AC_DEFINE(FILEWRITER_MP3, 1, [Define if MP3 output part should be built])
 	  FILEWRITER_LIBS="$FILEWRITER_LIBS -lmp3lame"
