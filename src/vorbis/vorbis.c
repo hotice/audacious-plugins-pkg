@@ -30,7 +30,7 @@
 #define DEBUG*/
 
 #include <glib.h>
-
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -82,7 +82,7 @@ ov_callbacks vorbis_callbacks_stream = {
 
 static gint seek_value;
 static gboolean stop_flag = FALSE;
-static GMutex * seek_mutex = NULL;
+static pthread_mutex_t seek_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static gint
 vorbis_check_fd(const gchar *filename, VFSFile *stream)
@@ -350,11 +350,11 @@ static gboolean vorbis_play (InputPlayback * playback, const gchar * filename,
         if (stop_time >= 0 && playback->output->written_time () >= stop_time)
             goto DRAIN;
 
-        g_mutex_lock (seek_mutex);
+        pthread_mutex_lock (& seek_mutex);
 
         if (stop_flag)
         {
-            g_mutex_unlock (seek_mutex);
+            pthread_mutex_unlock (& seek_mutex);
             break;
         }
 
@@ -365,7 +365,7 @@ static gboolean vorbis_play (InputPlayback * playback, const gchar * filename,
             seek_value = -1;
         }
 
-        g_mutex_unlock (seek_mutex);
+        pthread_mutex_unlock (& seek_mutex);
 
         gint current_section = last_section;
         bytes = ov_read_float(&vf, &pcm, PCM_FRAMES, &current_section);
@@ -395,7 +395,8 @@ DRAIN:
             }
         }
 
-        if (current_section <= last_section) {
+        if (current_section != last_section)
+        {
             /*
              * The info struct is different in each section.  vf
              * holds them all for the given bitstream.  This
@@ -406,7 +407,8 @@ DRAIN:
             if (vi->channels > 2)
                 goto stop_processing;
 
-            if (vi->rate != samplerate || vi->channels != channels) {
+            if (vi->rate != samplerate || vi->channels != channels)
+            {
                 samplerate = vi->rate;
                 channels = vi->channels;
 
@@ -425,16 +427,16 @@ DRAIN:
 
 stop_processing:
 
-        if (current_section <= last_section)
+        if (current_section != last_section)
         {
             playback->set_params (playback, br, samplerate, channels);
             last_section = current_section;
         }
     } /* main loop */
 
-    g_mutex_lock (seek_mutex);
+    pthread_mutex_lock (& seek_mutex);
     stop_flag = TRUE;
-    g_mutex_unlock (seek_mutex);
+    pthread_mutex_unlock (& seek_mutex);
 
 play_cleanup:
 
@@ -445,7 +447,7 @@ play_cleanup:
 
 static void vorbis_stop (InputPlayback * playback)
 {
-    g_mutex_lock (seek_mutex);
+    pthread_mutex_lock (& seek_mutex);
 
     if (! stop_flag)
     {
@@ -453,22 +455,22 @@ static void vorbis_stop (InputPlayback * playback)
         playback->output->abort_write ();
     }
 
-    g_mutex_unlock (seek_mutex);
+    pthread_mutex_unlock (& seek_mutex);
 }
 
 static void vorbis_pause (InputPlayback * playback, gboolean pause)
 {
-    g_mutex_lock (seek_mutex);
+    pthread_mutex_lock (& seek_mutex);
 
     if (! stop_flag)
         playback->output->pause (pause);
 
-    g_mutex_unlock (seek_mutex);
+    pthread_mutex_unlock (& seek_mutex);
 }
 
 static void vorbis_mseek (InputPlayback * playback, gint time)
 {
-    g_mutex_lock (seek_mutex);
+    pthread_mutex_lock (& seek_mutex);
 
     if (! stop_flag)
     {
@@ -476,7 +478,7 @@ static void vorbis_mseek (InputPlayback * playback, gint time)
         playback->output->abort_write ();
     }
 
-    g_mutex_unlock (seek_mutex);
+    pthread_mutex_unlock (& seek_mutex);
 }
 
 static Tuple * get_song_tuple (const gchar * filename, VFSFile * file)
@@ -548,33 +550,21 @@ ERR:
     return FALSE;
 }
 
-static gboolean vorbis_init (void)
-{
-    seek_mutex = g_mutex_new();
-    return TRUE;
-}
-
-static void
-vorbis_cleanup(void)
-{
-    g_mutex_free(seek_mutex);
-}
-
 static const char vorbis_about[] =
- "Audacious Ogg Vorbis Decoder\n\n"
- "Based on the Xiph.org Foundation's Ogg Vorbis Plugin:\n"
- "http://www.xiph.org/\n\n"
- "Original code by:\n"
- "Tony Arcieri <bascule@inferno.tusculum.edu>\n\n"
- "Contributions from:\n"
- "Chris Montgomery <monty@xiph.org>\n"
- "Peter Alm <peter@xmms.org>\n"
- "Michael Smith <msmith@labyrinth.edu.au>\n"
- "Jack Moffitt <jack@icecast.org>\n"
- "Jorn Baayen <jorn@nl.linux.org>\n"
- "Håvard Kvålen <havardk@xmms.org>\n"
- "Gian-Carlo Pascutto <gcp@sjeng.org>\n"
- "Eugene Zagidullin <e.asphyx@gmail.com>";
+ N_("Audacious Ogg Vorbis Decoder\n\n"
+    "Based on the Xiph.org Foundation's Ogg Vorbis Plugin:\n"
+    "http://www.xiph.org/\n\n"
+    "Original code by:\n"
+    "Tony Arcieri <bascule@inferno.tusculum.edu>\n\n"
+    "Contributions from:\n"
+    "Chris Montgomery <monty@xiph.org>\n"
+    "Peter Alm <peter@xmms.org>\n"
+    "Michael Smith <msmith@labyrinth.edu.au>\n"
+    "Jack Moffitt <jack@icecast.org>\n"
+    "Jorn Baayen <jorn@nl.linux.org>\n"
+    "Håvard Kvålen <havardk@xmms.org>\n"
+    "Gian-Carlo Pascutto <gcp@sjeng.org>\n"
+    "Eugene Zagidullin <e.asphyx@gmail.com>");
 
 static const gchar *vorbis_fmts[] = { "ogg", "ogm", "oga", NULL };
 static const gchar * const mimes[] = {"application/ogg", NULL};
@@ -584,12 +574,10 @@ AUD_INPUT_PLUGIN
     .name = N_("Ogg Vorbis Decoder"),
     .domain = PACKAGE,
     .about_text = vorbis_about,
-    .init = vorbis_init,
     .play = vorbis_play,
     .stop = vorbis_stop,
     .pause = vorbis_pause,
     .mseek = vorbis_mseek,
-    .cleanup = vorbis_cleanup,
     .probe_for_tuple = get_song_tuple,
     .get_song_image = get_song_image,
     .update_song_tuple = vorbis_update_song_tuple,

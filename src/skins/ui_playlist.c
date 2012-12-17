@@ -41,6 +41,7 @@
 #include "config.h"
 #include "dnd.h"
 #include "drag-handle.h"
+#include "plugin.h"
 #include "skins_cfg.h"
 #include "ui_main.h"
 #include "ui_manager.h"
@@ -61,8 +62,6 @@ gint active_playlist;
 gchar * active_title;
 glong active_length;
 GtkWidget * playlistwin, * playlistwin_list, * playlistwin_sinfo;
-
-static GMutex *resize_mutex = NULL;
 
 static GtkWidget *playlistwin_shade, *playlistwin_close;
 static GtkWidget *playlistwin_shaded_shade, *playlistwin_shaded_close;
@@ -431,8 +430,6 @@ static void playlistwin_resize (gint w, gint h)
     config.playlist_width = w = tx;
     config.playlist_height = h = ty;
 
-    g_mutex_lock(resize_mutex);
-
     ui_skinned_playlist_resize (playlistwin_list, w - 31, h - 58);
     window_move_widget (playlistwin, FALSE, playlistwin_slider, w - 15, 20);
     ui_skinned_playlist_slider_resize (playlistwin_slider, h - 58);
@@ -465,8 +462,6 @@ static void playlistwin_resize (gint w, gint h)
     window_move_widget (playlistwin, FALSE, button_sel, 68, h - 29);
     window_move_widget (playlistwin, FALSE, button_misc, 100, h - 29);
     window_move_widget (playlistwin, FALSE, button_list, w - 46, h - 29);
-
-    g_mutex_unlock(resize_mutex);
 }
 
 static void
@@ -507,12 +502,6 @@ playlistwin_press(GtkWidget * widget,
         ui_popup_menu_show(UI_MENU_PLAYLIST, event->x_root, event->y_root,
          FALSE, FALSE, 3, event->time);
 
-    return TRUE;
-}
-
-static gboolean playlistwin_delete(GtkWidget *widget, void *data)
-{
-    aud_drct_quit ();
     return TRUE;
 }
 
@@ -761,27 +750,18 @@ playlistwin_create_window(void)
                           GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
                           GDK_SCROLL_MASK | GDK_VISIBILITY_NOTIFY_MASK);
 
-    g_signal_connect(playlistwin, "delete_event",
-                     G_CALLBACK(playlistwin_delete), NULL);
-    g_signal_connect(playlistwin, "button_press_event",
-                     G_CALLBACK(playlistwin_press), NULL);
-    g_signal_connect(playlistwin, "scroll_event",
-                     G_CALLBACK(playlistwin_scrolled), NULL);
+    g_signal_connect (playlistwin, "delete-event", (GCallback) handle_window_close, NULL);
+    g_signal_connect (playlistwin, "button-press-event", (GCallback) playlistwin_press, NULL);
+    g_signal_connect (playlistwin, "scroll-event", (GCallback) playlistwin_scrolled, NULL);
+    g_signal_connect (playlistwin, "key-press-event", (GCallback) mainwin_keypress, NULL);
 
-    drag_dest_set(playlistwin);
-
+    drag_dest_set (playlistwin);
     drop_position = -1;
-    g_signal_connect ((GObject *) playlistwin, "drag-motion", (GCallback)
-     drag_motion, 0);
-    g_signal_connect ((GObject *) playlistwin, "drag-leave", (GCallback)
-     drag_leave, 0);
-    g_signal_connect ((GObject *) playlistwin, "drag-drop", (GCallback)
-     drag_drop, 0);
-    g_signal_connect ((GObject *) playlistwin, "drag-data-received", (GCallback)
-     drag_data_received, 0);
 
-    g_signal_connect ((GObject *) playlistwin, "key-press-event", (GCallback)
-     mainwin_keypress, 0);
+    g_signal_connect (playlistwin, "drag-motion", (GCallback) drag_motion, NULL);
+    g_signal_connect (playlistwin, "drag-leave", (GCallback) drag_leave, NULL);
+    g_signal_connect (playlistwin, "drag-drop", (GCallback) drag_drop, NULL);
+    g_signal_connect (playlistwin, "drag-data-received", (GCallback) drag_data_received, NULL);
 }
 
 static void get_title (void)
@@ -846,7 +826,6 @@ playlistwin_create(void)
     active_title = NULL;
     get_title ();
 
-    resize_mutex = g_mutex_new();
     playlistwin_create_window();
 
     playlistwin_create_widgets();
@@ -876,8 +855,6 @@ void playlistwin_unhook (void)
     hook_dissociate ("playlist update", update_cb);
     g_free (active_title);
     active_title = NULL;
-    g_mutex_free (resize_mutex);
-    resize_mutex = NULL;
 }
 
 static void playlistwin_real_show (gboolean show)

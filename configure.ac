@@ -5,7 +5,7 @@ dnl ***
 dnl Initialize
 dnl ==========
 AC_PREREQ([2.59])
-AC_INIT([audacious-plugins], [3.3.2])
+AC_INIT([audacious-plugins], [3.3.3])
 AC_COPYRIGHT([(C) 2005-2012 Audacious Team])
 
 AC_SUBST([PACKAGE], [AC_PACKAGE_TARNAME])
@@ -24,7 +24,7 @@ BUILDSYS_SHARED_LIB
 
 dnl Headers and functions
 dnl =====================
-AC_CHECK_FUNCS([fcntl fsync mkdtemp])
+AC_CHECK_FUNCS([mkdtemp])
 
 dnl gettext
 dnl =======
