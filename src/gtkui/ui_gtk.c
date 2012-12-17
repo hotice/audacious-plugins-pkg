@@ -296,13 +296,13 @@ static void do_seek (gint time)
     }
 }
 
-static gboolean ui_slider_change_value_cb(GtkRange * range, GtkScrollType scroll)
+static gboolean ui_slider_change_value_cb (GtkRange * range,
+ GtkScrollType scroll, gdouble value)
 {
-    gint value = gtk_range_get_value (range);
     set_time_label (value, aud_drct_get_length ());
 
-    if (!slider_is_moving)
-        do_seek (gtk_range_get_value (range));
+    if (! slider_is_moving)
+        do_seek (value);
 
     return FALSE;
 }
@@ -737,6 +737,7 @@ static gboolean init (void)
     gtk_container_add ((GtkContainer *) boxitem1, box1);
 
     slider = gtk_scale_new (GTK_ORIENTATION_HORIZONTAL, NULL);
+    gtk_range_set_increments ((GtkRange *) slider, 5000, 5000);
     gtk_scale_set_draw_value(GTK_SCALE(slider), FALSE);
     gtk_widget_set_size_request(slider, 120, -1);
     gtk_widget_set_valign (slider, GTK_ALIGN_CENTER);

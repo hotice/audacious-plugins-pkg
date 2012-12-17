@@ -23,14 +23,13 @@ void console_seek(InputPlayback *data, gint time);
 void console_stop(InputPlayback *playback);
 void console_pause(InputPlayback * playback, gboolean pause);
 gboolean console_init (void);
-void console_cleanup(void);
 
 static const char console_about[] =
- "Console music decoder engine based on Game_Music_Emu 0.5.2\n"
- "Supported formats: AY, GBS, GYM, HES, KSS, NSF, NSFE, SAP, SPC, VGM, VGZ\n\n"
- "Audacious plugin by:\n"
- "William Pitcock <nenolod@dereferenced.org>\n"
- "Shay Green <gblargg@gmail.com>";
+ N_("Console music decoder engine based on Game_Music_Emu 0.5.2\n"
+    "Supported formats: AY, GBS, GYM, HES, KSS, NSF, NSFE, SAP, SPC, VGM, VGZ\n\n"
+    "Audacious plugin by:\n"
+    "William Pitcock <nenolod@dereferenced.org>\n"
+    "Shay Green <gblargg@gmail.com>");
 
 static const gchar *gme_fmts[] = {
     "ay", "gbs", "gym",
@@ -45,7 +44,6 @@ AUD_INPUT_PLUGIN
     .domain = PACKAGE,
     .about_text = console_about,
     .init = console_init,
-    .cleanup = console_cleanup,
     .configure = console_cfg_ui,
     .play = console_play,
     .stop = console_stop,

@@ -65,6 +65,9 @@ static void * unix_fopen (const char * uri, const char * mode)
         return NULL;
     }
 
+#ifdef O_CLOEXEC
+    mode_flag |= O_CLOEXEC;
+#endif
 #ifdef _WIN32
     mode_flag |= O_BINARY;
 #endif
@@ -75,8 +78,7 @@ static void * unix_fopen (const char * uri, const char * mode)
 
     if (mode_flag & O_CREAT)
 #ifdef S_IRGRP
-        handle = open (filename, mode_flag, S_IRUSR | S_IWUSR | S_IRGRP |
-         S_IROTH);
+        handle = open (filename, mode_flag, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 #else
         handle = open (filename, mode_flag, S_IRUSR | S_IWUSR);
 #endif
@@ -90,10 +92,6 @@ static void * unix_fopen (const char * uri, const char * mode)
         return NULL;
     }
 
-#ifdef HAVE_FCNTL
-    fcntl (handle, F_SETFD, FD_CLOEXEC);
-#endif
-
     free (filename);
     return INT_TO_POINTER (handle);
 }
@@ -102,14 +100,6 @@ static int unix_fclose (VFSFile * file)
 {
     int handle = POINTER_TO_INT (vfs_get_handle (file));
     int result = 0;
-
-#ifdef HAVE_FSYNC
-    if (fsync (handle) < 0)
-    {
-        unix_error ("fsync failed: %s.", strerror (errno));
-        result = -1;
-    }
-#endif
 
     if (close (handle) < 0)
     {
@@ -253,32 +243,32 @@ static int64_t unix_fsize (VFSFile * file)
 }
 
 static const char unix_about[] =
- "File I/O Plugin for Audacious\n"
- "Copyright 2009-2012 John Lindgren\n\n"
- "THIS PLUGIN IS REQUIRED.  DO NOT DISABLE IT.";
+ N_("File I/O Plugin for Audacious\n"
+    "Copyright 2009-2012 John Lindgren\n\n"
+    "THIS PLUGIN IS REQUIRED.  DO NOT DISABLE IT.");
 
 static const char * const unix_schemes[] = {"file", NULL};
 
 static VFSConstructor constructor = {
- .vfs_fopen_impl = unix_fopen,
- .vfs_fclose_impl = unix_fclose,
- .vfs_fread_impl = unix_fread,
- .vfs_fwrite_impl = unix_fwrite,
- .vfs_getc_impl = unix_getc,
- .vfs_ungetc_impl = unix_ungetc,
- .vfs_fseek_impl = unix_fseek,
- .vfs_rewind_impl = unix_rewind,
- .vfs_ftell_impl = unix_ftell,
- .vfs_feof_impl = unix_feof,
- .vfs_ftruncate_impl = unix_ftruncate,
- .vfs_fsize_impl = unix_fsize
+    .vfs_fopen_impl = unix_fopen,
+    .vfs_fclose_impl = unix_fclose,
+    .vfs_fread_impl = unix_fread,
+    .vfs_fwrite_impl = unix_fwrite,
+    .vfs_getc_impl = unix_getc,
+    .vfs_ungetc_impl = unix_ungetc,
+    .vfs_fseek_impl = unix_fseek,
+    .vfs_rewind_impl = unix_rewind,
+    .vfs_ftell_impl = unix_ftell,
+    .vfs_feof_impl = unix_feof,
+    .vfs_ftruncate_impl = unix_ftruncate,
+    .vfs_fsize_impl = unix_fsize
 };
 
 AUD_TRANSPORT_PLUGIN
 (
- .name = N_("File I/O Plugin"),
- .domain = PACKAGE,
- .about_text = unix_about,
- .schemes = unix_schemes,
- .vtable = & constructor
+    .name = N_("File I/O Plugin"),
+    .domain = PACKAGE,
+    .about_text = unix_about,
+    .schemes = unix_schemes,
+    .vtable = & constructor
 )
