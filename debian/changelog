@@ -1,3 +1,10 @@
+audacious-plugins (3.3.4-1) UNRELEASED; urgency=low
+
+  * New upstream release.
+  * Bump Standards.
+
+ -- Alessio Treglia <alessio@debian.org>  Tue, 05 Feb 2013 08:29:41 +0000
+
 audacious-plugins (3.3.3-1) experimental; urgency=low
 
   * New upstream release.
