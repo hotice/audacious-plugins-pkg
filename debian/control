@@ -53,7 +53,7 @@ Build-Depends:
  libxcomposite-dev,
  oss4-dev
 Homepage: http://www.audacious-media-player.org/
-Standards-Version: 3.9.3
+Standards-Version: 3.9.4
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-multimedia/audacious-plugins.git
 Vcs-Git: git://anonscm.debian.org/pkg-multimedia/audacious-plugins.git
 
