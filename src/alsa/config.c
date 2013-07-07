@@ -26,8 +26,6 @@
 #include <libaudgui/libaudgui-gtk.h>
 
 #include "alsa.h"
-#include "config.h"
-
 char * alsa_config_pcm = NULL, * alsa_config_mixer = NULL,
  * alsa_config_mixer_element = NULL;
 int alsa_config_drain_workaround = 1;
@@ -207,6 +205,10 @@ static void pcm_card_found (int card, const char * description)
 
 static void pcm_list_fill (void)
 {
+    if (pcm_list)
+        return;
+
+    pcm_list = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_STRING);
     pcm_found ("default", _("Default PCM device"));
     get_defined_devices ("pcm", 0, pcm_found);
     get_cards (pcm_card_found);
@@ -232,6 +234,10 @@ static void mixer_card_found (int card, const char * description)
 
 static void mixer_list_fill (void)
 {
+    if (mixer_list)
+        return;
+
+    mixer_list = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_STRING);
     mixer_found ("default", _("Default mixer device"));
     get_defined_devices ("ctl", 0, mixer_found);
     get_cards (mixer_card_found);
@@ -273,33 +279,22 @@ static void mixer_element_found (const char * name)
 
 static void mixer_element_list_fill (void)
 {
+    if (mixer_element_list)
+        return;
+
+    mixer_element_list = gtk_list_store_new (1, G_TYPE_STRING);
     get_mixer_elements (alsa_config_mixer, mixer_element_found);
 }
 
-static void fill_lists (void)
+static void mixer_element_list_refill (void)
 {
-    if (! pcm_list)
-    {
-        pcm_list = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_STRING);
-        pcm_list_fill ();
-    }
-
-    if (! mixer_list)
-    {
-        mixer_list = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_STRING);
-        mixer_list_fill ();
-    }
-
-    if (! mixer_element_list)
-    {
-        mixer_element_list = gtk_list_store_new (1, G_TYPE_STRING);
-        mixer_element_list_fill ();
-    }
+    gtk_list_store_clear (mixer_element_list);
+    get_mixer_elements (alsa_config_mixer, mixer_element_found);
 }
 
 static void guess_mixer_element (void)
 {
-    fill_lists ();
+    mixer_element_list_fill ();
 
     static const char * guesses[] = {"Master", "PCM", "Wave"};
     for (int count = 0; count < G_N_ELEMENTS (guesses); count ++)
@@ -475,8 +470,7 @@ static void mixer_changed (GtkComboBox * combo, void * unused)
     free (alsa_config_mixer);
     alsa_config_mixer = strdup (new);
 
-    gtk_list_store_clear (mixer_element_list);
-    mixer_element_list_fill ();
+    mixer_element_list_refill ();
     guess_mixer_element ();
     combo_select_by_text (mixer_element_combo, mixer_element_list,
      alsa_config_mixer_element);
@@ -526,19 +520,22 @@ static void connect_callbacks (void)
 
 void alsa_configure (void)
 {
-    alsa_soft_init ();
-
     if (window != NULL)
     {
         gtk_window_present ((GtkWindow *) window);
         return;
     }
 
-    fill_lists ();
+    pcm_list_fill ();
+    mixer_list_fill ();
+    mixer_element_list_fill ();
+
     create_window ();
+
     combo_select_by_text (pcm_combo, pcm_list, alsa_config_pcm);
     combo_select_by_text (mixer_combo, mixer_list, alsa_config_mixer);
     combo_select_by_text (mixer_element_combo, mixer_element_list,
      alsa_config_mixer_element);
+
     connect_callbacks ();
 }

@@ -28,6 +28,7 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -39,7 +40,6 @@
 #include <libaudcore/hook.h>
 #include <libaudcore/vfs.h>
 
-#include "config.h"
 #include "ui_main.h"
 #include "util.h"
 

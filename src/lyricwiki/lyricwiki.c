@@ -37,8 +37,6 @@
 #include <libaudcore/hook.h>
 #include <libaudcore/vfs_async.h>
 
-#include "config.h"
-
 /* all strings in this struct are pooled */
 typedef struct {
 	char *filename; /* of song file */
@@ -109,11 +107,11 @@ give_up:
 				GMatchInfo *match_info;
 				GRegex *reg;
 
-				reg = g_regex_new("<(lyrics?)>(.*)</\\1>", (G_REGEX_MULTILINE | G_REGEX_DOTALL | G_REGEX_UNGREEDY), 0, NULL);
+				reg = g_regex_new("<(lyrics?)>[[:space:]]*(.*?)[[:space:]]*</\\1>", (G_REGEX_MULTILINE | G_REGEX_DOTALL), 0, NULL);
 				g_regex_match(reg, (gchar *) lyric, G_REGEX_MATCH_NEWLINE_ANY, &match_info);
 
 				ret = g_match_info_fetch(match_info, 2);
-				if (!g_utf8_collate(ret, "\n<!-- PUT LYRICS HERE (and delete this entire line) -->\n"))
+				if (!g_utf8_collate(ret, "<!-- PUT LYRICS HERE (and delete this entire line) -->"))
 				{
 					free(ret);
 					ret = strdup(_("No lyrics available"));
@@ -138,6 +136,16 @@ static char *scrape_uri_from_lyricwiki_search_result(const char *buf, int64_t le
 	gchar *uri = NULL;
 
 	/*
+	 * workaround buggy lyricwiki search output where it cuts the lyrics
+	 * halfway through the UTF-8 symbol resulting in invalid XML.
+	 */
+	GRegex *reg;
+
+	reg = g_regex_new("<(lyrics?)>.*</\\1>", (G_REGEX_MULTILINE | G_REGEX_DOTALL | G_REGEX_UNGREEDY), 0, NULL);
+	gchar *newbuf = g_regex_replace_literal(reg, buf, len, 0, "", G_REGEX_MATCH_NEWLINE_ANY, NULL);
+	g_regex_unref(reg);
+
+	/*
 	 * temporarily set our error-handling functor to our suppression function,
 	 * but we have to set it back because other components of Audacious depend
 	 * on libxml and we don't want to step on their code paths.
@@ -147,7 +155,7 @@ static char *scrape_uri_from_lyricwiki_search_result(const char *buf, int64_t le
 	 * parsing and hope for the best.
 	 */
 	xmlSetGenericErrorFunc(NULL, libxml_error_handler);
-	doc = xmlParseMemory(buf, (int) len);
+	doc = xmlParseMemory(newbuf, strlen(newbuf));
 	xmlSetGenericErrorFunc(NULL, NULL);
 
 	if (doc != NULL)
@@ -177,13 +185,23 @@ static char *scrape_uri_from_lyricwiki_search_result(const char *buf, int64_t le
 		xmlFreeDoc(doc);
 	}
 
+	g_free(newbuf);
+
 	return uri;
 }
 
 static void update_lyrics_window(const char *title, const char *artist, const char *lyrics);
 
-static bool_t get_lyrics_step_3(void *buf, int64_t len, void *unused)
+static bool_t get_lyrics_step_3(void *buf, int64_t len, void *requri)
 {
+	if (strcmp(state.uri, requri))
+	{
+		free(buf);
+		str_unref(requri);
+		return FALSE;
+	}
+	str_unref(requri);
+
 	if(!len)
 	{
 		SPRINTF(error, _("Unable to fetch %s"), state.uri);
@@ -208,8 +226,16 @@ static bool_t get_lyrics_step_3(void *buf, int64_t len, void *unused)
 	return TRUE;
 }
 
-static bool_t get_lyrics_step_2(void *buf, int64_t len, void *unused)
+static bool_t get_lyrics_step_2(void *buf, int64_t len, void *requri)
 {
+	if (strcmp(state.uri, requri))
+	{
+		free(buf);
+		str_unref(requri);
+		return FALSE;
+	}
+	str_unref(requri);
+
 	if(!len)
 	{
 		SPRINTF(error, _("Unable to fetch %s"), state.uri);
@@ -232,7 +258,7 @@ static bool_t get_lyrics_step_2(void *buf, int64_t len, void *unused)
 	state.uri = uri;
 
 	update_lyrics_window(state.title, state.artist, _("Looking for lyrics ..."));
-	vfs_async_file_get_contents(uri, get_lyrics_step_3, NULL);
+	vfs_async_file_get_contents(uri, get_lyrics_step_3, str_ref(state.uri));
 
 	free(buf);
 	return TRUE;
@@ -256,7 +282,7 @@ static void get_lyrics_step_1(void)
 	 "artist=%s&song=%s&fmt=xml", artist_buf, title_buf);
 
 	update_lyrics_window(state.title, state.artist, _("Connecting to lyrics.wikia.com ..."));
-	vfs_async_file_get_contents(state.uri, get_lyrics_step_2, NULL);
+	vfs_async_file_get_contents(state.uri, get_lyrics_step_2, str_ref(state.uri));
 }
 
 static GtkWidget *scrollview, *vbox;
@@ -306,19 +332,17 @@ static void update_lyrics_window(const char *title, const char *artist, const ch
 	gtk_text_buffer_get_start_iter(GTK_TEXT_BUFFER(textbuffer), &iter);
 
 	gtk_text_buffer_insert_with_tags_by_name(GTK_TEXT_BUFFER(textbuffer), &iter,
-			title, strlen(title), "weight_bold", "size_x_large", NULL);
-
-	gtk_text_buffer_insert(GTK_TEXT_BUFFER(textbuffer), &iter, "\n", 1);
+			title, -1, "weight_bold", "size_x_large", NULL);
 
 	if (artist != NULL)
 	{
+		gtk_text_buffer_insert(GTK_TEXT_BUFFER(textbuffer), &iter, "\n", -1);
 		gtk_text_buffer_insert_with_tags_by_name(GTK_TEXT_BUFFER(textbuffer),
-				&iter, artist, strlen(artist), "style_italic", NULL);
-
-		gtk_text_buffer_insert(GTK_TEXT_BUFFER(textbuffer), &iter, "\n", 1);
+				&iter, artist, -1, "style_italic", NULL);
 	}
 
-	gtk_text_buffer_insert(GTK_TEXT_BUFFER(textbuffer), &iter, lyrics, strlen(lyrics));
+	gtk_text_buffer_insert(GTK_TEXT_BUFFER(textbuffer), &iter, "\n\n", -1);
+	gtk_text_buffer_insert(GTK_TEXT_BUFFER(textbuffer), &iter, lyrics, -1);
 
 	gtk_text_buffer_get_start_iter(GTK_TEXT_BUFFER(textbuffer), &iter);
 	gtk_text_view_scroll_to_iter(GTK_TEXT_VIEW(textview), &iter, 0, TRUE, 0, 0);

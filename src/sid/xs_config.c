@@ -23,10 +23,15 @@
 
 #include "xs_config.h"
 
+#include <string.h>
+
+#include "xmms-sid.h"
+#include "xs_support.h"
+
 /*
  * Configuration specific stuff
  */
-XS_MUTEX(xs_cfg);
+pthread_mutex_t xs_cfg_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct xs_cfg_t xs_cfg;
 
 /* Reset/initialize the configuration
@@ -34,14 +39,12 @@ struct xs_cfg_t xs_cfg;
 void xs_init_configuration(void)
 {
     /* Lock configuration mutex */
-    XSDEBUG("initializing configuration ...\n");
-    XS_MUTEX_LOCK(xs_cfg);
+    pthread_mutex_lock(&xs_cfg_mutex);
 
     memset(&xs_cfg, 0, sizeof(xs_cfg));
 
     /* Initialize values with sensible defaults */
-    xs_cfg.audioBitsPerSample = XS_RES_16BIT;
-    xs_cfg.audioChannels = XS_CHN_MONO;
+    xs_cfg.audioChannels = XS_CHN_STEREO;
     xs_cfg.audioFrequency = XS_AUDIO_FREQ;
 
     xs_cfg.mos8580 = FALSE;
@@ -49,42 +52,9 @@ void xs_init_configuration(void)
 
     /* Filter values */
     xs_cfg.emulateFilters = TRUE;
-    xs_cfg.sid1Filter.fs = XS_SIDPLAY1_FS;
-    xs_cfg.sid1Filter.fm = XS_SIDPLAY1_FM;
-    xs_cfg.sid1Filter.ft = XS_SIDPLAY1_FT;
-
-#ifdef HAVE_SIDPLAY2
-    xs_cfg.playerEngine = XS_ENG_SIDPLAY2;
-    xs_cfg.memoryMode = XS_MPU_REAL;
-#else
-#ifdef HAVE_SIDPLAY1
-    xs_cfg.playerEngine = XS_ENG_SIDPLAY1;
-    xs_cfg.memoryMode = XS_MPU_BANK_SWITCHING;
-#else
-#error This should not happen! No emulator engines configured in!
-#endif
-#endif
 
     xs_cfg.clockSpeed = XS_CLOCK_PAL;
     xs_cfg.forceSpeed = FALSE;
-
-    xs_cfg.sid2OptLevel = 0;
-    xs_cfg.sid2NFilterPresets = 0;
-
-#ifdef HAVE_RESID_BUILDER
-    xs_cfg.sid2Builder = XS_BLD_RESID;
-#else
-#ifdef HAVE_HARDSID_BUILDER
-    xs_cfg.sid2Builder = XS_BLD_HARDSID;
-#else
-#ifdef HAVE_SIDPLAY2
-#error This should not happen! No supported SIDPlay2 builders configured in!
-#endif
-#endif
-#endif
-
-    xs_cfg.oversampleEnable = FALSE;
-    xs_cfg.oversampleFactor = XS_MIN_OVERSAMPLE;
 
     xs_cfg.playMaxTimeEnable = FALSE;
     xs_cfg.playMaxTimeUnknown = FALSE;
@@ -100,28 +70,10 @@ void xs_init_configuration(void)
     xs_pstrcpy(&xs_cfg.stilDBPath, "~/C64Music/DOCUMENTS/STIL.txt");
     xs_pstrcpy(&xs_cfg.hvscPath, "~/C64Music");
 
-#if defined(HAVE_SONG_POSITION) && !defined(AUDACIOUS_PLUGIN)
-    xs_cfg.subsongControl = XS_SSC_PATCH;
-#else
-    xs_cfg.subsongControl = XS_SSC_POPUP;
-#endif
-    xs_cfg.detectMagic = FALSE;
-
-#ifndef HAVE_XMMSEXTRA
-    xs_cfg.titleOverride = TRUE;
-#endif
-
-#ifdef AUDACIOUS_PLUGIN
-    xs_pstrcpy(&xs_cfg.titleFormat, "${artist} - ${title} (${copyright}) <${subsong-id}/${subsong-num}> [${sid-model}/${sid-speed}]");
-#else
-    xs_pstrcpy(&xs_cfg.titleFormat, "%p - %t (%c) <%n/%N> [%m/%C]");
-#endif
-
     xs_cfg.subAutoEnable = TRUE;
     xs_cfg.subAutoMinOnly = TRUE;
     xs_cfg.subAutoMinTime = 15;
 
-
     /* Unlock the configuration */
-    XS_MUTEX_UNLOCK(xs_cfg);
+    pthread_mutex_unlock(&xs_cfg_mutex);
 }

@@ -28,7 +28,6 @@
 #include <audacious/preferences.h>
 #include <libaudcore/audstrings.h>
 
-#include "config.h"
 #include "dnd.h"
 #include "skins_cfg.h"
 #include "ui_equalizer.h"
@@ -68,7 +67,6 @@ static const gchar * const skins_defaults[] = {
  "equalizer_x", "20",
  "equalizer_y", "136",
  "player_shaded", "FALSE",
- "player_visible", "TRUE",
  "player_x", "20",
  "player_y", "20",
  "playlist_shaded", "FALSE",
@@ -102,7 +100,6 @@ static const skins_cfg_boolent skins_boolents[] = {
  {"always_on_top", & config.always_on_top},
  {"equalizer_shaded", & config.equalizer_shaded},
  {"equalizer_visible", & config.equalizer_visible},
- {"player_visible", & config.player_visible},
  {"player_shaded", & config.player_shaded},
  {"playlist_shaded", & config.playlist_shaded},
  {"playlist_visible", & config.playlist_visible},

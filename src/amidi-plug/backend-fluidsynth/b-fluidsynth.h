@@ -21,33 +21,30 @@
 #ifndef _B_FLUIDSYNTH_H
 #define _B_FLUIDSYNTH_H 1
 
+#include <glib.h>
 #include <fluidsynth.h>
-#include <math.h>
+
 #include "../i_common.h"
-#include "../i_configure_file.h"
-#include "../pcfg/i_pcfg.h"
 #include "../i_midievent.h"
 
 
 typedef struct
 {
-  fluid_settings_t * settings;
-  fluid_synth_t * synth;
+    fluid_settings_t * settings;
+    fluid_synth_t * synth;
 
-  GArray *soundfont_ids;
+    GArray * soundfont_ids;
 
-  gint ppq;
-  gdouble cur_microsec_per_tick;
-  guint tick_offset;
+    int ppq;
+    gdouble cur_microsec_per_tick;
+    unsigned tick_offset;
 
-  guint sample_rate;
+    unsigned sample_rate;
 }
 sequencer_client_t;
 
 
-void i_sleep( guint );
-void i_soundfont_load( void );
-void i_cfg_read( i_cfg_get_file_cb );
-void i_cfg_free( void );
+void i_sleep (unsigned);
+void i_soundfont_load (void);
 
 #endif /* !_B_FLUIDSYNTH_H */

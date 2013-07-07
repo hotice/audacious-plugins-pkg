@@ -25,7 +25,6 @@
  *
  */
 
-#include "config.h"
 /*#define AUD_DEBUG
 #define DEBUG*/
 
@@ -330,6 +329,8 @@ static gboolean vorbis_play (InputPlayback * playback, const gchar * filename,
         goto play_cleanup;
     }
 
+    playback->output->flush (start_time);
+
     if (pause)
         playback->output->pause (TRUE);
 
@@ -585,6 +586,6 @@ AUD_INPUT_PLUGIN
     .extensions = vorbis_fmts,
     .mimes = mimes,
 
-    /* Vorbis probing is a bit slow; check for MP3 and AAC first. -jlindgren */
+    /* medium-high priority (a little slow) */
     .priority = 2,
 )

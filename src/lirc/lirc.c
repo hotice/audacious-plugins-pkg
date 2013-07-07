@@ -26,8 +26,6 @@
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
-#include "config.h"
-
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -35,6 +33,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <strings.h>
 
 #include <glib.h>
 #include <lirc/lirc_client.h>
@@ -161,24 +160,13 @@ static gboolean lirc_input_callback (GIOChannel * source, GIOCondition condition
         while ((ret = lirc_code2char (config, code, &c)) == 0 && c != NULL)
         {
             if (strcasecmp ("PLAY", c) == 0)
-            {
                 aud_drct_play ();
-            }
             else if (strcasecmp ("STOP", c) == 0)
-            {
                 aud_drct_stop ();
-            }
             else if (strcasecmp ("PAUSE", c) == 0)
-            {
                 aud_drct_pause ();
-            }
             else if (strcasecmp ("PLAYPAUSE", c) == 0)
-            {
-                if (aud_drct_get_playing ())
-                    aud_drct_pause ();
-                else
-                    aud_drct_play ();
-            }
+                aud_drct_play_pause ();
             else if (strncasecmp ("NEXT", c, 4) == 0)
             {
                 ptr = c + 4;
@@ -207,17 +195,10 @@ static gboolean lirc_input_callback (GIOChannel * source, GIOCondition condition
                     aud_drct_pl_prev ();
                 }
             }
-
             else if (strcasecmp ("SHUFFLE", c) == 0)
-            {
-                aud_set_bool (NULL, "shuffle",
-                              !aud_get_bool (NULL, "shuffle"));
-            }
+                aud_set_bool (NULL, "shuffle", ! aud_get_bool (NULL, "shuffle"));
             else if (strcasecmp ("REPEAT", c) == 0)
-            {
-                aud_set_bool (NULL, "repeat", !aud_get_bool (NULL, "repeat"));
-            }
-
+                aud_set_bool (NULL, "repeat", ! aud_get_bool (NULL, "repeat"));
             else if (strncasecmp ("FWD", c, 3) == 0)
             {
                 ptr = c + 3;

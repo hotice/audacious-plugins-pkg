@@ -25,11 +25,11 @@
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <audacious/playlist.h>
+#include <libaudcore/audstrings.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 #include <libaudgui/list.h>
 
-#include "config.h"
 #include "gtkui.h"
 #include "playlist_util.h"
 #include "ui_playlist_widget.h"
@@ -186,12 +186,16 @@ static void select_all (void * user, gboolean selected)
     aud_playlist_select_all (((PlaylistWidgetData *) user)->list, selected);
 }
 
+static void focus_change (void * user, gint row)
+{
+    aud_playlist_set_focus (((PlaylistWidgetData *) user)->list, row);
+}
+
 static void activate_row (void * user, gint row)
 {
     gint list = ((PlaylistWidgetData *) user)->list;
     aud_playlist_set_position (list, row);
-    aud_playlist_set_playing (list);
-    aud_drct_play ();
+    aud_drct_play_playlist (list);
 }
 
 static void right_click (void * user, GdkEventButton * event)
@@ -291,6 +295,7 @@ static const AudguiListCallbacks callbacks = {
  .get_selected = get_selected,
  .set_selected = set_selected,
  .select_all = select_all,
+ .focus_change = focus_change,
  .activate_row = activate_row,
  .right_click = right_click,
  .shift_rows = shift_rows,
@@ -428,25 +433,27 @@ void ui_playlist_widget_update (GtkWidget * widget, gint type, gint at,
     PlaylistWidgetData * data = audgui_list_get_user (widget);
     g_return_if_fail (data);
 
-    if (type >= PLAYLIST_UPDATE_STRUCTURE)
+    if (type == PLAYLIST_UPDATE_STRUCTURE)
     {
-        gint diff = aud_playlist_entry_count (data->list) -
-         audgui_list_row_count (widget);
+        gint old_entries = audgui_list_row_count (widget);
+        gint entries = aud_playlist_entry_count (data->list);
 
-        if (diff > 0)
-            audgui_list_insert_rows (widget, at, diff);
-        else if (diff < 0)
-            audgui_list_delete_rows (widget, at, -diff);
+        audgui_list_delete_rows (widget, at, old_entries - (entries - count));
+        audgui_list_insert_rows (widget, at, count);
 
-        audgui_list_set_highlight (widget, aud_playlist_get_position (data->list));
+        /* scroll to end of playlist if entries were added there
+           (but not if a newly added entry is playing) */
+        if (entries > old_entries && at + count == entries &&
+         aud_playlist_get_focus (data->list) < old_entries)
+            aud_playlist_set_focus (data->list, entries - 1);
 
         ui_playlist_widget_scroll (widget);
     }
-
-    if (type >= PLAYLIST_UPDATE_METADATA)
+    else if (type == PLAYLIST_UPDATE_METADATA)
         audgui_list_update_rows (widget, at, count);
 
     audgui_list_update_selection (widget, at, count);
+    audgui_list_set_focus (widget, aud_playlist_get_focus (data->list));
     update_queue (widget, data);
 }
 
@@ -471,4 +478,37 @@ void ui_playlist_widget_scroll (GtkWidget * widget)
         popup_trigger (data, row);
     else
         popup_hide (data);
+}
+
+void ui_playlist_widget_get_column_widths (GtkWidget * widget, char * * widths,
+ char * * expand)
+{
+    int w[pw_num_cols], ex[pw_num_cols];
+
+    for (int i = 0; i < pw_num_cols; i ++)
+    {
+        GtkTreeViewColumn * col = gtk_tree_view_get_column ((GtkTreeView *) widget, i);
+        w[i] = gtk_tree_view_column_get_fixed_width (col);
+        ex[i] = gtk_tree_view_column_get_expand (col);
+    }
+
+    * widths = int_array_to_string (w, pw_num_cols);
+    * expand = int_array_to_string (ex, pw_num_cols);
+}
+
+void ui_playlist_widget_set_column_widths (GtkWidget * widget,
+ const char * widths, const char * expand)
+{
+    int w[pw_num_cols], ex[pw_num_cols];
+
+    if (! string_to_int_array (widths, w, pw_num_cols) ||
+     ! string_to_int_array (expand, ex, pw_num_cols))
+        return;
+
+    for (int i = 0; i < pw_num_cols; i ++)
+    {
+        GtkTreeViewColumn * col = gtk_tree_view_get_column ((GtkTreeView *) widget, i);
+        gtk_tree_view_column_set_fixed_width (col, w[i]);
+        gtk_tree_view_column_set_expand (col, ex[i]);
+     }
 }

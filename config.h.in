@@ -37,9 +37,6 @@
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT
 
-/* Define if you have HardSID for libSIDPlay 2 */
-#undef HAVE_HARDSID_BUILDER
-
 /* Define if you have the iconv() function and it works. */
 #undef HAVE_ICONV
 
@@ -57,22 +54,6 @@
 
 /* Whether we have ne_set_connect_timeout */
 #undef HAVE_NE_SET_CONNECT_TIMEOUT
-
-/* Define if you have reSID for libSIDPlay 2 */
-#undef HAVE_RESID_BUILDER
-
-/* Define if you have and want to use libSIDPlay1 */
-#undef HAVE_SIDPLAY1
-
-/* Define if you have and want to use libSIDPlay2 */
-#undef HAVE_SIDPLAY2
-
-/* Define if using new libSIDPlay2 with COM-style API. */
-#undef HAVE_SIDPLAY2_COMI
-
-/* Define if using libSIDPlay+reSID with Antti Lankila's distortion patches.
-   */
-#undef HAVE_SIDPLAY2_DISTORTION
 
 /* Define to 1 if you have the <soundcard.h> header file. */
 #undef HAVE_SOUNDCARD_H
@@ -133,9 +114,6 @@
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
-
-/* Define if building with IPv6 support */
-#undef USE_IPV6
 
 /* Version number of package */
 #undef VERSION

@@ -2,6 +2,7 @@
  * osd.c
  *
  * Copyright (C) 2010 Maximilian Bogner <max@mbogner.de>
+ * Copyright (C) 2013 John Lindgren and Jean-Alexandre Anglès d'Auriac
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,61 +18,93 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-#include <audacious/debug.h>
-#include <libnotify/notify.h>
-
 #include "osd.h"
 
-NotifyNotification *notification = NULL;
+#include <libnotify/notify.h>
 
-gboolean osd_init() {
-    notification = NULL;
-    return notify_init ("Audacious");
+#include <audacious/i18n.h>
+#include <audacious/drct.h>
+#include <audacious/misc.h>
+
+static void show_cb (void)
+{
+    aud_interface_show (TRUE);
 }
 
-void osd_uninit (void)
+static void osd_setup (NotifyNotification *notification)
 {
+    bool_t resident = aud_get_bool ("notify", "resident");
+
+    notify_notification_set_hint (notification, "desktop-entry",
+     g_variant_new_string ("audacious"));
+
+    notify_notification_set_hint (notification, "action-icons", g_variant_new_boolean (TRUE));
+    notify_notification_set_hint (notification, "resident", g_variant_new_boolean (resident));
+    notify_notification_set_hint (notification, "transient", g_variant_new_boolean (! resident));
+
+    notify_notification_set_urgency (notification, NOTIFY_URGENCY_LOW);
+    notify_notification_set_timeout (notification, resident ?
+     NOTIFY_EXPIRES_NEVER : NOTIFY_EXPIRES_DEFAULT);
+}
+
+void osd_setup_buttons (NotifyNotification *notification)
+{
+    notify_notification_clear_actions (notification);
+
+    if (! aud_get_bool ("notify", "actions"))
+        return;
+
+    notify_notification_add_action (notification, "default", _("Show"),
+     NOTIFY_ACTION_CALLBACK (show_cb), NULL, NULL);
+
+    bool_t playing = aud_drct_get_playing ();
+    bool_t paused = aud_drct_get_paused ();
+
+    if (playing && ! paused)
+        notify_notification_add_action (notification, "media-playback-pause",
+         _("Pause"), NOTIFY_ACTION_CALLBACK (aud_drct_pause), NULL, NULL);
+    else
+        notify_notification_add_action (notification, "media-playback-start",
+         _("Play"), NOTIFY_ACTION_CALLBACK (aud_drct_play), NULL, NULL);
+
+    if (playing)
+        notify_notification_add_action (notification, "media-skip-forward",
+         _("Next"), NOTIFY_ACTION_CALLBACK (aud_drct_pl_next), NULL, NULL);
+}
+
+static NotifyNotification * notification = NULL;
+
+void osd_show (const char * title, const char * _message, const char * icon,
+ GdkPixbuf * pixbuf)
+{
+    char * message = g_markup_escape_text (_message, -1);
+
+    if (pixbuf)
+        icon = NULL;
+
     if (notification)
+        notify_notification_update (notification, title, message, icon);
+    else
     {
-        g_object_unref (notification);
-        notification = NULL;
+        notification = notify_notification_new (title, message, icon);
+        osd_setup (notification);
     }
 
-    notify_uninit();
-}
+    if (pixbuf)
+        notify_notification_set_image_from_pixbuf (notification, pixbuf);
 
-void osd_closed_handler(NotifyNotification *notification2, gpointer data) {
-    if(notification != NULL) {
-        g_object_unref(notification);
-        notification = NULL;
-        AUDDBG("notification unrefed!\n");
-    }
-}
-
-void osd_show (const gchar * title, const gchar * _message, const gchar * icon,
- GdkPixbuf * pb)
-{
-    gchar * message = g_markup_escape_text (_message, -1);
-    GError *error = NULL;
-
-    if(notification == NULL) {
-        notification = notify_notification_new(title, message, pb == NULL ? icon : NULL);
-        g_signal_connect(notification, "closed", G_CALLBACK(osd_closed_handler), NULL);
-        AUDDBG("new osd created! (notification=%p)\n", (void *) notification);
-    } else {
-        if(notify_notification_update(notification, title, message, pb == NULL ? icon : NULL)) {
-            AUDDBG("old osd updated! (notification=%p)\n", (void *) notification);
-        } else {
-            AUDDBG("could not update old osd! (notification=%p)\n", (void *) notification);
-        }
-    }
-
-    if(pb != NULL)
-        notify_notification_set_icon_from_pixbuf(notification, pb);
-
-    if(!notify_notification_show(notification, &error))
-        AUDDBG("%s!\n", error->message);
+    osd_setup_buttons (notification);
+    notify_notification_show (notification, NULL);
 
     g_free (message);
+}
+
+void osd_hide (void)
+{
+    if (! notification)
+        return;
+
+    notify_notification_close (notification, NULL);
+    g_object_unref (notification);
+    notification = NULL;
 }

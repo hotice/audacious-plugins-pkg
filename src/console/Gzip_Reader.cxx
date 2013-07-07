@@ -38,9 +38,9 @@ static blargg_err_t gzip_reader_read( void* file, void* out, long* count )
 blargg_err_t Gzip_Reader::open( File_Reader* new_in )
 {
 	close();
-	
+
 	RETURN_ERR( inflater.begin( inflater.mode_auto, gzip_reader_read, new_in ) );
-	
+
 	size_ = -1; // defer seeking to end of file until size is actually needed
 	in    = new_in;
 	return 0;
@@ -56,7 +56,7 @@ blargg_err_t Gzip_Reader::calc_size()
 		RETURN_ERR( in->seek( size - sizeof trailer ) );
 		RETURN_ERR( in->read( trailer, sizeof trailer ) );
 		RETURN_ERR( in->seek( pos ) );
-		size = get_le32( trailer );
+		size = GET_LE32( trailer );
 	}
 	size_ = size;
 	return 0;
@@ -68,7 +68,7 @@ long Gzip_Reader::remain() const
 	{
 		if ( !in )
 			return 0;
-		
+
 		// need to cast away constness to change cached value
 		if ( ((Gzip_Reader*) this)->calc_size() )
 			return -1;
