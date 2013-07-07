@@ -1,6 +1,7 @@
 audacious-plugins (3.4-1) unstable; urgency=low
 
   * New upstream release.
+  * Bump build-dep on audacious-dev.
   * Update debian/copyright.
   * Remove libmcs-dev from Build-Depends.
 
