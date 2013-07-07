@@ -198,9 +198,11 @@ Copyright: 2011 John Lindgren
 License: GPL-2 or GPL-3
 
 Files: debian/*
-Copyright: 2010 Chris Taylor
-           2010 Benjamin Drung <bdrung@ubuntu.com>
-           2006-2009 Adam Cécile (Le_Vert)
+Copyright:
+  2012-2013 Alessio Treglia <alessio@debian.org>
+  2010 Chris Taylor
+  2010 Benjamin Drung <bdrung@ubuntu.com>
+  2006-2009 Adam Cécile (Le_Vert)
 License: GPL-2+
 
 License: GPL-2
