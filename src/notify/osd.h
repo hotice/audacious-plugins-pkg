@@ -17,11 +17,7 @@
  * along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glib.h>
-#include <libnotify/notify.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 
-// Prototypes
-gboolean osd_init();
-void osd_uninit();
-void osd_closed_handler(NotifyNotification *notification2, gpointer data);
-void osd_show(const gchar *title, const gchar *message, const gchar *icon, GdkPixbuf *pb);
+void osd_show (const char * title, const char * message, const char * icon, GdkPixbuf * pixbuf);
+void osd_hide (void);

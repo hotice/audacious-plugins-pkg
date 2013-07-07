@@ -23,6 +23,9 @@
 #include <stdlib.h>
 #include <errno.h>
 
+/* prevent libcdio from redefining PACKAGE, VERSION, etc. */
+#define EXTERNAL_LIBCDIO_CONFIG_H
+
 #include <cdio/cdio.h>
 #include <cdio/cdtext.h>
 #include <cdio/track.h>
@@ -35,15 +38,6 @@
 #else
 #include <cdio/cdda.h>
 #endif
-
-/* libcdio's header files #define these */
-#undef PACKAGE
-#undef PACKAGE_BUGREPORT
-#undef PACKAGE_NAME
-#undef PACKAGE_STRING
-#undef PACKAGE_TARNAME
-#undef PACKAGE_VERSION
-#undef VERSION
 
 #include <cddb/cddb.h>
 
@@ -58,8 +52,6 @@
 #include <libaudcore/hook.h>
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
-
-#include "config.h"
 
 #define DEF_STRING_LEN 256
 

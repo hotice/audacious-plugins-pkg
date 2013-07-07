@@ -1,6 +1,6 @@
 /*
  * ui_gtk.c
- * Copyright 2009 William Pitcock, Tomasz Moń, Michał Lipski, and John Lindgren
+ * Copyright 2009-2012 William Pitcock, Tomasz Moń, Michał Lipski, and John Lindgren
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -33,7 +33,6 @@
 #include <libaudgui/libaudgui.h>
 #include <libaudgui/libaudgui-gtk.h>
 
-#include "config.h"
 #include "gtkui.h"
 #include "layout.h"
 #include "ui_playlist_notebook.h"
@@ -46,24 +45,21 @@ static const gchar * const gtkui_defaults[] = {
  "infoarea_show_vis", "TRUE",
  "infoarea_visible", "TRUE",
  "menu_visible", "TRUE",
- "player_visible", "TRUE",
  "statusbar_visible", "TRUE",
  "close_button_visible", "TRUE",
 
  "autoscroll", "TRUE",
  "playlist_columns", "title artist album queued length",
  "playlist_headers", "TRUE",
+ "show_remaining_time", "FALSE",
 
- "player_x", "-1",
- "player_y", "-1",
+ "player_x", "-1000",
+ "player_y", "-1000",
  "player_width", "760",
  "player_height", "460",
 
- /* hidden settings */
- "always_on_top", "FALSE",
- "save_window_position", "TRUE",
- "show_song_titles", "TRUE",
- NULL};
+ NULL
+};
 
 static PluginHandle * search_tool;
 
@@ -123,6 +119,19 @@ static void save_window_size (void)
     aud_set_int ("gtkui", "player_height", h);
 }
 
+static void restore_window_size (void)
+{
+    gint x = aud_get_int ("gtkui", "player_x");
+    gint y = aud_get_int ("gtkui", "player_y");
+    gint w = aud_get_int ("gtkui", "player_width");
+    gint h = aud_get_int ("gtkui", "player_height");
+
+    gtk_window_set_default_size ((GtkWindow *) window, w, h);
+
+    if (x > -1000 && y > -1000)
+        gtk_window_move ((GtkWindow *) window, x, y);
+}
+
 static gboolean window_delete()
 {
     gboolean handle = FALSE;
@@ -146,12 +155,31 @@ static void button_add_pressed (void)
     audgui_run_filebrowser (FALSE);
 }
 
-static void button_play_pressed (void)
+void set_ab_repeat_a (void)
 {
-    if (aud_drct_get_playing () && ! aud_drct_get_paused ())
-        aud_drct_pause ();
-    else
-        aud_drct_play ();
+    if (! aud_drct_get_playing ())
+        return;
+
+    int a, b;
+    aud_drct_get_ab_repeat (& a, & b);
+    a = aud_drct_get_time ();
+    aud_drct_set_ab_repeat (a, b);
+}
+
+void set_ab_repeat_b (void)
+{
+    if (! aud_drct_get_playing ())
+        return;
+
+    int a, b;
+    aud_drct_get_ab_repeat (& a, & b);
+    b = aud_drct_get_time ();
+    aud_drct_set_ab_repeat (a, b);
+}
+
+void clear_ab_repeat (void)
+{
+    aud_drct_set_ab_repeat (-1, -1);
 }
 
 static gboolean title_change_cb (void)
@@ -162,7 +190,7 @@ static gboolean title_change_cb (void)
         delayed_title_change_source = 0;
     }
 
-    if (aud_drct_get_playing () && aud_get_bool ("gtkui", "show_song_titles"))
+    if (aud_drct_get_playing ())
     {
         if (aud_drct_get_ready ())
         {
@@ -183,36 +211,31 @@ static gboolean title_change_cb (void)
 
 static void ui_show (gboolean show)
 {
-    aud_set_bool ("gtkui", "player_visible", show);
-
     if (show)
     {
-        if (aud_get_bool ("gtkui", "save_window_position") && ! gtk_widget_get_visible (window))
-        {
-            gint x = aud_get_int ("gtkui", "player_x");
-            gint y = aud_get_int ("gtkui", "player_y");
-            gtk_window_move ((GtkWindow *) window, x, y);
-        }
+        if (! ui_is_shown ())
+            restore_window_size ();
 
         gtk_window_present ((GtkWindow *) window);
+
+        /* turn visualization back on if necessary */
+        ui_infoarea_show_vis (aud_get_bool ("gtkui", "infoarea_show_vis"));
     }
-    else if (gtk_widget_get_visible (window))
+    else
     {
-        if (aud_get_bool ("gtkui", "save_window_position"))
-        {
-            gint x, y;
-            gtk_window_get_position ((GtkWindow *) window, & x, & y);
-            aud_set_int ("gtkui", "player_x", x);
-            aud_set_int ("gtkui", "player_y", y);
-        }
+        if (ui_is_shown ())
+            save_window_size ();
 
         gtk_widget_hide (window);
+
+        /* turn visualization off to reduce CPU usage */
+        ui_infoarea_show_vis (FALSE);
     }
 }
 
 static gboolean ui_is_shown (void)
 {
-    return aud_get_bool ("gtkui", "player_visible");
+    return gtk_widget_get_visible (window);
 }
 
 static gboolean ui_is_focused (void)
@@ -230,33 +253,55 @@ static void ui_show_error (const gchar * text)
     audgui_simple_message (& error_win, GTK_MESSAGE_ERROR, _("Error"), _(text));
 }
 
-static void set_time_label (gint time, gint len)
+static void append_str (char * buf, int bufsize, const char * str)
 {
-    gchar s[128];
-    snprintf (s, sizeof s, "<b>");
+    snprintf (buf + strlen (buf), bufsize - strlen (buf), "%s", str);
+}
 
+static void append_time_str (char * buf, int bufsize, int time)
+{
     time /= 1000;
 
     if (time < 3600)
-        snprintf (s + strlen (s), sizeof s - strlen (s), aud_get_bool (NULL,
-         "leading_zero") ? "%02d:%02d" : "%d:%02d", time / 60, time % 60);
+        snprintf (buf + strlen (buf), bufsize - strlen (buf),
+         aud_get_bool (NULL, "leading_zero") ? "%02d:%02d" : "%d:%02d",
+         time / 60, time % 60);
     else
-        snprintf (s + strlen (s), sizeof s - strlen (s), "%d:%02d:%02d", time /
-         3600, (time / 60) % 60, time % 60);
+        snprintf (buf + strlen (buf), bufsize - strlen (buf), "%d:%02d:%02d",
+         time / 3600, (time / 60) % 60, time % 60);
+}
+
+static void set_time_label (gint time, gint len)
+{
+    gchar s[128] = "<b>";
+
+    if (len && aud_get_bool ("gtkui", "show_remaining_time"))
+        append_time_str (s, sizeof s, len - time);
+    else
+        append_time_str (s, sizeof s, time);
 
     if (len)
     {
-        len /= 1000;
+        append_str (s, sizeof s, " / ");
+        append_time_str (s, sizeof s, len);
 
-        if (len < 3600)
-            snprintf (s + strlen (s), sizeof s - strlen (s), aud_get_bool (NULL,
-             "leading_zero") ? " / %02d:%02d" : " / %d:%02d", len / 60, len % 60);
-        else
-            snprintf (s + strlen (s), sizeof s - strlen (s), " / %d:%02d:%02d",
-             len / 3600, (len / 60) % 60, len % 60);
+        int a, b;
+        aud_drct_get_ab_repeat (& a, & b);
+
+        if (a >= 0)
+        {
+            append_str (s, sizeof s, " A=");
+            append_time_str (s, sizeof s, a);
+        }
+
+        if (b >= 0)
+        {
+            append_str (s, sizeof s, " B=");
+            append_time_str (s, sizeof s, b);
+        }
     }
 
-    snprintf (s + strlen (s), sizeof s - strlen (s), "</b>");
+    append_str (s, sizeof s, "</b>");
     gtk_label_set_markup ((GtkLabel *) label_time, s);
 }
 
@@ -285,8 +330,11 @@ static gboolean time_counter_cb (void)
 
 static void do_seek (gint time)
 {
+    gint length = aud_drct_get_length ();
+    time = CLAMP (time, 0, length);
+
     set_slider (time);
-    set_time_label (time, aud_drct_get_length ());
+    set_time_label (time, length);
     aud_drct_seek (time);
 
     // Trick: Unschedule and then schedule the update function.  This gives the
@@ -302,12 +350,15 @@ static void do_seek (gint time)
 static gboolean ui_slider_change_value_cb (GtkRange * range,
  GtkScrollType scroll, gdouble value)
 {
-    set_time_label (value, aud_drct_get_length ());
+    gint length = aud_drct_get_length ();
+    gint time = CLAMP ((gint) value, 0, length);
+
+    set_time_label (time, length);
 
     if (slider_is_moving)
-        slider_seek_time = value;
-    else if ((gint) value != slider_seek_time)  // avoid seeking twice
-        do_seek (value);
+        slider_seek_time = time;
+    else if (time != slider_seek_time)  // avoid seeking twice
+        do_seek (time);
 
     return FALSE;
 }
@@ -638,7 +689,9 @@ static gboolean search_tool_toggled (PluginHandle * plugin, void * unused)
 
 static void config_save (void)
 {
-    save_window_size ();
+    if (ui_is_shown ())
+        save_window_size ();
+
     layout_save ();
     pw_col_save ();
 }
@@ -688,18 +741,8 @@ static gboolean init (void)
 
     pw_col_init ();
 
-    gint x = aud_get_int ("gtkui", "player_x");
-    gint y = aud_get_int ("gtkui", "player_y");
-    gint w = aud_get_int ("gtkui", "player_width");
-    gint h = aud_get_int ("gtkui", "player_height");
-
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size ((GtkWindow *) window, w, h);
-    gtk_window_set_keep_above ((GtkWindow *) window, aud_get_bool ("gtkui", "always_on_top"));
     gtk_window_set_has_resize_grip ((GtkWindow *) window, FALSE);
-
-    if (aud_get_bool ("gtkui", "save_window_position") && (x != -1 || y != -1))
-        gtk_window_move ((GtkWindow *) window, x, y);
 
     g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(window_delete), NULL);
 
@@ -731,7 +774,7 @@ static gboolean init (void)
     /* playback buttons */
     toolbar_button_add (toolbar, button_open_pressed, GTK_STOCK_OPEN);
     toolbar_button_add (toolbar, button_add_pressed, GTK_STOCK_ADD);
-    button_play = toolbar_button_add (toolbar, button_play_pressed, GTK_STOCK_MEDIA_PLAY);
+    button_play = toolbar_button_add (toolbar, aud_drct_play_pause, GTK_STOCK_MEDIA_PLAY);
     button_stop = toolbar_button_add (toolbar, aud_drct_stop, GTK_STOCK_MEDIA_STOP);
     toolbar_button_add (toolbar, aud_drct_pl_prev, GTK_STOCK_MEDIA_PREVIOUS);
     toolbar_button_add (toolbar, aud_drct_pl_next, GTK_STOCK_MEDIA_NEXT);
@@ -835,9 +878,6 @@ static gboolean init (void)
     title_change_cb ();
 
     gtk_widget_show_all (vbox_outer);
-
-    if (aud_get_bool ("gtkui", "player_visible"))
-        ui_show (TRUE);
 
     update_toggles (NULL, NULL);
 
@@ -967,9 +1007,12 @@ void show_infoarea (gboolean show)
     {
         infoarea = ui_infoarea_new ();
         g_signal_connect (infoarea, "destroy", (GCallback) gtk_widget_destroyed, & infoarea);
-        ui_infoarea_show_vis (aud_get_bool ("gtkui", "infoarea_show_vis"));
         gtk_box_pack_end ((GtkBox *) vbox, infoarea, FALSE, FALSE, 0);
         gtk_widget_show_all (infoarea);
+
+        /* only turn on visualization if interface is shown */
+        if (ui_is_shown ())
+            ui_infoarea_show_vis (aud_get_bool ("gtkui", "infoarea_show_vis"));
     }
 
     if (! show && infoarea)

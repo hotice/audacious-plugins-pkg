@@ -33,8 +33,6 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
 
-#include <config.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -115,10 +113,7 @@ gboolean handle_keyevent (EVENT event)
 {
     gint current_volume, old_volume;
     static gint volume_static = 0;
-    gboolean play, mute;
-
-    /* playing or not */
-    play = aud_drct_get_playing ();
+    gboolean mute;
 
     /* get current volume */
     aud_drct_get_volume_main (&current_volume);
@@ -205,9 +200,7 @@ gboolean handle_keyevent (EVENT event)
     /* pause */
     if (event == EVENT_PAUSE)
     {
-        if (!play) aud_drct_play ();
-        else aud_drct_pause ();
-
+        aud_drct_play_pause ();
         return TRUE;
     }
 
@@ -279,6 +272,12 @@ gboolean handle_keyevent (EVENT event)
     if (event == EVENT_TOGGLE_SHUFFLE)
     {
         aud_set_bool (NULL, "shuffle", ! aud_get_bool (NULL, "shuffle"));
+        return TRUE;
+    }
+
+    if (event == EVENT_TOGGLE_STOP)
+    {
+        aud_set_bool (NULL, "stop_after_current_song", ! aud_get_bool (NULL, "stop_after_current_song"));
         return TRUE;
     }
 

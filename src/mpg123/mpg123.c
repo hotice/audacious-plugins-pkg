@@ -19,10 +19,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* libmpg123 API uses off_t, so config.h must come before all other headers to
- * define _FILE_OFFSET_BITS for large file support */
-#include "config.h"
-
 #include <pthread.h>
 #include <string.h>
 
@@ -105,10 +101,28 @@ static bool_t mpg123_probe_for_fd (const char * fname, VFSFile * file)
 	if (! strncmp (fname, "mms://", 6))
 		return FALSE;
 
+	bool_t is_streaming = vfs_is_streaming (file);
+
+	/* Some MP3s begin with enormous ID3 tags, which fill up the whole probe
+	 * buffer and thus hide any MP3 content.  As a workaround, assume that an
+	 * ID3 tag means an MP3 file.  --jlindgren */
+	if (! is_streaming)
+	{
+		char id3buf[3];
+		if (vfs_fread (id3buf, 1, 3, file) != 3)
+			return FALSE;
+
+		if (! memcmp (id3buf, "ID3", 3))
+			return TRUE;
+
+		if (vfs_fseek (file, 0, SEEK_SET) < 0)
+			return FALSE;
+	}
+
 	mpg123_handle * dec = mpg123_new (NULL, NULL);
 	mpg123_param (dec, MPG123_ADD_FLAGS, MPG123_QUIET, 0);
 
-	if (vfs_is_streaming (file))
+	if (is_streaming)
 		mpg123_replace_reader_handle (dec, replace_read, replace_lseek_dummy, NULL);
 	else
 		mpg123_replace_reader_handle (dec, replace_read, replace_lseek, NULL);
@@ -372,6 +386,8 @@ GET_FORMAT:
 		goto cleanup;
 	}
 
+	data->output->flush (start_time);
+
 	if (pause)
 		data->output->pause (TRUE);
 
@@ -385,7 +401,7 @@ GET_FORMAT:
 	pthread_mutex_unlock (& mutex);
 
 	int64_t frames_played = 0;
-	int64_t frames_total = (stop_time - start_time) * ctx.rate / 1000;
+	int64_t frames_total = (int64_t) (stop_time - start_time) * ctx.rate / 1000;
 
 	while (1)
 	{
@@ -399,8 +415,7 @@ GET_FORMAT:
 
 		if (ctx.seek >= 0)
 		{
-			if (mpg123_seek (ctx.decoder, (int64_t) ctx.seek * ctx.rate / 1000,
-			 SEEK_SET) < 0)
+			if (mpg123_seek (ctx.decoder, (int64_t) ctx.seek * ctx.rate / 1000, SEEK_SET) < 0)
 			{
 				fprintf (stderr, "mpg123 error in %s: %s\n", filename,
 				 mpg123_strerror (ctx.decoder));
@@ -408,7 +423,7 @@ GET_FORMAT:
 			else
 			{
 				data->output->flush (ctx.seek);
-				frames_played = (ctx.seek - start_time) * ctx.rate / 1000;
+				frames_played = (int64_t) (ctx.seek - start_time) * ctx.rate / 1000;
 				outbuf_size = 0;
 			}
 

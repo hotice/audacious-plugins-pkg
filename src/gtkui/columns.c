@@ -26,7 +26,6 @@
 #include <libaudcore/index.h>
 #include <libaudgui/list.h>
 
-#include "config.h"
 #include "ui_playlist_notebook.h"
 #include "ui_playlist_widget.h"
 
@@ -211,6 +210,9 @@ static void response_cb (GtkWidget * widget, gint response, void * unused)
         for (pw_num_cols = 0; pw_num_cols < cols; pw_num_cols ++)
             pw_cols[pw_num_cols] = ((Column *) index_get (chosen, pw_num_cols))
              ->column;
+
+        aud_set_string ("gtkui", "column_widths", "");
+        aud_set_string ("gtkui", "column_expand", "");
 
         ui_playlist_notebook_populate ();
     }

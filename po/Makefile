@@ -12,11 +12,12 @@ LOCALES = be.po \
 	  cs.po \
 	  de.po \
 	  el.po \
+	  es.po \
 	  es_AR.po \
 	  es_MX.po \
-	  es.po \
 	  et.po \
 	  eu.po \
+	  fi.po \
 	  fr.po \
 	  gl.po \
 	  hu.po \
@@ -31,8 +32,10 @@ LOCALES = be.po \
 	  pt_BR.po \
 	  pt_PT.po \
 	  ru.po \
+	  si.po \
 	  sk.po \
 	  sr_RS.po \
+	  ta.po \
 	  uk.po \
 	  zh_CN.po \
 	  zh_TW.po

@@ -9,8 +9,6 @@
 #include <audacious/i18n.h>
 #include <audacious/plugin.h>
 
-#include "config.h"
-
 #define BUFFER_SIZE 256 /* read buffer size, in samples / frames */
 #define SAMPLE_SIZE(a) (a == 8 ? sizeof(uint8_t) : (a == 16 ? sizeof(uint16_t) : sizeof(uint32_t)))
 #define SAMPLE_FMT(a) (a == 8 ? FMT_S8 : (a == 16 ? FMT_S16_NE : (a == 24 ? FMT_S24_NE : FMT_S32_NE)))
@@ -305,15 +303,15 @@ wv_probe_for_tuple(const char * filename, VFSFile * fd)
     if (ctx == NULL)
         return NULL;
 
-	AUDDBG("starting probe of %p\n", (void *) fd);
+    AUDDBG("starting probe of %p\n", (void *) fd);
 
-	vfs_rewind(fd);
-	tu = tuple_new_from_filename(filename);
+    vfs_rewind(fd);
+    tu = tuple_new_from_filename(filename);
 
-	vfs_rewind(fd);
-	tag_tuple_read(tu, fd);
+    vfs_rewind(fd);
+    tag_tuple_read(tu, fd);
 
-	tuple_set_int(tu, FIELD_LENGTH, NULL,
+    tuple_set_int(tu, FIELD_LENGTH, NULL,
         ((uint64_t) WavpackGetNumSamples(ctx) * 1000) / (uint64_t) WavpackGetSampleRate(ctx));
     tuple_set_str(tu, FIELD_CODEC, NULL, "WavPack");
 
@@ -323,8 +321,8 @@ wv_probe_for_tuple(const char * filename, VFSFile * fd)
 
     WavpackCloseFile(ctx);
 
-	AUDDBG("returning tuple %p for file %p\n", (void *) tu, (void *) fd);
-	return tu;
+    AUDDBG("returning tuple %p for file %p\n", (void *) tu, (void *) fd);
+    return tu;
 }
 
 static bool_t wv_write_tag (const Tuple * tuple, VFSFile * handle)

@@ -6,7 +6,6 @@
 
 #include <neaacdec.h>
 
-#include "config.h"
 #include "mp4ff.h"
 #include "tagging.h"
 

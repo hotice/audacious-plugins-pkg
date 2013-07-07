@@ -23,12 +23,12 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include <audacious/i18n.h>
 #include <audacious/misc.h>
 #include <libaudgui/libaudgui-gtk.h>
 
-#include "config.h"
 #include "plugin.h"
 #include "ui_skin.h"
 #include "ui_skinselector.h"
@@ -159,12 +159,12 @@ skinlist_add(const gchar * filename)
 
     if (file_is_archive(filename)) {
         node->name = archive_basename(basename);
-	node->desc = _("Archived Winamp 2.x skin");
+    node->desc = _("Archived Winamp 2.x skin");
         g_free(basename);
     }
     else {
         node->name = basename;
-	node->desc = _("Unarchived Winamp 2.x skin");
+    node->desc = _("Unarchived Winamp 2.x skin");
     }
 
     skinlist = g_list_prepend(skinlist, node);
@@ -311,7 +311,7 @@ void skin_view_update (GtkTreeView * treeview)
         gtk_tree_selection_select_iter(selection, &iter_current_skin);
 
         path = gtk_tree_model_get_path(GTK_TREE_MODEL(store),
-		                               &iter_current_skin);
+                                       &iter_current_skin);
         gtk_tree_view_scroll_to_cell(treeview, path, NULL, TRUE, 0.5, 0.5);
         gtk_tree_path_free(path);
     }
