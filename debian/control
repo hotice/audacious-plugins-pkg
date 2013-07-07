@@ -31,7 +31,6 @@ Build-Depends:
  libjack-dev,
  liblircclient-dev,
  libmad0-dev,
- libmcs-dev,
  libmms-dev (>= 0.3),
  libmodplug-dev,
  libmp3lame-dev,
