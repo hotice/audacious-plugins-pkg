@@ -8,7 +8,7 @@ Uploaders:
  Cyril Lavier <cyril.lavier@davromaniak.eu>,
  Alessio Treglia <alessio@debian.org>
 Build-Depends:
- audacious-dev (>= 3.3),
+ audacious-dev (>= 3.4),
  autoconf,
  debhelper (>= 9),
  libasound2-dev (>= 1.0) [linux-any],

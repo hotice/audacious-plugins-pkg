@@ -1,3 +1,11 @@
+audacious-plugins (3.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * Update debian/copyright.
+  * Remove libmcs-dev from Build-Depends.
+
+ -- Alessio Treglia <alessio@debian.org>  Sun, 07 Jul 2013 16:59:25 +0100
+
 audacious-plugins (3.3.4-2) unstable; urgency=low
 
   * Upload to unstable.
