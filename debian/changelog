@@ -2,10 +2,11 @@ audacious-plugins (3.4-1) unstable; urgency=low
 
   * New upstream release.
   * Bump build-dep on audacious-dev.
+  * Add support for dh-autoreconf.
   * Update debian/copyright.
   * Remove libmcs-dev from Build-Depends.
 
- -- Alessio Treglia <alessio@debian.org>  Sun, 07 Jul 2013 16:59:25 +0100
+ -- Alessio Treglia <alessio@debian.org>  Sun, 07 Jul 2013 17:13:19 +0100
 
 audacious-plugins (3.3.4-2) unstable; urgency=low
 
