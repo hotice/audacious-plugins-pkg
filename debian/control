@@ -11,6 +11,7 @@ Build-Depends:
  audacious-dev (>= 3.4),
  autoconf,
  debhelper (>= 9),
+ dh-autoreconf,
  libasound2-dev (>= 1.0) [linux-any],
  libavcodec-dev (>= 4:0.6.1),
  libavformat-dev (>= 4:0.6.1),
