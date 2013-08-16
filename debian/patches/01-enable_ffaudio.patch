@@ -1,3 +1,6 @@
+Description: Loosen dependency on libavcodec to allow the build FFaudio plugin.
+From: https://bugs.launchpad.net/ubuntu/+source/audacious-plugins/+bug/1200345
+Forwarded: no
 ---
  configure.ac |    4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
