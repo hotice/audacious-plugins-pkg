@@ -2,9 +2,10 @@ audacious-plugins (3.4.1-1) unstable; urgency=low
 
   * Team upload.
   * New upstream release.
+  * Avoid FTBFS on distclean failure.
   * Remove myself from the Uploaders field.
 
- -- Alessio Treglia <alessio@debian.org>  Tue, 03 Sep 2013 09:28:43 +0100
+ -- Alessio Treglia <alessio@debian.org>  Tue, 03 Sep 2013 09:36:03 +0100
 
 audacious-plugins (3.4-2) unstable; urgency=low
 
