@@ -5,8 +5,7 @@ Maintainer: Debian Multimedia Maintainers <pkg-multimedia-maintainers@lists.alio
 Uploaders:
  Chris Taylor <ctaylor@debian.org>,
  Bilal Akhtar <bilalakhtar@ubuntu.com>,
- Cyril Lavier <cyril.lavier@davromaniak.eu>,
- Alessio Treglia <alessio@debian.org>
+ Cyril Lavier <cyril.lavier@davromaniak.eu>
 Build-Depends:
  audacious-dev (>= 3.4),
  autoconf,
