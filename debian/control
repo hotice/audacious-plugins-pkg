@@ -7,7 +7,7 @@ Uploaders:
  Bilal Akhtar <bilalakhtar@ubuntu.com>,
  Cyril Lavier <cyril.lavier@davromaniak.eu>
 Build-Depends:
- audacious-dev (>= 3.4),
+ audacious-dev (>= 3.4.1),
  autoconf,
  debhelper (>= 9),
  dh-autoreconf,
