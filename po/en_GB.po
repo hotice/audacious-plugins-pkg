@@ -1,21 +1,19 @@
-# Basque translation for Audacious Plugins
+# English (United Kingdom) translation for Audacious Plugins
 # Copyright (C) Audacious translators
 # This file is distributed under the same license as the Audacious Plugins package.
 #
 # Translators:
-# asier <asier.fernandez.iribar@gmail.com>, 2013
-# Iñaki Larrañaga Murgoitio <dooteo@euskalgnu.org>, 2009
-# Osoitz <oelkoro@gmail.com>, 2012
+# Andi Chandler <andi@gowling.com>, 2013
 msgid ""
 msgstr ""
-"Project-Id-Version: Audacious Plugins Plugins\n"
+"Project-Id-Version: Audacious Plugins\n"
 "Report-Msgid-Bugs-To: http://redmine.audacious-media-player.org/\n"
 "POT-Creation-Date: 2013-09-01 21:09+0200\n"
-"PO-Revision-Date: 2013-06-03 12:50+0000\n"
-"Last-Translator: asier <asier.fernandez.iribar@gmail.com>\n"
-"Language-Team: Basque (http://www.transifex.com/projects/p/audacious/"
-"language/eu/)\n"
-"Language: eu\n"
+"PO-Revision-Date: 2013-07-05 21:58+0000\n"
+"Last-Translator: Andi Chandler <andi@gowling.com>\n"
+"Language-Team: English (United Kingdom) (http://www.transifex.com/projects/p/"
+"audacious/language/en_GB/)\n"
+"Language: en_GB\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -23,19 +21,19 @@ msgstr ""
 
 #: src/aac/libmp4.c:439 src/gtkui/ui_statusbar.c:104 src/skins/ui_main.c:430
 msgid "mono"
-msgstr "monoa"
+msgstr ""
 
 #: src/aac/libmp4.c:439 src/gtkui/ui_statusbar.c:106 src/skins/ui_main.c:429
 msgid "stereo"
-msgstr "estereoa"
+msgstr ""
 
 #: src/aac/libmp4.c:439 src/skins/ui_main.c:429
 msgid "surround"
-msgstr "surround"
+msgstr ""
 
 #: src/aac/libmp4.c:930
 msgid "AAC Decoder"
-msgstr "AAC Deskodetzailea"
+msgstr ""
 
 #: src/adplug/adplug-xmms.cc:147 src/modplug/modplugbmp.cxx:407
 #: src/psf/plugin.c:124 src/vtx/vtx.c:69 src/xsf/plugin.c:85
@@ -55,7 +53,7 @@ msgstr ""
 
 #: src/alarm/alarm.c:814 src/alarm/interface.c:82
 msgid "Alarm"
-msgstr "Alarma"
+msgstr "Alarm"
 
 #: src/alarm/interface.c:28
 msgid ""
@@ -118,7 +116,7 @@ msgstr ""
 
 #: src/alarm/interface.c:81
 msgid "This is your wakeup call."
-msgstr "Hau da zure esnatzeko deia:"
+msgstr "This is your wakeup call."
 
 #: src/alarm/interface.c:99
 msgid "Your reminder for today is..."
@@ -126,118 +124,118 @@ msgstr ""
 
 #: src/alarm/interface.c:101 src/alarm/interface.c:415
 msgid "Reminder"
-msgstr "Gogorarazlea"
+msgstr "Reminder"
 
 #: src/alarm/interface.c:140
 msgid "Monday"
-msgstr "Astelehena"
+msgstr "Monday"
 
 #: src/alarm/interface.c:140
 msgid "Tuesday"
-msgstr "Asteartea"
+msgstr "Tuesday"
 
 #: src/alarm/interface.c:140
 msgid "Wednesday"
-msgstr "Asteazkena"
+msgstr "Wednesday"
 
 #: src/alarm/interface.c:141
 msgid "Thursday"
-msgstr "Osteguna"
+msgstr "Thursday"
 
 #: src/alarm/interface.c:141
 msgid "Friday"
-msgstr "Ostirala"
+msgstr "Friday"
 
 #: src/alarm/interface.c:141
 msgid "Saturday"
-msgstr "Larunbata"
+msgstr "Saturday"
 
 #: src/alarm/interface.c:141
 msgid "Sunday"
-msgstr "Igandea"
+msgstr "Sunday"
 
 #: src/alarm/interface.c:175
 msgid "Alarm Settings"
-msgstr "Alarmaren ezarpenak"
+msgstr "Alarm Settings"
 
 #: src/alarm/interface.c:186 src/alarm/interface.c:250
 #: src/alarm/interface.c:265
 msgid "Time"
-msgstr "Denbora"
+msgstr "Time"
 
 #: src/alarm/interface.c:193
 msgid "Alarm at (default):"
-msgstr "Alarma noiz (lehenetsia):"
+msgstr "Alarm at (default):"
 
 #: src/alarm/interface.c:216
 msgid "h"
-msgstr "o"
+msgstr "h"
 
 #: src/alarm/interface.c:220
 msgid "Quiet after:"
-msgstr "Isildu hau eta gero:"
+msgstr "Quiet after:"
 
 #: src/alarm/interface.c:234
 msgid "hours"
-msgstr "orduak"
+msgstr "hours"
 
 #: src/alarm/interface.c:246
 msgid "minutes"
-msgstr "minutuak"
+msgstr "minutes"
 
 #: src/alarm/interface.c:255
 msgid "Choose the days for the alarm to come on"
-msgstr "Aukeratu alarmak jotzeko egunak"
+msgstr "Choose the days for the alarm to come on"
 
 #: src/alarm/interface.c:262
 msgid "Day"
-msgstr "Eguna"
+msgstr "Day"
 
 #: src/alarm/interface.c:280 src/bs2b/plugin.c:177
 #: src/skins/ui_equalizer.c:1108 src/skins/ui_manager.c:456
 #: src/skins/ui_manager.c:477
 msgid "Default"
-msgstr "Lehenetsia"
+msgstr "Default"
 
 #: src/alarm/interface.c:310
 msgid "Days"
-msgstr "Egunak"
+msgstr "Days"
 
 #: src/alarm/interface.c:319
 msgid "Fading"
-msgstr "Progresioa"
+msgstr "Fading"
 
 #: src/alarm/interface.c:327 src/crossfade/crossfade.c:261 src/lirc/lirc.c:397
 msgid "seconds"
-msgstr "segundo"
+msgstr "seconds"
 
 #: src/alarm/interface.c:334 src/alarm/interface.c:381
 msgid "Volume"
-msgstr "Bolumena"
+msgstr "Volume"
 
 #: src/alarm/interface.c:339
 msgid "Start at"
-msgstr "Hasi hemen "
+msgstr "Start at"
 
 #: src/alarm/interface.c:357
 msgid "Final"
-msgstr "Bukaeran"
+msgstr "Final"
 
 #: src/alarm/interface.c:372
 msgid "Current"
-msgstr "Oraingoa"
+msgstr "Current"
 
 #: src/alarm/interface.c:387
 msgid "Additional Command"
-msgstr "Komando gehigarria"
+msgstr "Additional Command"
 
 #: src/alarm/interface.c:393
 msgid "enable"
-msgstr "gaitu"
+msgstr "enable"
 
 #: src/alarm/interface.c:400
 msgid "Playlist (optional)"
-msgstr "Erreprodukzio-zerrenda (aukerazkoa)"
+msgstr "Playlist (optional)"
 
 #: src/alarm/interface.c:407
 msgid "Select a playlist"
@@ -245,51 +243,51 @@ msgstr ""
 
 #: src/alarm/interface.c:419
 msgid "Use reminder"
-msgstr "Erabili gogorarazlea"
+msgstr "Use reminder"
 
 #: src/alarm/interface.c:428
 msgid "Options"
-msgstr "Aukerak"
+msgstr "Options"
 
 #: src/alarm/interface.c:433
 msgid "What do these options mean?"
-msgstr "Zer esan nahi dute aukera hauek?"
+msgstr "What do these options mean?"
 
 #: src/alarm/interface.c:447 src/skins/ui_manager.c:389
 msgid "Help"
-msgstr "Laguntza"
+msgstr "Help"
 
 #: src/albumart/albumart.c:143
 msgid "Album Art"
-msgstr "Diskoaren azala"
+msgstr ""
 
 #: src/alsa/config.c:212
 msgid "Default PCM device"
-msgstr "Lehenetsitako PCM gailua"
+msgstr "Default PCM device"
 
 #: src/alsa/config.c:241
 msgid "Default mixer device"
-msgstr "Lehenetsitako nahaslea"
+msgstr "Default mixer device"
 
 #: src/alsa/config.c:428
 msgid "ALSA Output Plugin Preferences"
-msgstr "ALSA irteera pluginaren hobespenak"
+msgstr "ALSA Output Plug-in Preferences"
 
 #: src/alsa/config.c:434
 msgid "PCM device:"
-msgstr "PCM gailua:"
+msgstr "PCM device:"
 
 #: src/alsa/config.c:436
 msgid "Mixer device:"
-msgstr "Nahastailearen gailua:"
+msgstr "Mixer device:"
 
 #: src/alsa/config.c:438
 msgid "Mixer element:"
-msgstr "Nahaslea:"
+msgstr "Mixer element:"
 
 #: src/alsa/config.c:441
 msgid "Work around drain hangup"
-msgstr ""
+msgstr "Work around drain hangup"
 
 #: src/alsa/plugin.c:25
 msgid ""
@@ -309,8 +307,8 @@ msgid ""
 "You have not selected any sequencer ports for MIDI playback.  You can do so "
 "in the MIDI plugin preferences."
 msgstr ""
-"Ez duzu sekuenziadore porturik aukeratu MIDI erreproduzitzeko.  MIDI "
-"pluginaren hobespenetak aukeratu dezakezu."
+"You have not selected any sequencer ports for MIDI playback.  You can do so "
+"in the MIDI plug-in preferences."
 
 #: src/amidi-plug/amidi-plug.c:708
 msgid "AMIDI-Plug (MIDI Player)"
@@ -318,7 +316,7 @@ msgstr ""
 
 #: src/amidi-plug/backend-alsa/b-alsa.c:38
 msgid "ALSA Backend "
-msgstr "ALSAren motorra "
+msgstr "ALSA Backend "
 
 #: src/amidi-plug/backend-alsa/b-alsa.c:41
 msgid ""
@@ -331,19 +329,18 @@ msgid ""
 "hardware synth will be directly played.\n"
 "Backend written by Giacomo Lozito."
 msgstr ""
-"Motor honek MIDI gertaerak bidaltzen ditu erabiltzaileak aukeratutako ALSA "
-"sekuentziadorearen ataken taldeari. ALSA sekuentziadorearen interfazea oso "
-"moldakorra da, atakak eskaintzen ditu audio-txartelen hardware-"
-"sintetizadoreentzako (adib. emu10k1), software-sintetizadoreentzako, kanpoko "
-"gailuentzako, e.a.\n"
-"Motor honek ez du audiorik ekoizten, ALSA ataken atzean dauden gailuak/"
-"programak kudeatzen dituzte zuzenean MIDI gertaerak. Adibidez, hardware-"
-"sintetizadorera bidalitako MIDI gertaerak zuenean erreproduzi daitezke.\n"
-"Motorra Giacomo Lozito-k garatu zuen."
+"This backend sends MIDI events to a group of user-chosen ALSA sequencer "
+"ports. The ALSA sequencer interface is very versatile, it can provide ports "
+"for audio cards hardware synthesisers (i.e. emu10k1) but also for software "
+"synths, external devices, etc.\n"
+"This backend does not produce audio, MIDI events are handled directly from "
+"devices/programs behind the ALSA ports; in example, MIDI events sent to the "
+"hardware synth will be directly played.\n"
+"Backend written by Giacomo Lozito."
 
 #: src/amidi-plug/backend-fluidsynth/b-fluidsynth.c:45
 msgid "FluidSynth Backend "
-msgstr "FluidSynth motorra "
+msgstr "FluidSynth Backend "
 
 #: src/amidi-plug/backend-fluidsynth/b-fluidsynth.c:48
 msgid ""
@@ -357,31 +354,31 @@ msgstr ""
 
 #: src/amidi-plug/i_configure-alsa.c:353
 msgid "Port"
-msgstr "Ataka"
+msgstr "Port"
 
 #: src/amidi-plug/i_configure-alsa.c:355
 msgid "Client name"
-msgstr "Bezeroaren izena"
+msgstr "Client name"
 
 #: src/amidi-plug/i_configure-alsa.c:357
 msgid "Port name"
-msgstr "Atakaren izena"
+msgstr "Port name"
 
 #: src/amidi-plug/i_configure-alsa.c:371
 msgid "ALSA output ports"
-msgstr "ALSAren irteeraren atakak"
+msgstr "ALSA output ports"
 
 #: src/amidi-plug/i_configure-alsa.c:432
 msgid "Soundcard: "
-msgstr "Soinu-txartela: "
+msgstr "Soundcard: "
 
 #: src/amidi-plug/i_configure-alsa.c:434
 msgid "Mixer control: "
-msgstr "Nahastaile-kontrola: "
+msgstr "Mixer control: "
 
 #: src/amidi-plug/i_configure-alsa.c:444
 msgid "Mixer settings"
-msgstr "Nahastailearen ezarpenak"
+msgstr "Mixer settings"
 
 #: src/amidi-plug/i_configure-alsa.c:472
 msgid ""
@@ -389,43 +386,43 @@ msgid ""
 "backend</span>"
 msgstr ""
 "<span size=\"smaller\">ALSA\n"
-"motorra</span>"
+"backend</span>"
 
 #: src/amidi-plug/i_configure-ap.c:63
 msgid "AMIDI-Plug - backend information"
-msgstr "AMIDI-Plug - motorraren informazioa"
+msgstr "AMIDI-Plug - backend information"
 
 #: src/amidi-plug/i_configure-ap.c:221
 msgid "Backend selection"
-msgstr "Motorraren hautapena"
+msgstr "Backend selection"
 
 #: src/amidi-plug/i_configure-ap.c:261
 msgid "Playback settings"
-msgstr "Erreprodukzioaren ezarpenak"
+msgstr "Playback settings"
 
 #: src/amidi-plug/i_configure-ap.c:266
 msgid "Transpose: "
-msgstr "Irauli: "
+msgstr "Transpose: "
 
 #: src/amidi-plug/i_configure-ap.c:275
 msgid "Drum shift: "
-msgstr "Perkusio-desplazamendua:"
+msgstr "Drum shift: "
 
 #: src/amidi-plug/i_configure-ap.c:293
 msgid "Advanced settings"
-msgstr "Ezarpen aurreratuak"
+msgstr "Advanced settings"
 
 #: src/amidi-plug/i_configure-ap.c:297
 msgid "pre-calculate length of MIDI files in playlist"
-msgstr "aurre-kalkulatu erreprodukzio-zerrendako MIDI fitxategien luzera"
+msgstr "pre-calculate length of MIDI files in playlist"
 
 #: src/amidi-plug/i_configure-ap.c:304
 msgid "extract comments from MIDI file (if available)"
-msgstr "erauzi MIDI fitxategiko iruzkinak (egonez gero)"
+msgstr "extract comments from MIDI file (if available)"
 
 #: src/amidi-plug/i_configure-ap.c:311
 msgid "extract lyrics from MIDI file (if available)"
-msgstr "erauzi MIDI fitxategiko letrak (egonez gero)"
+msgstr "extract lyrics from MIDI file (if available)"
 
 #: src/amidi-plug/i_configure-ap.c:344
 msgid ""
@@ -437,7 +434,7 @@ msgstr ""
 
 #: src/amidi-plug/i_configure.c:59
 msgid "AMIDI-Plug - select file"
-msgstr "AMIDI-Plug - hautatu fitxategia"
+msgstr "AMIDI-Plug - select file"
 
 #: src/amidi-plug/i_configure.c:104
 msgid "AMIDI-Plug Settings"
@@ -445,23 +442,23 @@ msgstr ""
 
 #: src/amidi-plug/i_configure-fluidsynth.c:63
 msgid "AMIDI-Plug - select SoundFont file"
-msgstr "AMIDI-Plug - hautatu SoundFont fitxategia"
+msgstr "AMIDI-Plug - select SoundFont file"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:321
 msgid "SoundFont settings"
-msgstr "SoundFont ezarpenak"
+msgstr "SoundFont settings"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:359
 msgid "Filename"
-msgstr "Fitxategi-Izena"
+msgstr "Filename"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:363
 msgid "Size (bytes)"
-msgstr "Tamaina (byte)"
+msgstr "Size (bytes)"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:412
 msgid "Load SF on player start"
-msgstr "Kargatu SF erreproduzitzailea abiatzean"
+msgstr "Load SF on player start"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:416
 msgid "Load SF on first MIDI file play"
@@ -469,23 +466,23 @@ msgstr ""
 
 #: src/amidi-plug/i_configure-fluidsynth.c:431
 msgid "Synthesizer settings"
-msgstr "Sintetizadorearen ezarpenak"
+msgstr "Synthesiser settings"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:440
 msgid "gain"
-msgstr "irabazia"
+msgstr "gain"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:446
 #: src/amidi-plug/i_configure-fluidsynth.c:476
 #: src/amidi-plug/i_configure-fluidsynth.c:506
 #: src/amidi-plug/i_configure-fluidsynth.c:540
 msgid "use default"
-msgstr "erabili lehenetsia"
+msgstr "use default"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:449
 #: src/amidi-plug/i_configure-fluidsynth.c:479
 msgid "value:"
-msgstr "balioa:"
+msgstr "value:"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:470
 msgid "polyphony"
@@ -498,12 +495,12 @@ msgstr "reverb"
 #: src/amidi-plug/i_configure-fluidsynth.c:509
 #: src/amidi-plug/i_configure-fluidsynth.c:543
 msgid "yes"
-msgstr "bai"
+msgstr "yes"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:511
 #: src/amidi-plug/i_configure-fluidsynth.c:545
 msgid "no"
-msgstr "ez"
+msgstr "no"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:534
 msgid "chorus"
@@ -511,7 +508,7 @@ msgstr "chorus"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:568
 msgid "sample rate"
-msgstr "lagin-tasa"
+msgstr "sample rate"
 
 #: src/amidi-plug/i_configure-fluidsynth.c:574
 msgid "22050 Hz "
@@ -527,7 +524,7 @@ msgstr "96000 Hz "
 
 #: src/amidi-plug/i_configure-fluidsynth.c:583
 msgid "custom "
-msgstr "pertsonalizatua "
+msgstr "custom "
 
 #: src/amidi-plug/i_configure-fluidsynth.c:592
 msgid "Hz "
@@ -539,31 +536,31 @@ msgid ""
 "backend</span>"
 msgstr ""
 "<span size=\"smaller\">FluidSynth\n"
-"motorra</span>"
+"backend</span>"
 
 #: src/amidi-plug/i_fileinfo.c:175
 msgid "Name:"
-msgstr "Izena:"
+msgstr "Name:"
 
 #: src/amidi-plug/i_fileinfo.c:200
 msgid "<span size=\"smaller\"> MIDI Info </span>"
-msgstr "<span size=\"smaller\"> MIDI informazioa </span>"
+msgstr "<span size=\"smaller\"> MIDI Info </span>"
 
 #: src/amidi-plug/i_fileinfo.c:214
 msgid "Format:"
-msgstr "Formatua:"
+msgstr "Format:"
 
 #: src/amidi-plug/i_fileinfo.c:217
 msgid "Length (msec):"
-msgstr "Luzera (mseg.):"
+msgstr "Length (msec):"
 
 #: src/amidi-plug/i_fileinfo.c:220
 msgid "No. of Tracks:"
-msgstr "Pista kopurua:"
+msgstr ""
 
 #: src/amidi-plug/i_fileinfo.c:226
 msgid "variable"
-msgstr "aldagaia"
+msgstr "variable"
 
 #: src/amidi-plug/i_fileinfo.c:228
 msgid "BPM:"
@@ -575,23 +572,23 @@ msgstr "BPM (wavg):"
 
 #: src/amidi-plug/i_fileinfo.c:239
 msgid "Time Div:"
-msgstr "Denbora zat:"
+msgstr "Time Div:"
 
 #: src/amidi-plug/i_fileinfo.c:250
 msgid "<span size=\"smaller\"> MIDI Comments and Lyrics </span>"
-msgstr "<span size=\"smaller\"> MIDI iruzkinak eta letrak </span>"
+msgstr "<span size=\"smaller\"> MIDI Comments and Lyrics </span>"
 
 #: src/amidi-plug/i_fileinfo.c:301
 msgid "* no comments available in this MIDI file *"
-msgstr "* iruzkinik ez dago erabilgarri MIDI fitxategi honetan *"
+msgstr "* no comments available in this MIDI file *"
 
 #: src/amidi-plug/i_fileinfo.c:314
 msgid "* no lyrics available in this MIDI file *"
-msgstr "* letrarik ez dago erabilgarri MIDI fitxategi honetan *"
+msgstr "* no lyrics available in this MIDI file *"
 
 #: src/amidi-plug/i_fileinfo.c:367
 msgid "  (invalid UTF-8)"
-msgstr "  (UTF-8 baliogabea)"
+msgstr "  (invalid UTF-8)"
 
 #: src/amidi-plug/i_utils.c:39
 msgid "About AMIDI-Plug"
@@ -634,32 +631,31 @@ msgstr ""
 
 #: src/aosd/aosd_style.c:75
 msgid "Rectangle"
-msgstr "Laukizuzena"
+msgstr "Rectangle"
 
 #: src/aosd/aosd_style.c:79
 msgid "Rounded Rectangle"
-msgstr "Laukizuzen biribildua"
+msgstr "Rounded Rectangle"
 
 #: src/aosd/aosd_style.c:83
 msgid "Concave Rectangle"
-msgstr "Laukizuzen ahurra"
+msgstr "Concave Rectangle"
 
 #: src/aosd/aosd_style.c:87
 msgid "None"
-msgstr "Bat ere ez"
+msgstr "None"
 
 #: src/aosd/aosd_trigger.c:74
 msgid "Playback Start"
-msgstr "Erreprodukzioa hasi"
+msgstr "Playback Start"
 
 #: src/aosd/aosd_trigger.c:75
 msgid "Triggers OSD when a playlist entry is played."
-msgstr ""
-"OSDa abiarazten du erreprodukzio-zerrendako sarrera bat erreproduzitzean."
+msgstr "Triggers OSD when a playlist entry is played."
 
 #: src/aosd/aosd_trigger.c:79
 msgid "Title Change"
-msgstr "Titulu aldaketa"
+msgstr "Title Change"
 
 #: src/aosd/aosd_trigger.c:80
 msgid ""
@@ -667,136 +663,136 @@ msgid ""
 "is the same. This is mostly useful to display title changes in internet "
 "streams."
 msgstr ""
-"OSDa abiarazten du erreproduzitzean abestiaren titulua aldatzen bada, baina "
-"fitxategi-izena berdina bada. Interneteko korronteetan tituluen izenen "
-"aldaketak bistaratzeko da batizpat erabilgarria."
+"Triggers OSD when, during playback, the song title changes but the filename "
+"is the same. This is mostly useful to display title changes in Internet "
+"streams."
 
 #: src/aosd/aosd_trigger.c:86
 msgid "Pause On"
-msgstr "Pausatuta"
+msgstr "Pause On"
 
 #: src/aosd/aosd_trigger.c:87
 msgid "Triggers OSD when playback is paused."
-msgstr "OSDa abiarazten du erreprodukzioa pausatzean."
+msgstr "Triggers OSD when playback is paused."
 
 #: src/aosd/aosd_trigger.c:91
 msgid "Pause Off"
-msgstr "Jarraitu"
+msgstr "Pause Off"
 
 #: src/aosd/aosd_trigger.c:92
 msgid "Triggers OSD when playback is unpaused."
-msgstr "OSDa abiarazten du erreprodukzioa jarraitzean."
+msgstr "Triggers OSD when playback is unpaused."
 
 #: src/aosd/aosd_ui.c:168
 msgid "Placement"
-msgstr "Kokalekua"
+msgstr "Placement"
 
 #: src/aosd/aosd_ui.c:200
 msgid "Relative X offset:"
-msgstr "X desplazamendu erlatiboa:"
+msgstr "Relative X offset:"
 
 #: src/aosd/aosd_ui.c:207
 msgid "Relative Y offset:"
-msgstr "Y desplazamendu erlatiboa:"
+msgstr "Relative Y offset:"
 
 #: src/aosd/aosd_ui.c:214
 msgid "Max OSD width:"
-msgstr "OSDaren gehi. zabalera:"
+msgstr "Max OSD width:"
 
 #: src/aosd/aosd_ui.c:225
 msgid "Multi-Monitor options"
-msgstr "Pantaila anitzen aukerak"
+msgstr "Multi-Monitor options"
 
 #: src/aosd/aosd_ui.c:229
 msgid "Display OSD using:"
-msgstr "Bistaratu OSDa hau erabiliz:"
+msgstr "Display OSD using:"
 
 #: src/aosd/aosd_ui.c:231
 msgid "all monitors"
-msgstr "pantaila guztiak"
+msgstr "all monitors"
 
 #: src/aosd/aosd_ui.c:234
 #, c-format
 msgid "monitor %i"
-msgstr "%i. pantaila"
+msgstr "monitor %i"
 
 #: src/aosd/aosd_ui.c:287
 msgid "Timing (ms)"
-msgstr "Tenporizadorea (ms)"
+msgstr "Timing (ms)"
 
 #: src/aosd/aosd_ui.c:292
 msgid "Display:"
-msgstr "Bistaratu:"
+msgstr "Display:"
 
 #: src/aosd/aosd_ui.c:297
 msgid "Fade in:"
-msgstr "Pixkanaka agertu:"
+msgstr "Fade in:"
 
 #: src/aosd/aosd_ui.c:302
 msgid "Fade out:"
-msgstr "Iraungitu:"
+msgstr "Fade out:"
 
 #: src/aosd/aosd_ui.c:383
 msgid "Fonts"
-msgstr "Letra-tipoak"
+msgstr "Fonts"
 
 #: src/aosd/aosd_ui.c:391
 #, c-format
 msgid "Font %i:"
-msgstr "%i letra-tipoa:"
+msgstr "Font %i:"
 
 #: src/aosd/aosd_ui.c:409
 msgid "Shadow"
-msgstr "Itzala"
+msgstr "Shadow"
 
 #: src/aosd/aosd_ui.c:439
 msgid "Internationalization"
-msgstr "Nazioartekotzea"
+msgstr "Internationalisation"
 
 #: src/aosd/aosd_ui.c:445
 msgid "Disable UTF-8 conversion of text (in aosd)"
-msgstr "Desgaitu testuaren UTF-8 bihurketa (aosd-en)"
+msgstr "Disable UTF-8 conversion of text (in aosd)"
 
 #: src/aosd/aosd_ui.c:462
 msgid "Select Skin File"
-msgstr "Hautatu azalaren fitxategia"
+msgstr "Select Skin File"
 
 #: src/aosd/aosd_ui.c:573
 msgid "Render Style"
-msgstr "Errendatze estiloa"
+msgstr "Render Style"
 
 #: src/aosd/aosd_ui.c:589
 msgid "Colors"
-msgstr "Koloreak"
+msgstr "Colours"
 
 #: src/aosd/aosd_ui.c:602
 #, c-format
 msgid "Color %i:"
-msgstr "%i kolorea:"
+msgstr "Colour %i:"
 
 #: src/aosd/aosd_ui.c:620
 msgid "Custom Skin"
-msgstr "Azal pertsonalizatua"
+msgstr "Custom Skin"
 
 #: src/aosd/aosd_ui.c:626
 msgid "Skin file:"
-msgstr "Azalaren fitxategia:"
+msgstr "Skin file:"
 
 #: src/aosd/aosd_ui.c:630
 msgid "Browse"
-msgstr "Arakatu"
+msgstr "Browse"
 
 #: src/aosd/aosd_ui.c:729
 msgid "Enable trigger"
-msgstr "Gaitu abiarazlea"
+msgstr "Enable trigger"
 
 #: src/aosd/aosd_ui.c:756
 msgid "Event"
-msgstr "Gertaera"
+msgstr "Event"
 
 #: src/aosd/aosd_ui.c:784
 msgid "Composite manager detected"
-msgstr "Kudeatzaile konposatua detektatuta"
+msgstr "Composite manager detected"
 
 #: src/aosd/aosd_ui.c:791
 msgid ""
@@ -804,70 +800,70 @@ msgid ""
 "unless you know that you have one running, please activate a composite "
 "manager otherwise the OSD won't work properly"
 msgstr ""
-"Konposaketako kudeatzailea ez da detektatu.\n"
-"Bat exekutatzen dagoela jakin ezean, aktibatu konposaketako kudeatzalea "
-"bestela OSDak ez du ongi funtzionatuko"
+"Composite manager not detected;\n"
+"unless you know that you have one running, please activate a composite "
+"manager otherwise the OSD will not work properly"
 
 #: src/aosd/aosd_ui.c:799
 msgid "Composite manager not required for fake transparency"
-msgstr "Gardentasun faltsua egiteko ez da konposaketako kudeaketak behar"
+msgstr "Composite manager not required for fake transparency"
 
 #: src/aosd/aosd_ui.c:837
 msgid "Transparency"
-msgstr "Gardentasuna"
+msgstr "Transparency"
 
 #: src/aosd/aosd_ui.c:843
 msgid "Fake transparency"
-msgstr "Gardentasun faltsua"
+msgstr "Fake transparency"
 
 #: src/aosd/aosd_ui.c:845
 msgid "Real transparency (requires X Composite Ext.)"
-msgstr "Egitako gardentasuna (Xen konposaketa hed. behar da)"
+msgstr "Real transparency (requires X Composite Ext.)"
 
 #: src/aosd/aosd_ui.c:887
 msgid "Composite extension not loaded"
-msgstr "Konposaketako hedapena ez da kargatu"
+msgstr "Composite extension not loaded"
 
 #: src/aosd/aosd_ui.c:895
 msgid "Composite extension not available"
-msgstr "Konposaketako hedapena ez dago erabilgarri"
+msgstr "Composite extension not available"
 
 #: src/aosd/aosd_ui.c:914
 #, c-format
 msgid "<span font_desc='%s'>Audacious OSD</span>"
-msgstr "<span font_desc='%s'>Audacious OSDa</span>"
+msgstr "<span font_desc='%s'>Audacious OSD</span>"
 
 #: src/aosd/aosd_ui.c:995
 msgid "Audacious OSD - configuration"
-msgstr "Audacious OSDa - konfigurazioa"
+msgstr "Audacious OSD - configuration"
 
 #: src/aosd/aosd_ui.c:1016
 msgid "Test"
-msgstr "Proba"
+msgstr "Test"
 
 #: src/aosd/aosd_ui.c:1031
 msgid "Position"
-msgstr "Posizioa"
+msgstr "Position"
 
 #: src/aosd/aosd_ui.c:1036
 msgid "Animation"
-msgstr "Animazioa"
+msgstr "Animation"
 
 #: src/aosd/aosd_ui.c:1041
 msgid "Text"
-msgstr "Testua"
+msgstr "Text"
 
 #: src/aosd/aosd_ui.c:1046
 msgid "Decoration"
-msgstr "Dekorazioa"
+msgstr "Decoration"
 
 #: src/aosd/aosd_ui.c:1051
 msgid "Trigger"
-msgstr "Abiarazlea"
+msgstr "Trigger"
 
 #: src/aosd/aosd_ui.c:1056
 msgid "Misc"
-msgstr "Hainbat"
+msgstr "Misc"
 
 #: src/asx/asx.c:96
 msgid "ASXv1/ASXv2 Playlists"
@@ -923,7 +919,7 @@ msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:121
 msgid "<b>Device</b>"
-msgstr "<b>Gailua</b>"
+msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:122
 msgid "Read speed:"
@@ -935,35 +931,35 @@ msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:127
 msgid "<b>Metadata</b>"
-msgstr "<b>Metadatuak</b>"
+msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:128
 msgid "Use CD-Text"
-msgstr "Erabili CD-Text"
+msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:130
 msgid "Use CDDB"
-msgstr "Erabili CDDB"
+msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:132
 msgid "Use HTTP instead of CDDBP"
-msgstr "HTTP erabili CDDBP ordez"
+msgstr "Use HTTP instead of CDDBP"
 
 #: src/cdaudio-ng/cdaudio-ng.c:134
 msgid "Server:"
-msgstr "Zerbitzaria:"
+msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:136
 msgid "Path:"
-msgstr "Bidea:"
+msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:138
 msgid "Port:"
-msgstr "Portua:"
+msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:148
 msgid "Audio CD Plugin"
-msgstr "Audio CD plugina"
+msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:249
 msgid "Failed to initialize cdio subsystem."
@@ -994,7 +990,7 @@ msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:505
 msgid "Audio CD"
-msgstr "Audio CDa"
+msgstr "Audio CD"
 
 #: src/cdaudio-ng/cdaudio-ng.c:535 src/cdaudio-ng/cdaudio-ng.c:544
 #, c-format
@@ -1038,19 +1034,19 @@ msgstr ""
 
 #: src/cdaudio-ng/cdaudio-ng.c:876
 msgid "Drive is empty."
-msgstr "Unitatea hutsik dago"
+msgstr "Drive is empty."
 
 #: src/cdaudio-ng/cdaudio-ng.c:878
 msgid "Unsupported disk type."
-msgstr "Onartu gabeko disko mota."
+msgstr "Unsupported disk type."
 
 #: src/cd-menu-items/cd-menu-items.c:30
 msgid "Play CD"
-msgstr "Jo CDa"
+msgstr "Play CD"
 
 #: src/cd-menu-items/cd-menu-items.c:30
 msgid "Add CD"
-msgstr "Gehitu CDa"
+msgstr "Add CD"
 
 #: src/cd-menu-items/cd-menu-items.c:57
 msgid "Audio CD Menu Items"
@@ -1058,15 +1054,15 @@ msgstr ""
 
 #: src/compressor/plugin.c:35
 msgid "<b>Compression</b>"
-msgstr "<b>Konpresioa</b>"
+msgstr ""
 
 #: src/compressor/plugin.c:36
 msgid "Center volume:"
-msgstr "Bolumen zentrala:"
+msgstr "Centre volume:"
 
 #: src/compressor/plugin.c:39
 msgid "Dynamic range:"
-msgstr "Bitarte dinamikoa:"
+msgstr "Dynamic range:"
 
 #: src/compressor/plugin.c:53
 msgid ""
@@ -1080,44 +1076,44 @@ msgstr ""
 
 #: src/console/configure.c:134 src/console/plugin.c:42
 msgid "Game Console Music Decoder"
-msgstr "Joko Kontsola Musika Deskodetzailea"
+msgstr "Game Console Music Decoder"
 
 #: src/console/configure.c:151
 msgid "General"
-msgstr "Orokorra"
+msgstr "General"
 
 #: src/console/configure.c:153 src/skins/ui_manager.c:175
 msgid "Playback"
-msgstr "Erreprodukzioa"
+msgstr "Playback"
 
 #: src/console/configure.c:168
 msgid "Bass:"
-msgstr "Baxua:"
+msgstr "Bass:"
 
 #: src/console/configure.c:172 src/console/configure.c:183
 #: src/console/configure.c:204
 msgid "secs"
-msgstr "seg"
+msgstr "secs"
 
 #: src/console/configure.c:179
 msgid "Treble:"
-msgstr "Altua:"
+msgstr "Treble:"
 
 #: src/console/configure.c:200
 msgid "Default song length:"
-msgstr "Abestiaren luzera lehenetsia:"
+msgstr "Default song length:"
 
 #: src/console/configure.c:206
 msgid "Resampling"
-msgstr "Birlagintzea"
+msgstr "Resampling"
 
 #: src/console/configure.c:212
 msgid "Enable audio resampling"
-msgstr "Gaitu audioa berriro lagintzea"
+msgstr "Enable audio resampling"
 
 #: src/console/configure.c:227
 msgid "Resampling rate:"
-msgstr "Birlagintze-tasa:"
+msgstr "Resampling rate:"
 
 #: src/console/configure.c:231 src/modplug/plugin_main.c:98
 #: src/resample/resample.c:178 src/resample/resample.c:184
@@ -1134,19 +1130,19 @@ msgstr "SPC"
 
 #: src/console/configure.c:243
 msgid "Ignore length from SPC tags"
-msgstr "Ezikusi egin SPCko etiketetako luzerari"
+msgstr "Ignore length from SPC tags"
 
 #: src/console/configure.c:244
 msgid "Increase reverb"
-msgstr "Handiagotu reverb-a"
+msgstr "Increase reverb"
 
 #: src/console/configure.c:269
 msgid ""
 "The default song length, expressed in seconds, is used for songs that do not "
 "provide length information (i.e. looping tracks)."
 msgstr ""
-"Abestiaren luzera lehenetsia (segundotan adierazita) luzeraren informaziorik "
-"ematen ez duten abestietan erabiltzen da (adib, pistak begiztan)."
+"The default song length, expressed in seconds, is used for songs that do not "
+"provide length information (i.e. looping tracks)."
 
 #: src/console/plugin.c:27
 msgid ""
@@ -1195,7 +1191,7 @@ msgstr ""
 
 #: src/crystalizer/crystalizer.c:41 src/stereo_plugin/stereo.c:26
 msgid "Intensity:"
-msgstr "Intentsitatea:"
+msgstr ""
 
 #: src/crystalizer/crystalizer.c:51
 msgid "Crystalizer"
@@ -1207,7 +1203,7 @@ msgstr ""
 
 #: src/echo_plugin/echo.c:24
 msgid "<b>Echo</b>"
-msgstr "<b>Ekoa</b>"
+msgstr ""
 
 #: src/echo_plugin/echo.c:25 src/modplug/plugin_main.c:90
 #: src/modplug/plugin_main.c:104
@@ -1217,15 +1213,15 @@ msgstr ""
 #: src/echo_plugin/echo.c:27 src/modplug/plugin_main.c:91
 #: src/modplug/plugin_main.c:105
 msgid "ms"
-msgstr "ms"
+msgstr ""
 
 #: src/echo_plugin/echo.c:28
 msgid "Feedback:"
-msgstr "Berelikatzea:"
+msgstr ""
 
 #: src/echo_plugin/echo.c:31 src/modplug/plugin_main.c:109
 msgid "Volume:"
-msgstr "Bolumena:"
+msgstr ""
 
 #: src/echo_plugin/echo.c:114
 msgid ""
@@ -1251,7 +1247,7 @@ msgstr ""
 
 #: src/ffaudio/ffaudio-core.c:695
 msgid "FFmpeg Plugin"
-msgstr "FFmpeg plugina"
+msgstr ""
 
 #: src/filewriter/filewriter.c:409
 msgid "FileWriter Configuration"
@@ -1259,47 +1255,47 @@ msgstr ""
 
 #: src/filewriter/filewriter.c:421
 msgid "Output file format:"
-msgstr "Irteerako fitxategi-formatua:"
+msgstr "Output file format:"
 
 #: src/filewriter/filewriter.c:439
 msgid "Configure"
-msgstr "Konfiguratu"
+msgstr "Configure"
 
 #: src/filewriter/filewriter.c:449
 msgid "Save into original directory"
-msgstr "Gorde jatorrizko direktorioan"
+msgstr "Save into original directory"
 
 #: src/filewriter/filewriter.c:454
 msgid "Save into custom directory"
-msgstr "Gorde direktorio pertsonalizatuan"
+msgstr "Save into custom directory"
 
 #: src/filewriter/filewriter.c:464
 msgid "Output file folder:"
-msgstr "Irteerako fitxategiaren karpeta:"
+msgstr "Output file folder:"
 
 #: src/filewriter/filewriter.c:468
 msgid "Pick a folder"
-msgstr "Hautatu karpeta"
+msgstr "Pick a folder"
 
 #: src/filewriter/filewriter.c:481
 msgid "Get filename from:"
-msgstr "Lortu fitxategi-izena hemendik:"
+msgstr "Get filename from:"
 
 #: src/filewriter/filewriter.c:484
 msgid "original file tags"
-msgstr "jatorrizko fitxategi-etiketak"
+msgstr "original file tags"
 
 #: src/filewriter/filewriter.c:490
 msgid "original filename"
-msgstr "jatorrizko fitxategi-izena"
+msgstr "original filename"
 
 #: src/filewriter/filewriter.c:497
 msgid "Don't strip file name extension"
-msgstr "Ez kendu fitxategi-izenaren luzapena"
+msgstr "Do not strip file name extension"
 
 #: src/filewriter/filewriter.c:506
 msgid "Prepend track number to filename"
-msgstr "Jarri pistaren zenbakia fitxategi-izenaren aurretik"
+msgstr "Prepend track number to filename"
 
 #: src/filewriter/filewriter.c:515
 msgid ""
@@ -1325,33 +1321,33 @@ msgstr ""
 
 #: src/filewriter/mp3.c:37 src/filewriter/mp3.c:748
 msgid "Auto"
-msgstr "Automatikoa"
+msgstr "Auto"
 
 #: src/filewriter/mp3.c:37
 msgid "Joint Stereo"
-msgstr ""
+msgstr "Joint Stereo"
 
 #: src/filewriter/mp3.c:38 src/modplug/plugin_main.c:65
 #: src/mpg123/mpg123.c:211
 msgid "Stereo"
-msgstr "Estereoa"
+msgstr "Stereo"
 
 #: src/filewriter/mp3.c:38 src/modplug/plugin_main.c:63
 #: src/mpg123/mpg123.c:211
 msgid "Mono"
-msgstr "Monoa"
+msgstr "Mono"
 
 #: src/filewriter/mp3.c:688
 msgid "MP3 Configuration"
-msgstr "MP3 konfigurazioa"
+msgstr "MP3 Configuration"
 
 #: src/filewriter/mp3.c:712
 msgid "Algorithm Quality:"
-msgstr "Algoritmoaren kalitatea:"
+msgstr "Algorithm Quality:"
 
 #: src/filewriter/mp3.c:737
 msgid "Output Samplerate:"
-msgstr "Irteerako lagin-tasa:"
+msgstr "Output Sample rate:"
 
 #: src/filewriter/mp3.c:765
 msgid "(Hz)"
@@ -1359,79 +1355,79 @@ msgstr "(Hz)"
 
 #: src/filewriter/mp3.c:772
 msgid "Bitrate / Compression ratio:"
-msgstr "Bit-tasa / Konpresio-tasa:"
+msgstr "Bitrate / Compression ratio:"
 
 #: src/filewriter/mp3.c:796
 msgid "Bitrate (kbps):"
-msgstr "Bit-tasa (kbps):"
+msgstr "Bitrate (kbps):"
 
 #: src/filewriter/mp3.c:829
 msgid "Compression ratio:"
-msgstr "Konpresio-tasa:"
+msgstr "Compression ratio:"
 
 #: src/filewriter/mp3.c:853
 msgid "Audio Mode:"
-msgstr "Audio modua:"
+msgstr "Audio Mode:"
 
 #: src/filewriter/mp3.c:878
 msgid "Misc:"
-msgstr "Hainbat:"
+msgstr "Misc:"
 
 #: src/filewriter/mp3.c:889
 msgid "Enforce strict ISO complience"
-msgstr "Derrigortu ISOa betetzen duela"
+msgstr ""
 
 #: src/filewriter/mp3.c:900
 msgid "Error protection"
-msgstr "Erroreen aurkako babesa"
+msgstr ""
 
 #: src/filewriter/mp3.c:912 src/filewriter/vorbis.c:222
 msgid "Quality"
-msgstr "Kalitatea"
+msgstr ""
 
 #: src/filewriter/mp3.c:921
 msgid "Enable VBR/ABR"
-msgstr "Gaitu VBR/ABR"
+msgstr ""
 
 #: src/filewriter/mp3.c:931
 msgid "Type:"
-msgstr "Mota:"
+msgstr ""
 
 #: src/filewriter/mp3.c:964
 msgid "VBR Options:"
-msgstr "VBR aukerak:"
+msgstr ""
 
 #: src/filewriter/mp3.c:980
 msgid "Minimum bitrate (kbps):"
-msgstr "Gutxieneko bit-tasa (kbps):"
+msgstr ""
 
 #: src/filewriter/mp3.c:1007
 msgid "Maximum bitrate (kbps):"
-msgstr "Gehienezko bit-tasa (kbps):"
+msgstr ""
 
 #: src/filewriter/mp3.c:1030
 msgid "Strictly enforce minimum bitrate"
-msgstr "Derrigortu gutxieneko bit-tasa"
+msgstr ""
 
 #: src/filewriter/mp3.c:1042
 msgid "ABR Options:"
-msgstr "ABR aukerak:"
+msgstr ""
 
 #: src/filewriter/mp3.c:1052
 msgid "Average bitrate (kbps):"
-msgstr "Batez besteko bit-tasa (kbps):"
+msgstr ""
 
 #: src/filewriter/mp3.c:1080
 msgid "VBR quality level:"
-msgstr "VBR kalitate-maila:"
+msgstr ""
 
 #: src/filewriter/mp3.c:1099
 msgid "Don't write Xing VBR header"
-msgstr "Ez idatzi Xing VBR goiburukoa"
+msgstr ""
 
 #: src/filewriter/mp3.c:1112
 msgid "VBR/ABR"
-msgstr "VBR/ABR"
+msgstr ""
 
 #: src/filewriter/mp3.c:1121
 msgid "Frame parameters:"
@@ -1439,39 +1435,39 @@ msgstr ""
 
 #: src/filewriter/mp3.c:1133
 msgid "Mark as copyright"
-msgstr "Markatu copyright gisa"
+msgstr ""
 
 #: src/filewriter/mp3.c:1144
 msgid "Mark as original"
-msgstr "Markatu jatorrizko gisa"
+msgstr ""
 
 #: src/filewriter/mp3.c:1156
 msgid "ID3 params:"
-msgstr "ID3 parametroak:"
+msgstr ""
 
 #: src/filewriter/mp3.c:1167
 msgid "Force addition of version 2 tag"
-msgstr "Derrigortu v2 etiketa gehitzea"
+msgstr ""
 
 #: src/filewriter/mp3.c:1177
 msgid "Only add v1 tag"
-msgstr "Gehitu v1 etiketa soilik"
+msgstr ""
 
 #: src/filewriter/mp3.c:1184
 msgid "Only add v2 tag"
-msgstr "Gehitu v2 etiketa soilik"
+msgstr ""
 
 #: src/filewriter/mp3.c:1205
 msgid "Tags"
-msgstr "Etiketak"
+msgstr ""
 
 #: src/filewriter/vorbis.c:212
 msgid "Vorbis Encoder Configuration"
-msgstr "Vorbis kodetzailearen konfigurazioa"
+msgstr ""
 
 #: src/filewriter/vorbis.c:235
 msgid "Quality level (0 - 10):"
-msgstr "Kalitate maila (0 - 10):"
+msgstr ""
 
 #: src/flacng/metadata.c:357 src/wavpack/wavpack.c:280
 msgid "lossless"
@@ -1487,7 +1483,7 @@ msgstr ""
 
 #: src/flacng/plugin.c:277
 msgid "FLAC Decoder"
-msgstr "FLAC Deskodetzailea"
+msgstr ""
 
 #: src/gio/gio.c:300
 msgid ""
@@ -1497,7 +1493,7 @@ msgstr ""
 
 #: src/gio/gio.c:322
 msgid "GIO Plugin"
-msgstr "GIO plugina"
+msgstr ""
 
 #: src/gl-spectrum/gl-spectrum.c:283
 msgid ""
@@ -1529,27 +1525,27 @@ msgstr ""
 
 #: src/gtkui/columns.c:32
 msgid "Entry number"
-msgstr "Sarera zenbakia"
+msgstr ""
 
 #: src/gtkui/columns.c:32
 msgid "Title"
-msgstr "Titulua"
+msgstr ""
 
 #: src/gtkui/columns.c:33
 msgid "Artist"
-msgstr "Artista"
+msgstr ""
 
 #: src/gtkui/columns.c:33
 msgid "Year"
-msgstr "Urtea"
+msgstr ""
 
 #: src/gtkui/columns.c:33
 msgid "Album"
-msgstr "Diskoa"
+msgstr ""
 
 #: src/gtkui/columns.c:33
 msgid "Track"
-msgstr "Pista"
+msgstr ""
 
 #: src/gtkui/columns.c:33
 msgid "Genre"
@@ -1557,19 +1553,19 @@ msgstr ""
 
 #: src/gtkui/columns.c:34
 msgid "Queue position"
-msgstr "Ilara posizioa"
+msgstr ""
 
 #: src/gtkui/columns.c:34
 msgid "Length"
-msgstr "Iraupena"
+msgstr ""
 
 #: src/gtkui/columns.c:34
 msgid "File path"
-msgstr "Fitxategi bidea"
+msgstr ""
 
 #: src/gtkui/columns.c:34
 msgid "File name"
-msgstr "Fitxategi izena"
+msgstr ""
 
 #: src/gtkui/columns.c:35
 msgid "Custom title"
@@ -1577,19 +1573,19 @@ msgstr ""
 
 #: src/gtkui/columns.c:35
 msgid "Bitrate"
-msgstr "Bit-tasa:"
+msgstr ""
 
 #: src/gtkui/columns.c:277
 msgid "Choose Columns"
-msgstr "Aukeratu zutabeak"
+msgstr ""
 
 #: src/gtkui/columns.c:293
 msgid "Available:"
-msgstr "Eskuragarri:"
+msgstr ""
 
 #: src/gtkui/columns.c:327
 msgid "Chosen:"
-msgstr "Aukeratua:"
+msgstr ""
 
 #: src/gtkui/layout.c:119
 msgid "Dock at Left"
@@ -1613,15 +1609,15 @@ msgstr ""
 
 #: src/gtkui/layout.c:120 src/ladspa/plugin.c:623
 msgid "Disable"
-msgstr "Desgaitu"
+msgstr ""
 
 #: src/gtkui/menus.c:170
 msgid "_Open Files ..."
-msgstr "Ireki fitxategiak"
+msgstr ""
 
 #: src/gtkui/menus.c:171
 msgid "Open _URL ..."
-msgstr "Ireki BKU ..."
+msgstr ""
 
 #: src/gtkui/menus.c:172
 msgid "_Add Files ..."
@@ -1641,27 +1637,27 @@ msgstr ""
 
 #: src/gtkui/menus.c:178
 msgid "_Preferences ..."
-msgstr "_Hobespenak ...."
+msgstr ""
 
 #: src/gtkui/menus.c:179 src/skins/ui_manager.c:413
 msgid "_Quit"
-msgstr "I_rten"
+msgstr ""
 
 #: src/gtkui/menus.c:182 src/gtkui/menus.c:296
 msgid "_Play"
-msgstr "Erreproduzitu"
+msgstr ""
 
 #: src/gtkui/menus.c:183
 msgid "Paus_e"
-msgstr "Pausatu"
+msgstr ""
 
 #: src/gtkui/menus.c:184
 msgid "_Stop"
-msgstr "Gelditu"
+msgstr ""
 
 #: src/gtkui/menus.c:185
 msgid "Pre_vious"
-msgstr "Aurrekoa"
+msgstr ""
 
 #: src/gtkui/menus.c:186
 msgid "_Next"
@@ -1721,7 +1717,7 @@ msgstr ""
 
 #: src/gtkui/menus.c:207 src/gtkui/menus.c:220
 msgid "By Track _Number"
-msgstr "Pista zenbakiaren arabera"
+msgstr ""
 
 #: src/gtkui/menus.c:209 src/gtkui/menus.c:222
 msgid "By _Artist"
@@ -1805,7 +1801,7 @@ msgstr ""
 
 #: src/gtkui/menus.c:249
 msgid "_Queue Manager ..."
-msgstr "_Ilara Kudeatzailea..."
+msgstr ""
 
 #: src/gtkui/menus.c:252
 msgid "Volume _Up"
@@ -1893,7 +1889,7 @@ msgstr ""
 
 #: src/gtkui/menus.c:285
 msgid "_Queue/Unqueue"
-msgstr "_Ilararatu/Ilaratik kendu"
+msgstr ""
 
 #: src/gtkui/menus.c:288
 msgid "Cu_t"
@@ -1917,12 +1913,12 @@ msgstr ""
 
 #: src/gtkui/ui_gtk.c:96
 msgid "GTK Interface"
-msgstr "GTK Interfazea"
+msgstr ""
 
 #: src/gtkui/ui_gtk.c:198 src/skins/ui_main.c:306
 #, c-format
 msgid "%s - Audacious"
-msgstr "%s - Audacious"
+msgstr ""
 
 #: src/gtkui/ui_gtk.c:204
 msgid "Buffering ..."
@@ -1930,26 +1926,26 @@ msgstr ""
 
 #: src/gtkui/ui_gtk.c:207 src/skins/ui_main.c:308 src/skins/ui_main.c:1451
 msgid "Audacious"
-msgstr "Audacious"
+msgstr ""
 
 #: src/gtkui/ui_gtk.c:253 src/lyricwiki/lyricwiki.c:208
 #: src/lyricwiki/lyricwiki.c:218 src/lyricwiki/lyricwiki.c:242
 #: src/lyricwiki/lyricwiki.c:252 src/lyricwiki/lyricwiki.c:271
 #: src/skins/plugin.c:176
 msgid "Error"
-msgstr "Errorea"
+msgstr ""
 
 #: src/gtkui/ui_statusbar.c:108
 #, c-format
 msgid "%d channel"
 msgid_plural "%d channels"
-msgstr[0] "kanal %d"
-msgstr[1] "%d kanal"
+msgstr[0] ""
+msgstr[1] ""
 
 #: src/gtkui/ui_statusbar.c:123
 #, c-format
 msgid "%d kbps"
-msgstr "%d kbps"
+msgstr ""
 
 #: src/hotkey/gui.c:70
 msgid "Previous track"
@@ -1958,15 +1954,15 @@ msgstr ""
 #: src/hotkey/gui.c:71 src/notify/osd.c:68 src/skins/ui_manager.c:177
 #: src/skins/ui_manager.c:178
 msgid "Play"
-msgstr "Erreproduzitu"
+msgstr ""
 
 #: src/hotkey/gui.c:72
 msgid "Pause/Resume"
-msgstr "Pausatu/jarraitu"
+msgstr ""
 
 #: src/hotkey/gui.c:73 src/skins/ui_manager.c:183 src/skins/ui_manager.c:184
 msgid "Stop"
-msgstr "Gelditu"
+msgstr ""
 
 #: src/hotkey/gui.c:74
 msgid "Next track"
@@ -1982,7 +1978,7 @@ msgstr ""
 
 #: src/hotkey/gui.c:77
 msgid "Mute"
-msgstr "Mututu"
+msgstr ""
 
 #: src/hotkey/gui.c:78
 msgid "Volume up"
@@ -2002,7 +1998,7 @@ msgstr ""
 
 #: src/hotkey/gui.c:82
 msgid "Show On-Screen-Display"
-msgstr "Erakutsi pantaila gaineko mezuak (OSD)"
+msgstr ""
 
 #: src/hotkey/gui.c:83
 msgid "Toggle repeat"
@@ -2022,7 +2018,7 @@ msgstr ""
 
 #: src/hotkey/gui.c:96
 msgid "(none)"
-msgstr "(bat ere ez)"
+msgstr ""
 
 #: src/hotkey/gui.c:233
 msgid ""
@@ -2031,37 +2027,32 @@ msgid ""
 "\n"
 "Do you want to continue?"
 msgstr ""
-"Saguaren botoi nagusia eraldatzailerik gabe lotzea ez da gomendatzen.\n"
-"\n"
-"Jarraitzea nahi duzu?"
 
 #: src/hotkey/gui.c:235
 msgid "Binding mouse buttons"
-msgstr "Saguaren botoiak lotzea"
+msgstr ""
 
 #: src/hotkey/gui.c:385
 msgid "Global Hotkey Plugin Configuration"
-msgstr "Laster-tekla globalen pluginaren konfigurazioa"
+msgstr ""
 
 #: src/hotkey/gui.c:401
 msgid ""
 "Press a key combination inside a text field.\n"
 "You can also bind mouse buttons."
 msgstr ""
-"Sakatu tekla konbinazioa testu-eremuaren barruan.\n"
-"Saguaren botoiak ere lotu ditzakezu."
 
 #: src/hotkey/gui.c:406
 msgid "Hotkeys:"
-msgstr "Laster-teklak"
+msgstr ""
 
 #: src/hotkey/gui.c:423
 msgid "<b>Action:</b>"
-msgstr "<b>Ekintza:</b>"
+msgstr ""
 
 #: src/hotkey/gui.c:430
 msgid "<b>Key Binding:</b>"
-msgstr "<b>Tekla-konbinazioa:</b>"
+msgstr ""
 
 #: src/hotkey/plugin.c:66
 msgid ""
@@ -2097,15 +2088,15 @@ msgstr ""
 #: src/ladspa/plugin.c:493
 #, c-format
 msgid "%s Settings"
-msgstr "%s Ezarpenak"
+msgstr ""
 
 #: src/ladspa/plugin.c:561
 msgid "LADSPA Host Settings"
-msgstr "LADSPA Ostalari Ezarpenak"
+msgstr ""
 
 #: src/ladspa/plugin.c:570
 msgid "Module paths:"
-msgstr "Modulo bideak:"
+msgstr ""
 
 #: src/ladspa/plugin.c:575
 msgid ""
@@ -2113,27 +2104,24 @@ msgid ""
 "These paths are searched in addition to LADSPA_PATH.\n"
 "After adding new paths, press Enter to scan for new plugins.</small>"
 msgstr ""
-"<small>Banatu bide ezberdinak bi puntu bidez ( : ).\n"
-"LADSPA_PATH bidean eta bide hauetan bilatuko da.\n"
-"Bide berria gehitu eta gero, sakatu Enter Plugin berriak bilatzeko.</small>"
 
 #: src/ladspa/plugin.c:591
 msgid "Available plugins:"
-msgstr "Plugin eskuragarriak:"
+msgstr ""
 
 #: src/ladspa/plugin.c:604 src/modplug/plugin_main.c:115
 #: src/modplug/plugin_main.c:119 src/modplug/plugin_main.c:123
 #: src/modplug/plugin_main.c:127
 msgid "Enable"
-msgstr "Gaitu"
+msgstr ""
 
 #: src/ladspa/plugin.c:610
 msgid "Enabled plugins:"
-msgstr "Gaitutako pluginak:"
+msgstr ""
 
 #: src/ladspa/plugin.c:626
 msgid "Settings"
-msgstr "Ezarpenak"
+msgstr ""
 
 #: src/ladspa/plugin.c:645
 msgid ""
@@ -2200,15 +2188,15 @@ msgstr ""
 
 #: src/lirc/lirc.c:393
 msgid "Reconnect to LIRC server"
-msgstr "Berkonektatu LIRC zerbitzarira"
+msgstr ""
 
 #: src/lirc/lirc.c:395
 msgid "Wait before reconnecting:"
-msgstr "Itxaron berkonektatu aurretik:"
+msgstr ""
 
 #: src/lirc/lirc.c:405
 msgid "LIRC Plugin"
-msgstr "LIRC plugina"
+msgstr ""
 
 #: src/lyricwiki/lyricwiki.c:117
 msgid "No lyrics available"
@@ -2238,21 +2226,21 @@ msgstr ""
 
 #: src/lyricwiki/lyricwiki.c:411
 msgid "LyricWiki Plugin"
-msgstr "LyricWiki plugina"
+msgstr ""
 
 #: src/m3u/m3u.c:121
 msgid "M3U Playlists"
-msgstr "M3U Erreprodukzio-zerrendak"
+msgstr ""
 
 #: src/metronom/metronom.c:127
 #, c-format
 msgid "Tact generator: %d bpm"
-msgstr "Ukimen sortzailea: %d bpm"
+msgstr ""
 
 #: src/metronom/metronom.c:129
 #, c-format
 msgid "Tact generator: %d bpm %d/%d"
-msgstr "Ukimen sortzailea: %d bpm %d/%d"
+msgstr ""
 
 #: src/metronom/metronom.c:246
 msgid ""
@@ -2279,7 +2267,7 @@ msgstr ""
 
 #: src/mixer/mixer.c:174
 msgid "Output channels:"
-msgstr "Irteera kanalak:"
+msgstr ""
 
 #: src/mixer/mixer.c:184
 msgid "Channel Mixer"
@@ -2287,7 +2275,7 @@ msgstr ""
 
 #: src/mms/mms.c:224
 msgid "MMS Plugin"
-msgstr "MMS Plugina"
+msgstr ""
 
 #: src/modplug/plugin_main.c:57
 msgid "<b>Resolution</b>"
@@ -2404,11 +2392,11 @@ msgstr ""
 
 #: src/mpg123/mpg123.c:211
 msgid "Surround"
-msgstr "Surround"
+msgstr ""
 
 #: src/mpg123/mpg123.c:569
 msgid "MPG123 Plugin"
-msgstr "MPG123 plugina"
+msgstr ""
 
 #: src/mpris2/plugin.c:403
 msgid "MPRIS 2 Server"
@@ -2416,15 +2404,15 @@ msgstr ""
 
 #: src/neon/neon.c:1228
 msgid "Neon HTTP/HTTPS Plugin"
-msgstr "Neon HTTP/HTTPS plugina"
+msgstr ""
 
 #: src/notify/event.c:64
 msgid "Stopped"
-msgstr "Geldituta"
+msgstr ""
 
 #: src/notify/event.c:64
 msgid "Audacious is not playing."
-msgstr "Audacious ez da jotzen ari."
+msgstr ""
 
 #: src/notify/notify.c:33
 msgid ""
@@ -2464,11 +2452,11 @@ msgstr ""
 
 #: src/notify/osd.c:65 src/skins/ui_manager.c:180 src/skins/ui_manager.c:181
 msgid "Pause"
-msgstr "Pausatu"
+msgstr ""
 
 #: src/notify/osd.c:72 src/skins/ui_manager.c:189 src/skins/ui_manager.c:190
 msgid "Next"
-msgstr "Hurrengoa"
+msgstr ""
 
 #: src/oss4/plugin.c:36
 msgid "1. Default device"
@@ -2476,11 +2464,11 @@ msgstr ""
 
 #: src/oss4/plugin.c:75 src/sndio/sndio.c:393
 msgid "Audio device:"
-msgstr "Soinu-gailua:"
+msgstr ""
 
 #: src/oss4/plugin.c:77
 msgid "Use alternate device:"
-msgstr "Erabili bestelako gailua:"
+msgstr ""
 
 #: src/oss4/plugin.c:81
 msgid "Save volume between sessions."
@@ -2513,7 +2501,7 @@ msgstr ""
 
 #: src/psf/plugin.c:264
 msgid "OpenPSF PSF1/PSF2 Decoder"
-msgstr "OpenPSF PSF1/PSF2 Deskodetzailea"
+msgstr ""
 
 #: src/pulse_audio/pulse_audio.c:644
 msgid ""
@@ -2708,11 +2696,11 @@ msgstr ""
 
 #: src/search-tool/search-tool.c:219
 msgid "Unknown Artist"
-msgstr "Artista ezezaguna"
+msgstr ""
 
 #: src/search-tool/search-tool.c:221
 msgid "Unknown Album"
-msgstr "Disko ezezaguna"
+msgstr ""
 
 #: src/search-tool/search-tool.c:632
 #, c-format
@@ -2725,8 +2713,8 @@ msgstr ""
 #, c-format
 msgid "%d album"
 msgid_plural "%d albums"
-msgstr[0] "%d album"
-msgstr[1] "%d albums"
+msgstr[0] ""
+msgstr[1] ""
 
 #: src/search-tool/search-tool.c:640
 #, c-format
@@ -2786,23 +2774,23 @@ msgstr ""
 
 #: src/skins/skins_cfg.c:204
 msgid "_Player:"
-msgstr "_Erreproduzitzailea:"
+msgstr ""
 
 #: src/skins/skins_cfg.c:205
 msgid "Select main player window font:"
-msgstr "Hautatu erreproduzitzaile nagusiaren leihoko letra-tipoa:"
+msgstr ""
 
 #: src/skins/skins_cfg.c:207
 msgid "_Playlist:"
-msgstr "_Erreprodukzio-zerrenda:"
+msgstr ""
 
 #: src/skins/skins_cfg.c:208
 msgid "Select playlist font:"
-msgstr "Hautatu erreprodukzio-zerrendaren letra-tipoa:"
+msgstr ""
 
 #: src/skins/skins_cfg.c:212
 msgid "<b>_Fonts</b>"
-msgstr "<b>_Letra-tipoak</b>"
+msgstr ""
 
 #: src/skins/skins_cfg.c:215
 msgid "Use bitmap fonts (supports ASCII only)"
@@ -2814,67 +2802,67 @@ msgstr ""
 
 #: src/skins/skins_cfg.c:295
 msgid "<b>_Skin</b>"
-msgstr "<b>_Azala</b>"
+msgstr ""
 
 #: src/skins/skins_cfg.c:342
 msgid "Interface Preferences"
-msgstr "Interfazearen Hobespenak"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:328
 msgid "Preamp"
-msgstr "Aurre-anp"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:332
 msgid "31 Hz"
-msgstr "31 Hz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:333
 msgid "63 Hz"
-msgstr "63 Hz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:333
 msgid "125 Hz"
-msgstr "125 Hz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:333
 msgid "250 Hz"
-msgstr "250 Hz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:333
 msgid "500 Hz"
-msgstr "500 Hz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:333
 msgid "1 kHz"
-msgstr "1 kHz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:334
 msgid "2 kHz"
-msgstr "2 kHz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:334
 msgid "4 kHz"
-msgstr "4 kHz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:334
 msgid "8 kHz"
-msgstr "8 kHz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:334
 msgid "16 kHz"
-msgstr "16 kHz"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:375
 msgid "Audacious Equalizer"
-msgstr "Audacious-en ekualizadorea"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:890
 msgid "Presets"
-msgstr "Aurrezarpenak"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:971 src/skins/ui_manager.c:451
 msgid "Load preset"
-msgstr "Kargatu aurrezarpena"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:988
 msgid "Load auto-preset"
@@ -2887,7 +2875,7 @@ msgstr ""
 
 #: src/skins/ui_equalizer.c:1071 src/skins/ui_manager.c:472
 msgid "Save preset"
-msgstr "Gorde aurrezarpenak"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:1087
 msgid "Save auto-preset"
@@ -2899,7 +2887,7 @@ msgstr ""
 
 #: src/skins/ui_equalizer.c:1173 src/skins/ui_manager.c:487
 msgid "Delete preset"
-msgstr "Ezabatu aurrezarpena"
+msgstr ""
 
 #: src/skins/ui_equalizer.c:1190
 msgid "Delete auto-preset"
@@ -2907,71 +2895,71 @@ msgstr ""
 
 #: src/skins/ui_main.c:414
 msgid "kbps"
-msgstr "kbps"
+msgstr ""
 
 #: src/skins/ui_main.c:422
 msgid "kHz"
-msgstr "kHz"
+msgstr ""
 
 #: src/skins/ui_main.c:770
 #, c-format
 msgid "Seek to %d:%-2.2d / %d:%-2.2d"
-msgstr "Bilatu %d:%-2.2d / %d:%-2.2d"
+msgstr ""
 
 #: src/skins/ui_main.c:791
 #, c-format
 msgid "Volume: %d%%"
-msgstr "Bolumena: %% %d"
+msgstr ""
 
 #: src/skins/ui_main.c:814
 #, c-format
 msgid "Balance: %d%% left"
-msgstr "Balantzea: %% %d ezkerrean"
+msgstr ""
 
 #: src/skins/ui_main.c:816
 msgid "Balance: center"
-msgstr "Balantzea: erdian"
+msgstr ""
 
 #: src/skins/ui_main.c:818
 #, c-format
 msgid "Balance: %d%% right"
-msgstr "Balantzea: %% %d eskuinean"
+msgstr ""
 
 #: src/skins/ui_main.c:942
 msgid "Options Menu"
-msgstr "Aukeren menua"
+msgstr ""
 
 #: src/skins/ui_main.c:946
 msgid "Disable 'Always On Top'"
-msgstr "Desgaitu 'Beti gainean'"
+msgstr ""
 
 #: src/skins/ui_main.c:948
 msgid "Enable 'Always On Top'"
-msgstr "Gaitu 'Beti gainean'"
+msgstr ""
 
 #: src/skins/ui_main.c:951
 msgid "File Info Box"
-msgstr "Fitxategi-informazioaren koadroa"
+msgstr ""
 
 #: src/skins/ui_main.c:956
 msgid "Visualization Menu"
-msgstr "Bisualizazioaren menua"
+msgstr ""
 
 #: src/skins/ui_main.c:1591
 msgid "Single mode."
-msgstr "Single modua."
+msgstr ""
 
 #: src/skins/ui_main.c:1593
 msgid "Playlist mode."
-msgstr "Erreprodukzio-zerrenda modua."
+msgstr ""
 
 #: src/skins/ui_main.c:1615
 msgid "Stopping after song."
-msgstr "Kantuaren ostean geldituko da."
+msgstr ""
 
 #: src/skins/ui_main.c:1617
 msgid "Not stopping after song."
-msgstr "Ez da kantuaren ostean geldituko."
+msgstr ""
 
 #: src/skins/ui_main.c:1752
 msgid "Repeat point A set."
@@ -2991,181 +2979,181 @@ msgstr ""
 
 #: src/skins/ui_manager.c:69 src/skins/ui_manager.c:70
 msgid "Stop after Current Song"
-msgstr "Gelditu uneko abestiaren ondoren"
+msgstr ""
 
 #: src/skins/ui_manager.c:72 src/skins/ui_manager.c:73
 msgid "Peaks"
-msgstr "Erpinak"
+msgstr ""
 
 #: src/skins/ui_manager.c:75 src/skins/ui_manager.c:76
 msgid "Repeat"
-msgstr "Errepikatu"
+msgstr ""
 
 #: src/skins/ui_manager.c:78 src/skins/ui_manager.c:79
 msgid "Shuffle"
-msgstr "Ausazkoa"
+msgstr ""
 
 #: src/skins/ui_manager.c:81 src/skins/ui_manager.c:82
 msgid "No Playlist Advance"
-msgstr "Erreprodukzio-zerrenda aurreraturik ez"
+msgstr ""
 
 #: src/skins/ui_manager.c:84 src/skins/ui_manager.c:85
 msgid "Show Player"
-msgstr "Erakutsi erreproduzitzailea"
+msgstr ""
 
 #: src/skins/ui_manager.c:87 src/skins/ui_manager.c:88
 msgid "Show Playlist Editor"
-msgstr "Erakutsi erreprodukzio-zerrendaren editorea"
+msgstr ""
 
 #: src/skins/ui_manager.c:90 src/skins/ui_manager.c:91
 msgid "Show Equalizer"
-msgstr "Erakutsi ekualizadorea"
+msgstr ""
 
 #: src/skins/ui_manager.c:93 src/skins/ui_manager.c:94
 msgid "Always on Top"
-msgstr "Beti gainean"
+msgstr ""
 
 #: src/skins/ui_manager.c:96 src/skins/ui_manager.c:97
 msgid "Put on All Workspaces"
-msgstr "Jarri laneko area guztietan"
+msgstr ""
 
 #: src/skins/ui_manager.c:99 src/skins/ui_manager.c:100
 msgid "Roll up Player"
-msgstr "Bildu erreproduzitzailea"
+msgstr ""
 
 #: src/skins/ui_manager.c:102 src/skins/ui_manager.c:103
 msgid "Roll up Playlist Editor"
-msgstr "Bildu erreprodukzio-zerrendaren editorea"
+msgstr ""
 
 #: src/skins/ui_manager.c:105 src/skins/ui_manager.c:106
 msgid "Roll up Equalizer"
-msgstr "Bildu ekualizadorea"
+msgstr ""
 
 #: src/skins/ui_manager.c:114
 msgid "Analyzer"
-msgstr "Analizatzailea"
+msgstr ""
 
 #: src/skins/ui_manager.c:115
 msgid "Scope"
-msgstr "Esparrua"
+msgstr ""
 
 #: src/skins/ui_manager.c:116
 msgid "Voiceprint"
-msgstr "Ahotsmarka"
+msgstr ""
 
 #: src/skins/ui_manager.c:117
 msgid "Off"
-msgstr "Itzalita"
+msgstr ""
 
 #: src/skins/ui_manager.c:121 src/skins/ui_manager.c:138
 #: src/skins/ui_manager.c:144
 msgid "Normal"
-msgstr "Normala"
+msgstr ""
 
 #: src/skins/ui_manager.c:122 src/skins/ui_manager.c:139
 msgid "Fire"
-msgstr "Sua"
+msgstr ""
 
 #: src/skins/ui_manager.c:123
 msgid "Vertical Lines"
-msgstr "Marra bertikalak"
+msgstr ""
 
 #: src/skins/ui_manager.c:127
 msgid "Lines"
-msgstr "Marrak"
+msgstr ""
 
 #: src/skins/ui_manager.c:128
 msgid "Bars"
-msgstr "Barrak"
+msgstr ""
 
 #: src/skins/ui_manager.c:132
 msgid "Dot Scope"
-msgstr "Puntu esparrua"
+msgstr ""
 
 #: src/skins/ui_manager.c:133
 msgid "Line Scope"
-msgstr "Marra esparrua"
+msgstr ""
 
 #: src/skins/ui_manager.c:134
 msgid "Solid Scope"
-msgstr "Esparru soila"
+msgstr ""
 
 #: src/skins/ui_manager.c:140
 msgid "Ice"
-msgstr "Izotza"
+msgstr ""
 
 #: src/skins/ui_manager.c:145
 msgid "Smooth"
-msgstr "Leuna"
+msgstr ""
 
 #: src/skins/ui_manager.c:149 src/skins/ui_manager.c:157
 msgid "Slowest"
-msgstr "Motelena"
+msgstr ""
 
 #: src/skins/ui_manager.c:150 src/skins/ui_manager.c:158
 msgid "Slow"
-msgstr "Motela"
+msgstr ""
 
 #: src/skins/ui_manager.c:151 src/skins/ui_manager.c:159
 #: src/sox-resampler/sox-resampler.c:143
 msgid "Medium"
-msgstr "Tartekoa"
+msgstr ""
 
 #: src/skins/ui_manager.c:152 src/skins/ui_manager.c:160
 msgid "Fast"
-msgstr "Azkarra"
+msgstr ""
 
 #: src/skins/ui_manager.c:153 src/skins/ui_manager.c:161
 msgid "Fastest"
-msgstr "Azkarrena"
+msgstr ""
 
 #: src/skins/ui_manager.c:165
 msgid "Time Elapsed"
-msgstr "Igarotako denbora"
+msgstr ""
 
 #: src/skins/ui_manager.c:166
 msgid "Time Remaining"
-msgstr "Geratzen den denbora"
+msgstr ""
 
 #: src/skins/ui_manager.c:186 src/skins/ui_manager.c:187
 msgid "Previous"
-msgstr "Aurrekoa"
+msgstr ""
 
 #: src/skins/ui_manager.c:195
 msgid "Visualization"
-msgstr "Bisualizazioa"
+msgstr ""
 
 #: src/skins/ui_manager.c:196
 msgid "Visualization Mode"
-msgstr "Bisualizazio modua"
+msgstr ""
 
 #: src/skins/ui_manager.c:197
 msgid "Analyzer Mode"
-msgstr "Analizatzaile modua"
+msgstr ""
 
 #: src/skins/ui_manager.c:198
 msgid "Scope Mode"
-msgstr "Esparru modua"
+msgstr ""
 
 #: src/skins/ui_manager.c:199
 msgid "Voiceprint Mode"
-msgstr "Ahotsmarkaren modua"
+msgstr ""
 
 #: src/skins/ui_manager.c:200
 msgid "WindowShade VU Mode"
-msgstr "LeihoItzaldura VU modua"
+msgstr ""
 
 #: src/skins/ui_manager.c:201
 msgid "Analyzer Falloff"
-msgstr "Analizatzailearen erortzea"
+msgstr ""
 
 #: src/skins/ui_manager.c:202
 msgid "Peaks Falloff"
-msgstr "Erpinen erortzea"
+msgstr ""
 
 #: src/skins/ui_manager.c:207
 msgid "Playlist"
-msgstr "Erreprodukzio-zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:209 src/skins/ui_manager.c:210
 msgid "Play Playlist"
@@ -3173,451 +3161,438 @@ msgstr ""
 
 #: src/skins/ui_manager.c:212 src/skins/ui_manager.c:213
 msgid "New Playlist"
-msgstr "Erreprodukzio-zerrenda berria"
+msgstr ""
 
 #: src/skins/ui_manager.c:215 src/skins/ui_manager.c:216
 msgid "Select Next Playlist"
-msgstr "Hautatu hurrengo erreprodukzio-zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:218 src/skins/ui_manager.c:219
 msgid "Select Previous Playlist"
-msgstr "Hautatu aurreko erreprodukzio-zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:221 src/skins/ui_manager.c:222
 msgid "Delete Playlist"
-msgstr "Ezabatu erreprodukzio-zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:224
 msgid "Import Playlist"
-msgstr "Inportatu erreprodukzio-zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:225
 msgid "Loads a playlist file into the selected playlist."
 msgstr ""
-"Erreprodukzio-zerrendaren fitxategia kargatzen du hautatutako erreprodukzio-"
-"zerrendan."
 
 #: src/skins/ui_manager.c:228
 msgid "Export Playlist"
-msgstr "Esportatu erreprodukzio-zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:229
 msgid "Saves the selected playlist."
-msgstr "Hautatutako erreprodukzio-zerrenda gordetzen du"
+msgstr ""
 
 #: src/skins/ui_manager.c:231
 msgid "Refresh List"
-msgstr "Freskatu zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:232
 msgid "Refreshes metadata associated with a playlist entry."
 msgstr ""
-"Erreprodukzio-zerrendako sarrera bati esleituta dagoen metadatuak freskatzen "
-"ditu."
 
 #: src/skins/ui_manager.c:235
 msgid "Playlist Manager"
-msgstr "Erreprodukzio-zerrenda kudeatzailea"
+msgstr ""
 
 #: src/skins/ui_manager.c:238
 msgid "Queue Manager"
-msgstr "Ilara kudeatzailea"
+msgstr ""
 
 #: src/skins/ui_manager.c:243
 msgid "View"
-msgstr "Ikusi"
+msgstr ""
 
 #: src/skins/ui_manager.c:244
 msgid "Interface"
-msgstr "Interfazea"
+msgstr ""
 
 #: src/skins/ui_manager.c:245
 msgid "Interface Preferences ..."
-msgstr "Intefazearen Hobespenak ...."
+msgstr ""
 
 #: src/skins/ui_manager.c:250
 msgid "Add Internet Address..."
-msgstr "Gehitu interneteko helbidea..."
+msgstr ""
 
 #: src/skins/ui_manager.c:251
 msgid "Adds a remote track to the playlist."
-msgstr "Gehitu urruneko pista erreprodukzio-zerrendari."
+msgstr ""
 
 #: src/skins/ui_manager.c:254
 msgid "Add Files..."
-msgstr "Gehitu fitxategiak..."
+msgstr ""
 
 #: src/skins/ui_manager.c:255
 msgid "Adds files to the playlist."
-msgstr "Gehitu fitxategiak erreprodukzio-zerrendari."
+msgstr ""
 
 #: src/skins/ui_manager.c:260
 msgid "Search and Select"
-msgstr "Bilatu eta hautatu"
+msgstr ""
 
 #: src/skins/ui_manager.c:261
 msgid ""
 "Searches the playlist and selects playlist entries based on specific "
 "criteria."
 msgstr ""
-"Erreprodukzio-zerrendan bilatzen du eta irizpide zehatz batzuetan "
-"oinarritutako erreprodukzio-zerrendako sarrerak hautatzen ditu."
 
 #: src/skins/ui_manager.c:264
 msgid "Invert Selection"
-msgstr "Alderantzikatu hautapena"
+msgstr ""
 
 #: src/skins/ui_manager.c:265
 msgid "Inverts the selected and unselected entries."
-msgstr "Hautatutako edo hautatu gabeko sarrerak alderantzikatzen ditu."
+msgstr ""
 
 #: src/skins/ui_manager.c:268
 msgid "Select All"
-msgstr "Hautatu denak"
+msgstr ""
 
 #: src/skins/ui_manager.c:269
 msgid "Selects all of the playlist entries."
-msgstr "Hautatu erreprodukzio-zerrendako sarrera guztiak."
+msgstr ""
 
 #: src/skins/ui_manager.c:272
 msgid "Select None"
-msgstr "Ez hautatu ezer"
+msgstr ""
 
 #: src/skins/ui_manager.c:273
 msgid "Deselects all of the playlist entries."
-msgstr "Erreprodukzio-zerrendako sarrera guztiak desautatzen ditu."
+msgstr ""
 
 #: src/skins/ui_manager.c:278
 msgid "Remove All"
-msgstr "Kendu guztiak"
+msgstr ""
 
 #: src/skins/ui_manager.c:279
 msgid "Removes all entries from the playlist."
-msgstr "Sarrera guztiak kentzen ditu erreprodukzio-zerrendatik"
+msgstr ""
 
 #: src/skins/ui_manager.c:282
 msgid "Clear Queue"
-msgstr "Garbitu ilara"
+msgstr ""
 
 #: src/skins/ui_manager.c:283
 msgid "Clears the queue associated with this playlist."
-msgstr "Erreprodukzio-zerrendarekin esleitutako ilara garbitzen du."
+msgstr ""
 
 #: src/skins/ui_manager.c:286
 msgid "Remove Unavailable Files"
-msgstr "Kendu fitxategi erabilkaitzak"
+msgstr ""
 
 #: src/skins/ui_manager.c:287
 msgid "Removes unavailable files from the playlist."
 msgstr ""
-"Erabilgarri ez dauden fitxategiak kentzen ditu erreprodukzio-zerrendatik."
 
 #: src/skins/ui_manager.c:290
 msgid "Remove Duplicates"
-msgstr "Kendu bikoiztuak"
+msgstr ""
 
 #: src/skins/ui_manager.c:292 src/skins/ui_manager.c:324
 #: src/skins/ui_manager.c:354
 msgid "By Title"
-msgstr "Tituluaren arabera"
+msgstr ""
 
 #: src/skins/ui_manager.c:293
 msgid "Removes duplicate entries from the playlist by title."
 msgstr ""
-"Tituluaren arabera bikoiztutako sarrerak kentzen ditu erreprodukzio-"
-"zerrendatik."
 
 #: src/skins/ui_manager.c:296 src/skins/ui_manager.c:336
 #: src/skins/ui_manager.c:366
 msgid "By Filename"
-msgstr "Fitxategi-izenaren arabera"
+msgstr ""
 
 #: src/skins/ui_manager.c:297
 msgid "Removes duplicate entries from the playlist by filename."
 msgstr ""
-"Fitxategi-izenaren arabera bikoiztutako sarrerak kenten ditu erreprodukzio-"
-"zerrendatik."
 
 #: src/skins/ui_manager.c:300 src/skins/ui_manager.c:340
 #: src/skins/ui_manager.c:370
 msgid "By Path + Filename"
-msgstr "Bide-izenaren arabera"
+msgstr ""
 
 #: src/skins/ui_manager.c:301
 msgid "Removes duplicate entries from the playlist by their full path."
 msgstr ""
-"Bide-izen osoaren arabera bikoiztutako sarrerak kentzen ditu erreprodukzio-"
-"zerrendatik."
 
 #: src/skins/ui_manager.c:304
 msgid "Remove Unselected"
-msgstr "Kendu desautatutakoak"
+msgstr ""
 
 #: src/skins/ui_manager.c:305
 msgid "Remove unselected entries from the playlist."
-msgstr "Desautatutako sarrerak kentzen ditu erreprodukzio-zerrendatik."
+msgstr ""
 
 #: src/skins/ui_manager.c:308
 msgid "Remove Selected"
-msgstr "Kendu hautatutakoak"
+msgstr ""
 
 #: src/skins/ui_manager.c:309
 msgid "Remove selected entries from the playlist."
-msgstr "Hautatutako sarrerak kentzen ditu erreprodukzio-zerrendatik."
+msgstr ""
 
 #: src/skins/ui_manager.c:314
 msgid "Randomize List"
-msgstr "Nahastu ausaz zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:315
 msgid "Randomizes the playlist."
-msgstr "Nahastu ausaz erreprodukzio-zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:318
 msgid "Reverse List"
-msgstr "Alderantzikatu zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:319
 msgid "Reverses the playlist."
-msgstr "Alderantzikatu erreprodukzio-zerrenda."
+msgstr ""
 
 #: src/skins/ui_manager.c:322
 msgid "Sort List"
-msgstr "Ordenatu zerrenda"
+msgstr ""
 
 #: src/skins/ui_manager.c:325 src/skins/ui_manager.c:355
 msgid "Sorts the list by title."
-msgstr "Tituluaren arabera ordenatzen du zerrenda."
+msgstr ""
 
 #: src/skins/ui_manager.c:328 src/skins/ui_manager.c:358
 msgid "By Album"
-msgstr "Diskoaren arabera"
+msgstr ""
 
 #: src/skins/ui_manager.c:329 src/skins/ui_manager.c:359
 msgid "Sorts the list by album."
-msgstr "Ordenatu zerrenda diskoaren arabera"
+msgstr ""
 
 #: src/skins/ui_manager.c:332 src/skins/ui_manager.c:362
 msgid "By Artist"
-msgstr "Artistaren arabera"
+msgstr ""
 
 #: src/skins/ui_manager.c:333 src/skins/ui_manager.c:363
 msgid "Sorts the list by artist."
-msgstr "Artistaren arabera ordenatzen du zerrenda."
+msgstr ""
 
 #: src/skins/ui_manager.c:337 src/skins/ui_manager.c:367
 msgid "Sorts the list by filename."
-msgstr "Fitxategi-izenaren arabera ordenatzen du zerrenda."
+msgstr ""
 
 #: src/skins/ui_manager.c:341 src/skins/ui_manager.c:371
 msgid "Sorts the list by full pathname."
-msgstr "Bide-izen osoaren arabera ordenatzen du zerrenda."
+msgstr ""
 
 #: src/skins/ui_manager.c:344 src/skins/ui_manager.c:374
 msgid "By Date"
-msgstr "Dataren arabera"
+msgstr ""
 
 #: src/skins/ui_manager.c:345 src/skins/ui_manager.c:375
 msgid "Sorts the list by modification time."
-msgstr "Eraldatze-dataren arabera ordenatzen du zerrenda."
+msgstr ""
 
 #: src/skins/ui_manager.c:348 src/skins/ui_manager.c:378
 msgid "By Track Number"
-msgstr "Pista zenbakiaren arabera"
+msgstr ""
 
 #: src/skins/ui_manager.c:349 src/skins/ui_manager.c:379
 msgid "Sorts the list by track number."
-msgstr "Pista zenbakiaren arabera ordenatzen du zerrenda."
+msgstr ""
 
 #: src/skins/ui_manager.c:352
 msgid "Sort Selected"
-msgstr "Ordenatu hautatutakoak"
+msgstr ""
 
 #: src/skins/ui_manager.c:388
 msgid "File"
-msgstr "Fitxategia"
+msgstr ""
 
 #: src/skins/ui_manager.c:391
 msgid "Plugin Services"
-msgstr "Pluginen zerbitzuak"
+msgstr ""
 
 #: src/skins/ui_manager.c:393 src/skins/ui_manager.c:396
 msgid "View Track Details"
-msgstr "Ikusi pistaren xehetasunak"
+msgstr ""
 
 #: src/skins/ui_manager.c:394 src/skins/ui_manager.c:397
 msgid "View track details"
-msgstr "Ikusi pistaren xehetasunak"
+msgstr ""
 
 #: src/skins/ui_manager.c:399 src/skins/ui_manager.c:400
 msgid "About Audacious"
-msgstr "Audacious-i buruz"
+msgstr ""
 
 #: src/skins/ui_manager.c:402
 msgid "Play File"
-msgstr "Erreproduzitu fitxategia"
+msgstr ""
 
 #: src/skins/ui_manager.c:403
 msgid "Load and play a file"
-msgstr "Kargatu eta erreproduzitu fitxategi bat"
+msgstr ""
 
 #: src/skins/ui_manager.c:405
 msgid "Play Location"
-msgstr "Erreproduzitu kokalekua"
+msgstr ""
 
 #: src/skins/ui_manager.c:406
 msgid "Play media from the selected location"
-msgstr "Erreproduzitu multimedia hautatutako kokalekutik"
+msgstr ""
 
 #: src/skins/ui_manager.c:408
 msgid "Plugin services"
-msgstr "Pluginen zerbitzuak"
+msgstr ""
 
 #: src/skins/ui_manager.c:410
 msgid "Preferences"
-msgstr "Hobespenak"
+msgstr ""
 
 #: src/skins/ui_manager.c:411
 msgid "Open preferences window"
-msgstr "Ireki hobespenen leihoa"
+msgstr ""
 
 #: src/skins/ui_manager.c:414
 msgid "Quit Audacious"
-msgstr "Irten Audacious-etik"
+msgstr ""
 
 #: src/skins/ui_manager.c:416 src/skins/ui_manager.c:417
 msgid "Set A-B"
-msgstr "Ezarri A-B"
+msgstr ""
 
 #: src/skins/ui_manager.c:419 src/skins/ui_manager.c:420
 msgid "Clear A-B"
-msgstr "Garbitu A-B"
+msgstr ""
 
 #: src/skins/ui_manager.c:422 src/skins/ui_manager.c:423
 msgid "Jump to File"
-msgstr "Joan fitxategira"
+msgstr ""
 
 #: src/skins/ui_manager.c:425 src/skins/ui_manager.c:426
 msgid "Jump to Time"
-msgstr "Jauzi denborara"
+msgstr ""
 
 #: src/skins/ui_manager.c:428
 msgid "Queue Toggle"
-msgstr "Txandakatu ilara"
+msgstr ""
 
 #: src/skins/ui_manager.c:429
 msgid "Enables/disables the entry in the playlist's queue."
-msgstr "Erreprodukzio-zerrendako ilarako sarrerak gaitzen/desgaitzen ditu."
+msgstr ""
 
 #: src/skins/ui_manager.c:432
 msgid "Copy"
-msgstr "Kopiatu"
+msgstr ""
 
 #: src/skins/ui_manager.c:435
 msgid "Cut"
-msgstr "Moztu"
+msgstr ""
 
 #: src/skins/ui_manager.c:438
 msgid "Paste"
-msgstr "Itsatsi"
+msgstr ""
 
 #: src/skins/ui_manager.c:445
 msgid "Load"
-msgstr "Kargatu"
+msgstr ""
 
 #: src/skins/ui_manager.c:446
 msgid "Import"
-msgstr "Inportatu"
+msgstr ""
 
 #: src/skins/ui_manager.c:447
 msgid "Save"
-msgstr "Gorde"
+msgstr ""
 
 #: src/skins/ui_manager.c:448
 msgid "Delete"
-msgstr "Ezabatu"
+msgstr ""
 
 #: src/skins/ui_manager.c:450 src/skins/ui_manager.c:471
 #: src/skins/ui_manager.c:486
 msgid "Preset"
-msgstr "Aurrezarpena"
+msgstr ""
 
 #: src/skins/ui_manager.c:453 src/skins/ui_manager.c:474
 #: src/skins/ui_manager.c:489
 msgid "Auto-load preset"
-msgstr "Autokargaren aurrezarpena"
+msgstr ""
 
 #: src/skins/ui_manager.c:454
 msgid "Load auto-load preset"
-msgstr "Kargatu autokargaren aurrezarpenak"
+msgstr ""
 
 #: src/skins/ui_manager.c:457
 msgid "Load default preset into equalizer"
-msgstr "Kargatu aurrezarpen lehenetsia ekualizadorean"
+msgstr ""
 
 #: src/skins/ui_manager.c:459
 msgid "Zero"
-msgstr "Zero"
+msgstr ""
 
 #: src/skins/ui_manager.c:460
 msgid "Set equalizer preset levels to zero"
-msgstr "Ezarri ekualizadorearen aurrezarpenen maila zerorekin"
+msgstr ""
 
 #: src/skins/ui_manager.c:462
 msgid "From file"
-msgstr "Fitxategitik"
+msgstr ""
 
 #: src/skins/ui_manager.c:463
 msgid "Load preset from file"
-msgstr "Kargatu aurrezarpenak fitxategitik"
+msgstr ""
 
 #: src/skins/ui_manager.c:465
 msgid "From WinAMP EQF file"
-msgstr "WinAMP EQF fitxategitik"
+msgstr ""
 
 #: src/skins/ui_manager.c:466
 msgid "Load preset from WinAMP EQF file"
-msgstr "Kargatu aurrezarpenak WinAMP EQF fitxategitik"
+msgstr ""
 
 #: src/skins/ui_manager.c:468
 msgid "WinAMP Presets"
-msgstr "WinAMP aurrezarpenak"
+msgstr ""
 
 #: src/skins/ui_manager.c:469
 msgid "Import WinAMP presets"
-msgstr "Inportatu WinAMP aurrezarpenak"
+msgstr ""
 
 #: src/skins/ui_manager.c:475
 msgid "Save auto-load preset"
-msgstr "Gorde autokargaren aurrezarpenak"
+msgstr ""
 
 #: src/skins/ui_manager.c:478
 msgid "Save default preset"
-msgstr "Gorde aurrezarpen lehenetsia"
+msgstr ""
 
 #: src/skins/ui_manager.c:480
 msgid "To file"
-msgstr "Fitxategian"
+msgstr ""
 
 #: src/skins/ui_manager.c:481
 msgid "Save preset to file"
-msgstr "Gorde aurrezarpena fitxategian"
+msgstr ""
 
 #: src/skins/ui_manager.c:483
 msgid "To WinAMP EQF file"
-msgstr "WinAMP EQF fitxategian"
+msgstr ""
 
 #: src/skins/ui_manager.c:484
 msgid "Save preset to WinAMP EQF file"
-msgstr "Gorde aurrezarpena WinAMP EQF fitxategian"
+msgstr ""
 
 #: src/skins/ui_manager.c:490
 msgid "Delete auto-load preset"
-msgstr "Ezabatu autokargaren aurrezarpenak"
+msgstr ""
 
 #: src/skins/ui_playlist.c:244
 msgid "Search entries in active playlist"
-msgstr "Bilatu sarrerak erreprodukzio-zerrenda aktiboan"
+msgstr ""
 
 #: src/skins/ui_playlist.c:251
 msgid ""
@@ -3626,42 +3601,38 @@ msgid ""
 "expressions work, simply insert a literal portion of what you're searching "
 "for."
 msgstr ""
-"Hautatu sarrerak erreprodukzio-zerrendan eremu bat edo gehiago betez. "
-"Eremuek adierazpen erregularrak erabiltzen dituzte, maiuskulak eta "
-"minuskulak ez bereiztuz. Ez badakizu adierazpen erregularrak nola ibiltzen "
-"diren, sartu bilatzea nahi duzunaren zati literal bat."
 
 #: src/skins/ui_playlist.c:259
 msgid "Title: "
-msgstr "Izenburua: "
+msgstr ""
 
 #: src/skins/ui_playlist.c:267
 msgid "Album: "
-msgstr "Diskoa: "
+msgstr ""
 
 #: src/skins/ui_playlist.c:275
 msgid "Artist: "
-msgstr "Artista: "
+msgstr ""
 
 #: src/skins/ui_playlist.c:283
 msgid "Filename: "
-msgstr "Fitxategi-izena: "
+msgstr ""
 
 #: src/skins/ui_playlist.c:292
 msgid "Clear previous selection before searching"
-msgstr "Garbitu aurreko hautapena bilatu aurretik"
+msgstr ""
 
 #: src/skins/ui_playlist.c:295
 msgid "Automatically toggle queue for matching entries"
-msgstr "Txandakatu automatikoki ilara bat datozen sarrerentzako"
+msgstr ""
 
 #: src/skins/ui_playlist.c:298
 msgid "Create a new playlist with matching entries"
-msgstr "Sortu erreprodukzio-zerrenda berria bat datozen sarrerekin"
+msgstr ""
 
 #: src/skins/ui_playlist.c:738
 msgid "Audacious Playlist Editor"
-msgstr "Audacious erreprodukzio-zerrendaren editorea"
+msgstr ""
 
 #: src/skins/ui_playlist.c:772
 #, c-format
@@ -3670,16 +3641,16 @@ msgstr ""
 
 #: src/skins/ui_skinselector.c:162
 msgid "Archived Winamp 2.x skin"
-msgstr "Konprimitutako Winamp 2.x azala"
+msgstr ""
 
 #: src/skins/ui_skinselector.c:167
 msgid "Unarchived Winamp 2.x skin"
-msgstr "Deskonprimitutako Winamp 2.x azala"
+msgstr ""
 
 #: src/skins/util.c:773
 #, c-format
 msgid "Could not create directory (%s): %s\n"
-msgstr "Ezin izan da direktorioa (%s) sortu: %s\n"
+msgstr ""
 
 #: src/sndfile/plugin.c:416
 msgid ""
@@ -3705,11 +3676,11 @@ msgstr ""
 
 #: src/sndfile/plugin.c:435
 msgid "Sndfile Plugin"
-msgstr "Sndfile plugina"
+msgstr ""
 
 #: src/sndio/sndio.c:172
 msgid "About Sndio Output Plugin"
-msgstr "Sndio irteera pluginari buruz"
+msgstr ""
 
 #: src/sndio/sndio.c:173
 msgid ""
@@ -3717,13 +3688,10 @@ msgid ""
 "\n"
 "Written by Thomas Pfaff <tpfaff@tp76.info>\n"
 msgstr ""
-"Sndio irteera plugina\n"
-"\n"
-"Thomas Pfaff-ek idatzia <tpfaff@tp76.info>\n"
 
 #: src/sndio/sndio.c:248
 msgid "Unsupported format"
-msgstr "Onartu gabeko formatua"
+msgstr ""
 
 #: src/sndio/sndio.c:249
 msgid ""
@@ -3731,25 +3699,22 @@ msgid ""
 "\n"
 "Please try again with the sndiod(1) server running."
 msgstr ""
-"Audio gailuak onartzen ez duen formatua eskatu da.\n"
-"\n"
-"Mesedez berriro saiatu sndiod(1) zerbitzaria martxan dela"
 
 #: src/sndio/sndio.c:384
 msgid "sndio device"
-msgstr "sndio gailua"
+msgstr ""
 
 #: src/sndio/sndio.c:400
 msgid "(empty means default)"
-msgstr "(hutsik badago: lehenetsia)"
+msgstr ""
 
 #: src/sndio/sndio.c:416
 msgid "OK"
-msgstr "Ados"
+msgstr "OK"
 
 #: src/sndio/sndio.c:424
 msgid "Cancel"
-msgstr "Utzi"
+msgstr "Cancel"
 
 #: src/song_change/song_change.c:54
 msgid "Song Change"
@@ -3757,29 +3722,25 @@ msgstr ""
 
 #: src/song_change/song_change.c:436
 msgid "Command to run when Audacious starts a new song."
-msgstr "Exekutatuko den komandoa audacious-ek abesti berria hastean."
+msgstr ""
 
 #: src/song_change/song_change.c:438 src/song_change/song_change.c:444
 #: src/song_change/song_change.c:450 src/song_change/song_change.c:456
 msgid "Command:"
-msgstr "Komandoa:"
+msgstr ""
 
 #: src/song_change/song_change.c:442
 msgid "Command to run toward the end of a song."
-msgstr "Exekutatuko den komandoa abestiaren amaierantz joatean."
+msgstr ""
 
 #: src/song_change/song_change.c:448
 msgid "Command to run when Audacious reaches the end of the playlist."
 msgstr ""
-"Exekutatuko den komandoa Audacious erreprodukzio-zerrendaren amaierara "
-"iristean."
 
 #: src/song_change/song_change.c:454
 msgid ""
 "Command to run when title changes for a song (i.e. network streams titles)."
 msgstr ""
-"Exekutatuko den komandoa abesti baten titulua aldatzean (adib. sareko "
-"korronteen tituluak)."
 
 #: src/song_change/song_change.c:460
 msgid ""
@@ -3799,33 +3760,16 @@ msgid ""
 "%b: Album\n"
 "%T: Track title"
 msgstr ""
-"Hurrengo formatu kateak erabili ditzazkezu \n"
-"eta komandoa deitu aurretik ordezaktuko dira\n"
-"(Denak ez dira erabilgarriak erreproduzkio-zerrenda bukaerako komanoan):\n"
-"\n"
-"%F: Frekuentzia (hertziotan)\n"
-"%c: Kanal kopurua\n"
-"%f: Fitxategi izena (bide osoa)\n"
-"%l: Iraupena (milisegunduetan)\n"
-"%n edo %s: Kantuaren izena\n"
-"%r:Bitartea (bit segunduko\n"
-"%t: Erreprodukzio-zerrendan posizioa (%02d)\n"
-"%p: Jotzen ari da (1 edo 0)\n"
-"%a: Artista\n"
-"%b: Diskoa\n"
-"%T: Pista izena"
 
 #: src/song_change/song_change.c:487
 msgid ""
 "<span size='small'>Parameters passed to the shell should be encapsulated in "
 "quotes. Doing otherwise is a security risk.</span>"
 msgstr ""
-"<span size='small'>Shell-ari emandako parametroak komatxoen artean kapsulatu "
-"behar dira. Bestela segurtasunezko arriskua izan daiteke.</span>"
 
 #: src/song_change/song_change.c:498
 msgid "Commands"
-msgstr "Komandoak"
+msgstr ""
 
 #: src/sox-resampler/sox-resampler.c:135
 msgid ""
@@ -3862,19 +3806,19 @@ msgstr ""
 
 #: src/speed-pitch/speed-pitch.c:225
 msgid "<b>Speed and Pitch</b>"
-msgstr "<b>Abiadura eta Tonoa</b>"
+msgstr ""
 
 #: src/speed-pitch/speed-pitch.c:226
 msgid "Speed:"
-msgstr "Abiadura:"
+msgstr ""
 
 #: src/speed-pitch/speed-pitch.c:229
 msgid "Pitch:"
-msgstr "Tonoa:"
+msgstr ""
 
 #: src/speed-pitch/speed-pitch.c:264
 msgid "Speed and Pitch"
-msgstr "Abiadura eta Tonoa"
+msgstr ""
 
 #: src/statusicon/statusicon.c:390
 msgid ""
@@ -3893,15 +3837,15 @@ msgstr ""
 
 #: src/statusicon/statusicon.c:398
 msgid "Change volume"
-msgstr "Aldatu bolumena"
+msgstr ""
 
 #: src/statusicon/statusicon.c:401
 msgid "Change playing song"
-msgstr "Aldatu erreprodukzioaren abestia"
+msgstr ""
 
 #: src/statusicon/statusicon.c:404
 msgid "<b>Other Settings</b>"
-msgstr "<b>Bestelako Ezarpenak</b>"
+msgstr ""
 
 #: src/statusicon/statusicon.c:405
 msgid "Disable the popup window"
@@ -3937,11 +3881,11 @@ msgstr ""
 #: src/tonegen/tonegen.c:84
 #, c-format
 msgid "%s %.1f Hz"
-msgstr "%s %.1f Hz"
+msgstr ""
 
 #: src/tonegen/tonegen.c:84
 msgid "Tone Generator: "
-msgstr "Tonu-sortzailea: "
+msgstr ""
 
 #: src/tonegen/tonegen.c:197
 msgid ""
@@ -3995,7 +3939,7 @@ msgstr ""
 
 #: src/vorbis/vorbis.c:575
 msgid "Ogg Vorbis Decoder"
-msgstr "Ogg Vorbis Deskodetzailea"
+msgstr ""
 
 #: src/vtx/vtx.c:242
 msgid ""
@@ -4006,7 +3950,7 @@ msgstr ""
 
 #: src/vtx/vtx.c:248
 msgid "VTX Decoder"
-msgstr "VTX Deskodetzailea"
+msgstr ""
 
 #: src/wavpack/wavpack.c:282
 msgid "lossy (hybrid)"
@@ -4025,11 +3969,11 @@ msgstr ""
 
 #: src/wavpack/wavpack.c:341
 msgid "WavPack Decoder"
-msgstr "WavPack Deskodetzailea"
+msgstr ""
 
 #: src/xsf/plugin.c:272
 msgid "2SF Decoder"
-msgstr "2SF Deskodetzailea"
+msgstr ""
 
 #: src/xspf/xspf.c:440
 msgid "XML Shareable Playlists (XSPF)"
