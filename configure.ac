@@ -5,7 +5,7 @@ dnl ***
 dnl Initialize
 dnl ==========
 AC_PREREQ([2.59])
-AC_INIT([audacious-plugins], [3.4.1])
+AC_INIT([audacious-plugins], [3.4.2])
 AC_COPYRIGHT([(C) 2005-2013 Audacious Team])
 
 AC_SUBST([PACKAGE], [AC_PACKAGE_TARNAME])
@@ -22,6 +22,10 @@ AUD_COMMON_PROGS
 
 BUILDSYS_INIT
 BUILDSYS_SHARED_LIB
+
+dnl Disable deprecation warnings for stable branch
+dnl ==============================================
+CFLAGS="$CFLAGS -Wno-deprecated-declarations"
 
 dnl Headers and functions
 dnl =====================
@@ -635,12 +639,15 @@ AC_ARG_ENABLE(sdlout,
 
 have_sdlout=no
 if test "x$enable_sdlout" != "xno"; then
-    PKG_CHECK_MODULES([SDL], [sdl >= 1.2.11],
-        [have_sdlout=yes
-         OUTPUT_PLUGINS="$OUTPUT_PLUGINS sdlout"],
-        [if test "x$enable_sdlout" = "xyes"; then
-            AC_MSG_ERROR([Cannot find SDL development files (ver >= 1.2.11), but compilation of SDL output plugin has been explicitly requested; please install SDL dev files and run configure again])
-         fi])
+    PKG_CHECK_MODULES([SDL], [sdl2 >= 2.0],
+       [have_sdlout=yes
+        OUTPUT_PLUGINS="$OUTPUT_PLUGINS sdlout"],
+       [PKG_CHECK_MODULES([SDL], [sdl >= 1.2.11],
+           [have_sdlout=yes
+            OUTPUT_PLUGINS="$OUTPUT_PLUGINS sdlout"],
+           [if test "x$enable_sdlout" = "xyes"; then
+               AC_MSG_ERROR([Cannot find SDL development files (ver >= 1.2.11), but compilation of SDL output plugin has been explicitly requested; please install SDL dev files and run configure again])
+            fi])])
 fi
 
 dnl *** sndio output
