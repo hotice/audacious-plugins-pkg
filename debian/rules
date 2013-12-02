@@ -10,7 +10,7 @@ endif
 	dh $@ --parallel --with autoreconf
 
 override_dh_auto_configure:
-	dh_auto_configure -- --disable-rpath $(additional_confflags)
+	dh_auto_configure -- --disable-rpath $(additional_confflags) --disable-silent-rules
 
 override_dh_strip:
 	dh_strip --dbg-package=audacious-plugins-dbg
