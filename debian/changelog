@@ -1,6 +1,7 @@
 audacious-plugins (3.4.3-1) UNRELEASED; urgency=medium
 
   * New upstream release.
+  * Change libsid package to re-enable SID support. Closes: #716776
 
  -- Jackson Doak <noskcaj@ubuntu.com>  Sun, 16 Feb 2014 18:08:10 +1100
 

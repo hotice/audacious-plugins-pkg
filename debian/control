@@ -45,7 +45,7 @@ Build-Depends:
  libsamplerate0-dev (>=0.0.15),
  libsdl1.2-dev (>= 1.2.9),
  libshout3-dev,
- libsidplay2-dev | libsidplay1-dev,
+ libsidplayfp-dev,
  libsndfile1-dev (>= 0.19),
  libtagc0-dev (>= 1.4),
  libvorbis-dev (>= 1.1),
