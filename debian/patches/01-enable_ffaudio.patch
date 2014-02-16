@@ -5,9 +5,9 @@ Forwarded: no
  configure.ac |    4 ++--
  1 file changed, 2 insertions(+), 2 deletions(-)
 
---- audacious-plugins.orig/configure.ac
-+++ audacious-plugins/configure.ac
-@@ -510,11 +510,11 @@ AC_ARG_ENABLE(ffaudio,
+--- a/configure.ac
++++ b/configure.ac
+@@ -514,11 +514,11 @@ AC_ARG_ENABLE(ffaudio,
  
  have_ffaudio=no
  if test "x$enable_ffaudio" != "xno"; then
