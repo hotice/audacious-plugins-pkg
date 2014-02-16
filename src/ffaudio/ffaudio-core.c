@@ -52,12 +52,6 @@ typedef struct
 }
 CodecInfo;
 
-/* str_unref() may be a macro */
-static void str_unref_cb (void * str)
-{
-    str_unref (str);
-}
-
 static gint lockmgr (void * * mutexp, enum AVLockOp op)
 {
     switch (op)
@@ -107,7 +101,7 @@ static const gchar * ffaudio_strerror (gint error)
 static GHashTable * create_extension_dict (void)
 {
     GHashTable * dict = g_hash_table_new_full (g_str_hash, g_str_equal,
-     str_unref_cb, NULL);
+     (GDestroyNotify) str_unref, NULL);
 
     AVInputFormat * f;
     for (f = av_iformat_next (NULL); f; f = av_iformat_next (f))
@@ -180,18 +174,16 @@ static AVInputFormat * get_format_by_content (const gchar * name, VFSFile * file
     {
         if (filled < size)
             filled += vfs_fread (buf + filled, 1, size - filled, file);
-        if (filled < size)
-            break;
 
-        memset (buf + size, 0, AVPROBE_PADDING_SIZE);
-        AVProbeData d = {name, buf, size};
+        memset (buf + filled, 0, AVPROBE_PADDING_SIZE);
+        AVProbeData d = {name, buf, filled};
         score = target;
 
         f = av_probe_input_format2 (& d, TRUE, & score);
         if (f)
             break;
 
-        if (size < 16384)
+        if (size < 16384 && filled == size)
             size *= 4;
         else if (target > 10)
             target = 10;
@@ -200,7 +192,7 @@ static AVInputFormat * get_format_by_content (const gchar * name, VFSFile * file
     }
 
     if (f)
-        AUDDBG ("Format %s, buffer size %d, score %d.\n", f->name, size, score);
+        AUDDBG ("Format %s, buffer size %d, score %d.\n", f->name, filled, score);
     else
         AUDDBG ("Format unknown.\n");
 
@@ -682,6 +674,9 @@ static const gchar *ffaudio_fmts[] = {
 
     /* Handle OGG streams (FLAC/Vorbis etc.) */
     "ogg", "oga",
+
+    /* Opus */
+    "opus",
 
     /* Speex */
     "spx",
