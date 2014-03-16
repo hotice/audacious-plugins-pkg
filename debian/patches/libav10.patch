@@ -1,0 +1,23 @@
+From 8398c021f03fc89deab000c91464d1dd2fb8e9b4 Mon Sep 17 00:00:00 2001
+From: Anton Khirnov <anton@khirnov.net>
+Date: Thu, 16 Jan 2014 12:52:59 +0100
+Subject: [PATCH] ffaudio: fix build with latest libavcodec versions
+
+---
+ src/ffaudio/ffaudio-core.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+--- a/src/ffaudio/ffaudio-core.c
++++ b/src/ffaudio/ffaudio-core.c
+@@ -283,7 +283,11 @@ ffaudio_codec_is_seekable(AVCodec *codec
+      */
+     switch (codec->id) {
+ #ifndef FFAUDIO_NO_BLACKLIST
++#if CHECK_LIBAVCODEC_VERSION(54, 25, 0)
++        case AV_CODEC_ID_MUSEPACK8:
++#else
+         case CODEC_ID_MUSEPACK8:
++#endif
+             AUDDBG("codec is blacklisted from seeking\n");
+             return FALSE;
+ #endif
